@@ -131,11 +131,11 @@ zooLitave = group_by(zooLitx, anlyLS, Analy, lifestage, Station, month) %>%
 zooLitave =droplevels(zooLitave)
 
 #set up labels
-zoolabs = c("Amphipoda", "Annelida", "Calanoida","Cal juv", "Cal nauplii", 
-            "Cladocera", "Collembola", "Copepoda nauplii", "Corophiidae",
-            "Cyclopoda", "Cyclopoid juv", "fish", "Gammaridea", "Harpacticoida",
-            "Insecta", "Insect larvae", "Isopoda", "Mollusca", "Mysidea", "Ostracoda", "other",
-            "Rotifera", "terrestrial")
+zoolabs = c("Calanoida","Cal juv", "Cal nauplii", 
+            "Cladocera", "Copepoda nauplii", "Cumaceans",
+            "Cyclopoda", "Cyclopoid juv", "fish", "Harpacticoida",
+            "Ostracoda", "other",
+            "Rotifera")
 
 #Now a bar plot
 z1 = ggplot(zooLitave, aes(x=month, y= CPUE))
@@ -173,17 +173,17 @@ visreg(g1)
 
 #Create a community matrix
 Commat = dcast(zooLit2, ZSampleID~anlyLS, value.var = "CPUE", fun.aggregate = sum)
-Commat = Commat[,2:24]
+Commat = Commat[,2:14]
 
 #relative abundance amtrix
 Commatp = Commat/rowSums(Commat)
 
 #make better names for adding to the NMDS plots
-names(Commat) =  c("Amphipoda", "Annelida", "Calanoida","Cal juv", "Cal naup", 
-                   "Cladocera", "Collembola", "cop naup", "Corophiidae",
-                   "Cyclopoda", "Cyclo juv", "fish", "Gammaridea", "Harpacticoida",
-                   "Insecta", "Insect larvae", "Isopoda", "Mollusca", "Mysidea", "Ostracoda", "other",
-                   "Rotifera", "terrestrial")
+names(Commat) =  c("Calanoida","Cal juv", "Cal nauplii", 
+                   "Cladocera", "Copepoda nauplii", "Cumaceans",
+                   "Cyclopoda", "Cyclopoid juv", "fish", "Harpacticoida",
+                   "Ostracoda", "other",
+                   "Rotifera")
 names(Commatp) = names(Commat)
 
 
@@ -205,6 +205,8 @@ n2 = metaMDS(Commatp, trymax = 100)
 #Show the NMDS plots
 source("plotNMDS.R")
 #do a quick plot with hulls by location
+
+zooLitsum$Location = as.factor(zooLitsum$Location)
 PlotNMDS(n2, data = zooLitsum, group = "Location")
 #there are definitely differences, but they are a bit of a mess
 
@@ -490,15 +492,15 @@ n12 = metaMDS(Commat2, trymax = 200)
 n22 = metaMDS(Commatp2, trymax = 500)
 
 
-#do a quick plot with hulls by location
+#look at plots
+zoosum$survey = as.factor((zoosum$survey))
+zoosum$month = as.factor((zoosum$month))
 PlotNMDS(n12, data = zoosum, group = "survey", textp = F)
-#there are definitely differences, but they are a bit of a mess
 PlotNMDS(n12, data = zoosum, group = "Station20mm", textp = F)
 PlotNMDS(n12, data = zoosum, group = "month", textp = F)
 
-#do a quick plot with hulls by location
+#now with relative abundance
 PlotNMDS(n22, data = zoosum, group = "survey", textp = F)
-#there are definitely differences, but they are a bit of a mess
 PlotNMDS(n22, data = zoosum, group = "Station20mm", textp = F)
 PlotNMDS(n22, data = zoosum, group = "month", textp = F)
 
