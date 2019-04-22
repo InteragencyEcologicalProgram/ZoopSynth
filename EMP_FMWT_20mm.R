@@ -40,8 +40,11 @@ View(zooEMP5)
 FMWT <- read_excel("FMWT_TNSZooplanktonDataCPUEOct2017.xls", 
                   sheet = "FMWT&TNS ZP CPUE")
 
-zooFMWT = melt(FMWT, id = c("Project", "Year", "Survey", "Month", "Date", "Station", "Index", "Time", "TowDuration", "Region", "FLaSHRegionGroup", "TideCode", "DepthBottom",
-                                    "CondSurf", "PPTSurf", "SurfSalinityGroup", "CondBott", "PPTBott", "TempSurf", "Secchi", "Turbidity", "Microcystis", "TotalMeter", "Volume"), variable.name = "Taxa", value.name = "CPUE")
+zooFMWT = melt(FMWT, id = c("Project", "Year", "Survey", "Month", "Date", "Station", "Index", "Time", 
+                            "TowDuration", "Region", "FLaSHRegionGroup", "TideCode", "DepthBottom",
+                                    "CondSurf", "PPTSurf", "SurfSalinityGroup", "CondBott", "PPTBott", 
+                            "TempSurf", "Secchi", "Turbidity", "Microcystis", "TotalMeter", "Volume"), 
+               variable.name = "Taxa", value.name = "CPUE")
 
 zooFMWT2 = zooFMWT[,c(1,2,3,5,6,10,19,20,24,25,26)]
 
@@ -67,7 +70,8 @@ View(FMWT_EMP)
 
 # check to see if duplicates
 
-zooEMPc = dcast(FMWT_EMP, Year + Survey + Date+ Station + Region + Secchi + Temperature + Project + Volume ~ LCDtax, value.var = "CPUE", fun.aggregate = sum)
+zooEMPc = dcast(FMWT_EMP, Year + Survey + Date+ Station + Region + Secchi + Temperature + 
+                  Project + Volume ~ LCDtax, value.var = "CPUE", fun.aggregate = sum)
 # is it correct to sum them? (for instance SYNCH is enetered twice in the LCD column because
 # it corresponds to both SYNCH and SYNCHBIC in the EMPtaxa column - so EMP has two entries
 # for SYNCH)
@@ -141,12 +145,14 @@ merged <- round(FMWT_EMP_20mm$CPUE, digits = 3)
 View(merged)
 
 #convert to wide data frame
-FMWT_EMP_20mm_wide = dcast(FMWT_EMP_20mm, Date + Station + Project + Volume ~ LCDtax, value.var = "CPUE", fun.aggregate = sum)
+FMWT_EMP_20mm_wide = dcast(FMWT_EMP_20mm, Date + Station + Project + Volume ~ LCDtax, 
+                           value.var = "CPUE", fun.aggregate = sum)
 View(FMWT_EMP_20mm_wide)
 
 # create unique sample ID
 
-FMWT_EMP_20mm_wide$sampleID = paste(FMWT_EMP_20mm_wide$Date,FMWT_EMP_20mm_wide$Station,FMWT_EMP_20mm_wide$Project)
+FMWT_EMP_20mm_wide$sampleID = paste(FMWT_EMP_20mm_wide$Date, FMWT_EMP_20mm_wide$Station, 
+                                    FMWT_EMP_20mm_wide$Project)
 FMWT_EMP_20mm_wide <- FMWT_EMP_20mm_wide[c(56,1:55)]
 
 # below is just a function to round
