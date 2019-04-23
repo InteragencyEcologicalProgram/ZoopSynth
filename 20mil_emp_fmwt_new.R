@@ -6,6 +6,10 @@ library(reshape2)
 library(visreg)
 library(readxl)
 
+#download the file
+download.file("ftp://ftp.wildlife.ca.gov/IEP_Zooplankton/1972-2017CBMatrix.xlsx", 
+              "1972-2017CBMatrix.xlsx", mode="wb")
+
 
 # first import and modify EMP data
 EMP <- read_excel("1972-2017CBMatrix.xlsx", 
@@ -64,6 +68,11 @@ zooEMP5 = zooEMP4[,-c(1)]
 
 # then modify FMWT data set (still includes summer samples - not sure if they 
 # should be removed)
+
+#download the file
+download.file("ftp://ftp.wildlife.ca.gov/TownetFallMidwaterTrawl/Zoopl_TownetFMWT/FMWT%20TNSZooplanktonDataCPUEOct2017.xls", 
+              "FMWT_TNSZooplanktonDataCPUEOct2017.xls", mode="wb")
+
 FMWT <- read_excel("FMWT_TNSZooplanktonDataCPUEOct2017.xls", 
                   sheet = "FMWT&TNS ZP CPUE")
 
@@ -106,6 +115,7 @@ zooEMPc = dcast(FMWT_EMP, Year + Survey + Date + Station + CondSurf+ CondBott +
 # is it correct to sum them? (for instance SYNCH is enetered twice in the LCD 
 # column because it corresponds to both SYNCH and SYNCHBIC in the EMPtaxa 
 # column - so EMP has two entries for SYNCH)
+# Rosie - Yes! Looks great.
 
 
 ## Import 20 mil and calculate CPUE
@@ -156,6 +166,9 @@ zoo20$CPUE = zoo20$atotal/zoo20$volume
 #merge environmental data for 20mm w/ CPUE data
 # import survey and station informationf from excel files (these excel files are from 20mm mdb - requires a lot of different
 # packages to import directly from mdb so just converted them to excel files for now)
+
+
+#Rosie - we can probably just put this in to the origional query from teh database...
 
 survey <- read_excel("20mm_Survey.xlsx")
 
@@ -225,6 +238,7 @@ round_df <- function(df, digits = 3) {
 
 mergeddata<-round_df(merged_zoop, digits = 3)
 View(mergeddata)
+str(mergeddata)
 
 write.csv(mergeddata, file = "merged.csv")
 
