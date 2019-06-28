@@ -1,5 +1,9 @@
 # code to merge EMP, FMWT, and 20mm date - merges EMP and FMWT first, then 20mm
 
+library(readxl)
+library(tidyverse)
+library(reshape2)
+
 # first import and modify EMP data
 EMP <- read_excel("1972-2017CBMatrix.xlsx", 
                       sheet = "CB CPUE Matrix 1972-2017")
@@ -28,7 +32,7 @@ View(zooEMP3)
 # now add crosswalk LCD names
 crosswalk <- read_excel("FMWT_crosswalk.xlsx", sheet = "EMP_FMWT")
 View(crosswalk)
-zooEMP4 = merge(zooEMP3, distinct(crosswalk[,c(1,3)]), by = "EMPtaxa")
+zooEMP4 = merge(zooEMP3, distinct(crosswalk[,c(1,2, 4)]), by = "EMPtaxa")
 View(zooEMP4)
 
 # remove unique EMP taxa column
@@ -55,7 +59,7 @@ zooFMWT3 = rename(zooFMWT2, FMWTtaxa = Taxa)
 View(zooFMWT3)
 
 # now add crosswalk LCD names
-zooFMWT4 = merge(zooFMWT3, distinct(crosswalk[,c(2,3)]), by = "FMWTtaxa")
+zooFMWT4 = merge(zooFMWT3, distinct(crosswalk[,c(1,3, 4)]), by = "FMWTtaxa")
 View(zooFMWT4)
 
 # remove unique FMWT taxa column
@@ -135,7 +139,7 @@ zoop20.1 = rename(zoop20.1, Station = Station20mm)
 zoop20.1 = rename(zoop20.1, Date = SampleDate)
 zoop20.1 = rename(zoop20.1, Volume = volume)
 
-FMWT_EMP_2 = FMWT_EMP[,c(3,4,8,9,10,11)] 
+FMWT_EMP_2 = FMWT_EMP[,c(3,4,8,9,10,12)] 
 View(FMWT_EMP_2)
 
 # bind all three
