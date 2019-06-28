@@ -145,6 +145,9 @@ View(FMWT_EMP_2)
 # bind all three
 FMWT_EMP_20mm = rbind(FMWT_EMP_2, zoop20.1)
 View(FMWT_EMP_20mm)
+
+write.csv(FMWT_EMP_20mm, "FMWT_EMP_20mm.csv", row.names = F)
+
 merged <- round(FMWT_EMP_20mm$CPUE, digits = 3)
 View(merged)
 

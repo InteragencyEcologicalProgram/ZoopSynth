@@ -39,6 +39,7 @@ ui <- fluidPage(
 
 # Define server logic required to draw a plot
 server <- function(input, output) {
+    FMWT_EMP_20mm = read.csv("FMWT_EMP_20mm.csv")
 
     output$distPlot <- renderPlot({
         #select the data the user wants
