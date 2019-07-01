@@ -25,8 +25,9 @@ ui <- fluidPage(
             checkboxGroupInput("taxon",
                                "Taxon:",
                                choices = c("ACARJUV", "ACARTELA","ACARTIA",
-                                           "ASINEJUV",   "ASPLANCH",   "BARNNAUP",   "BOSMINA","CALJUV"))
-        ),
+                                           "ASINEJUV",   "ASPLANCH",   "BARNNAUP",   "BOSMINA","CALJUV")),
+        downloadButton("download", "Download")
+            ),
 
         # Show a plot of the generated distribution
         mainPanel(
@@ -40,15 +41,25 @@ ui <- fluidPage(
 # Define server logic required to draw a plot
 server <- function(input, output) {
     FMWT_EMP_20mm = read.csv("FMWT_EMP_20mm.csv")
-
+    
     output$distPlot <- renderPlot({
         #select the data the user wants
         x    <- FMWT_EMP_20mm[which(FMWT_EMP_20mm$Project == input$survey &
-                                        FMWT_EMP_20mm$LCDtax == input$taxon), ]
+                                    FMWT_EMP_20mm$LCDtax == input$taxon), ]
 
         # draw the histogram with the specified number of bins
         ggplot(x, aes(x=Date, y = CPUE, color = LCDtax)) + geom_point(aes(pch = Project))
     })
+    output$download = downloadHandler(
+        filename = function() {
+            paste("data-", Sys.Date(), ".csv", sep="")
+        },
+        content = function(file) {
+            x    <- FMWT_EMP_20mm[which(FMWT_EMP_20mm$Project == input$survey &
+                                            FMWT_EMP_20mm$LCDtax == input$taxon), ]
+            write.csv(x, file)
+        }
+    )
 }
 
 # Run the application 
