@@ -126,17 +126,24 @@ mbrmb2<-update(mbrmb, formula.=.~.-LIMNOSINE_Pump_l:Secchi_s:Catch_total_CB_s -L
           control=list(adapt_delta=0.95))
 mbrmb2<-add_criterion(mbrmb2, c("loo", "waic"), reloo=T)
 
-##Best model
+##Best model v
 mbrmb3<-update(mbrmb2, formula.=.~.-Secchi_s:Temperature_s:Catch_total_CB_s -LIMNOSINE_Pump_l:Secchi_s:Chl_s,
           chains=2, cores=2,
           control=list(adapt_delta=0.95))
 mbrmb3<-add_criterion(mbrmb3, c("loo", "waic"), reloo=T)
+##Best model ^
+
+mbrmb4<-update(mbrmb3, formula.=.~.-Secchi_s:Chl_s:Catch_total_CB_s,
+          chains=2, cores=2,
+          control=list(adapt_delta=0.95))
+mbrmb4<-add_criterion(mbrmb4, c("loo", "waic"), reloo=T)
 ```
 
 loo model comparison output:
 
        elpd_diff se_diff
 mbrmb3  0.0       0.0   
+mbrmb4 -2.4       2.2   
 mbrmb2 -5.9       3.7   
 mbrmb  -6.4       3.8  
 
