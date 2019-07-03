@@ -1,4 +1,4 @@
-Zooper<-function(EMP=F, FMWT=F, twentymm=F, FRP=F, Daterange=c(NA, NA), Months=NA, Years=NA, SalBottrange=NA, SalSurfrange=NA, Temprange=NA, Latrange=NA, Longrange=NA){
+Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), Months=NA, Years=NA, SalBottrange=NA, SalSurfrange=NA, Temprange=NA, Latrange=NA, Longrange=NA){
   
 
 # Documentation -----------------------------------------------------------
@@ -74,7 +74,7 @@ Zooper<-function(EMP=F, FMWT=F, twentymm=F, FRP=F, Daterange=c(NA, NA), Months=N
 # EMP ---------------------------------------------------------------------
 
   
-  if(EMP){
+  if("EMP"%in%Sources){
     #download the file
     #download.file("ftp://ftp.wildlife.ca.gov/IEP_Zooplankton/1972-2018CBMatrix.xlsx", 
     #              "1972-2018CBMatrix.xlsx", mode="wb")
@@ -82,7 +82,7 @@ Zooper<-function(EMP=F, FMWT=F, twentymm=F, FRP=F, Daterange=c(NA, NA), Months=N
     
     # Import the EMP data
     
-    EMP <- read_excel("1972-2018CBMatrix.xlsx", 
+    zoo_EMP <- read_excel("1972-2018CBMatrix.xlsx", 
                       sheet = "CB CPUE Matrix 1972-2018", 
                       col_types = c("numeric","numeric", "numeric", "numeric", "date", 
                                     "text", "text", "text", "numeric", 
@@ -103,7 +103,7 @@ Zooper<-function(EMP=F, FMWT=F, twentymm=F, FRP=F, Daterange=c(NA, NA), Months=N
     # Tranform from "wide" to "long" format, add some variables, 
     # alter data to match other datasets
     
-    data.list[["EMP"]] <- EMP%>%
+    data.list[["EMP"]] <- zoo_EMP%>%
       gather(key="EMP", value="CPUE", -SurveyCode, -Year, -Survey, -SurveyRep, 
              -Date, -Station, -EZStation, -DWRStation, 
              -Core, -Region, -Secchi, -`Chl-a`, -Temperature,
@@ -130,14 +130,14 @@ Zooper<-function(EMP=F, FMWT=F, twentymm=F, FRP=F, Daterange=c(NA, NA), Months=N
 # FMWT --------------------------------------------------------------------
 
   
-  if(FMWT){
+  if("FMWT"%in%Sources){
     #download the file
     #download.file("ftp://ftp.wildlife.ca.gov/TownetFallMidwaterTrawl/Zoopl_TownetFMWT/FMWT%20TNSZooplanktonDataCPUEOct2017.xls", 
     #             "FMWT_TNSZooplanktonDataCPUEOct2017.xls", mode="wb")
 
     # Import the FMWT data
     
-    suppressWarnings(FMWT <- read_excel("FMWT_TNSZooplanktonDataCPUEOct2017.xls", 
+    suppressWarnings(zoo_FMWT <- read_excel("FMWT_TNSZooplanktonDataCPUEOct2017.xls", 
                                         sheet = "FMWT&TNS ZP CPUE", 
                                         col_types=c("text", rep("numeric", 3), "date", "text", "text", 
                                                     "text", "numeric", "text", "text", rep("numeric", 4), 
@@ -146,7 +146,7 @@ Zooper<-function(EMP=F, FMWT=F, twentymm=F, FRP=F, Daterange=c(NA, NA), Months=N
     # Tranform from "wide" to "long" format, add some variables, 
     # alter data to match other datasets
     
-    data.list[["FMWT"]] <- FMWT%>%
+    data.list[["FMWT"]] <- zoo_FMWT%>%
       mutate(Datetime=suppressWarnings(parse_date_time(paste(Date, Time), "%Y-%m-%d %H:%M")))%>% #create a variable for datetime
       gather(key="FMWT", value="CPUE", -Project, -Year, -Survey, -Month, -Date, -Datetime,
              -Station, -Index, -Time, -TowDuration, 
@@ -173,7 +173,7 @@ Zooper<-function(EMP=F, FMWT=F, twentymm=F, FRP=F, Daterange=c(NA, NA), Months=N
 
   # Import and modify 20mm data
   
-  if(twentymm){
+  if("20mm"%in%Sources){
     suppressWarnings(zoopquery20mm <- read_excel("zoopquery20mm.xlsx", 
                                 col_types = c("date", "numeric", "numeric", 
                                               "numeric", "numeric", "numeric", 
@@ -184,7 +184,7 @@ Zooper<-function(EMP=F, FMWT=F, twentymm=F, FRP=F, Daterange=c(NA, NA), Months=N
     
     #Rosie's code to calculate CPUE for 20mm, modified to dplyr format by Sam
     
-    zoo20<-zoopquery20mm%>%
+    zoo_20mm<-zoopquery20mm%>%
       group_by(SampleID)%>% 
       summarise(totcells = max(CellNumber), totCountall = sum(ZooCount))%>%
       right_join(zoopquery20mm%>%
@@ -216,7 +216,7 @@ Zooper<-function(EMP=F, FMWT=F, twentymm=F, FRP=F, Daterange=c(NA, NA), Months=N
       rename(Date=SampleDate)
     
     # then merge with CPUE data
-    data.list[["twentymm"]] <-zoo20%>%
+    data.list[["twentymm"]] <-zoo_20mm%>%
       left_join(enviro20mm, by = c("Station", "Date"))%>%
       rename(twentymm=CommonName)%>%
       left_join(crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
@@ -239,18 +239,18 @@ Zooper<-function(EMP=F, FMWT=F, twentymm=F, FRP=F, Daterange=c(NA, NA), Months=N
 
   # Import the FRP data
   
-  if(FRP){
-    FRP <- read_excel("zoopsFRP2018.xlsx",
+  if("FRP"%in%Sources){
+    zoo_FRP <- read_excel("zoopsFRP2018.xlsx",
                       col_types = c("text","date", "date", rep("numeric", 8), 
                                     "text", "text", "text", 
                                     "numeric", "numeric","numeric","numeric",
                                     "numeric", "text"), na=c("", "NA"))
     
     #Already in long format
-    data.list[["FRP"]] <- FRP%>%
+    data.list[["FRP"]] <- zoo_FRP%>%
       mutate(Station=replace(Station, Station=="Lindsey Tules", "Lindsey tules"),
              Station=replace(Station, Station=="LinBR", "LinBr"))%>% #Rename inconsistent station names to match
-      mutate(Datetime=parse_date_time(paste0(Date, " ", hour(FRP$time), ":", minute(FRP$time)), "%Y-%m-%d %%H:%M"))%>% #Create a variable for datetime
+      mutate(Datetime=parse_date_time(paste0(Date, " ", hour(time), ":", minute(time)), "%Y-%m-%d %%H:%M"))%>% #Create a variable for datetime
       mutate(Source="FRP")%>% #add variable for data source
       select(Source, Date, Datetime, 
              Station, CondSurf = SC, Secchi, pH, DO, Turbidity, Tide, Microcystis,
@@ -368,21 +368,21 @@ Zooper<-function(EMP=F, FMWT=F, twentymm=F, FRP=F, Daterange=c(NA, NA), Months=N
     select(Genus_g, Family_g, Order_g, Class_g, Phylum_g)%>%
     gather("Level", "Species")%>%
     filter(!is.na(Species))%>%
-    select(Species)%>%
+    pull(Species)%>%
     unique()
   
   # Output list of taxa that were not measured in all datasets, and are 
   # not higher taxa that can be calculated by summing lower taxa, i.e. 
   # "orphan taxa"
   
-  Orphans<-paste(Lumped[-str_which(paste0("[", paste(as_vector(Groups), collapse="|"), "]"), word(Lumped, 1, -2))], collapse=", ")
+  Orphans<-paste(Lumped[-str_which(paste0("[", paste(Groups, collapse="|"), "]"), word(Lumped, 1, -2))], collapse=", ")
   print(paste("NOTE: These species are not counted in all datasets:", Orphans), quote=F)
   
   # Calculate summed groups and create a final dataset
   
   zoop<-map_dfr(c("Genus_g", "Family_g", "Order_g", "Class_g", "Phylum_g"), .f=LCD, df=zoop)%>% #Taxonomic level by level, summarise for each of these grouping categories and bind them all together
     bind_rows(zoop%>% #Bind these summarized groupings to the original taxonomic categories in the original dataset
-                mutate(Taxatype=ifelse(Taxname%in%as_vector(Groups), "UnID species", "Species")))%>% 
+                mutate(Taxatype=ifelse(Taxname%in%Groups, "UnID species", "Species")))%>% 
     ungroup()%>%
     mutate(Taxlifestage=paste(Taxname, Lifestage), #add back in the Taxlifestage variable (removed by the LCD function)
            Orphan=ifelse(Taxlifestage%in%Orphans, T, F)) #add an identifier for orphan taxa (species not counted in all data sources)
