@@ -7,7 +7,6 @@ editor_options:
 
 Trying to create a model to account for undersampling of small zooplankters by CB nets
 Using Bayesian models with brms to utilize complex model structures (hurdle_lognormal), but maybe there's an easier frequentist way to do this?
-I Ran into computer issues with Stan and Rstudio repeatedly crashing, so I have not made much progress while I'm trying to figure that out.
 
 
 ```{r setup, include=FALSE}
@@ -120,15 +119,27 @@ mbrmb<-brm(LIMNOSINE_CB~(LIMNOSINE_Pump_l+Secchi_s+Chl_s+Temperature_s+Catch_tot
           prior = prior(normal(0,5), class=b),
           chains=2, cores=2,
           control=list(adapt_delta=0.95))
-mbrmb<-add_criterion(mbrmb, c("loo", "waic"), reloo=T, cores=1)
+mbrmb<-add_criterion(mbrmb, c("loo", "waic"), reloo=T)
 
 mbrmb2<-update(mbrmb, formula.=.~.-LIMNOSINE_Pump_l:Secchi_s:Catch_total_CB_s -LIMNOSINE_Pump_l:Secchi_s:Temperature_s -Secchi_s:Chl_s:Temperature_s,
           chains=2, cores=2,
           control=list(adapt_delta=0.95))
 mbrmb2<-add_criterion(mbrmb2, c("loo", "waic"), reloo=T)
 
+##Best model
 mbrmb3<-update(mbrmb2, formula.=.~.-Secchi_s:Temperature_s:Catch_total_CB_s -LIMNOSINE_Pump_l:Secchi_s:Chl_s,
           chains=2, cores=2,
           control=list(adapt_delta=0.95))
 mbrmb3<-add_criterion(mbrmb3, c("loo", "waic"), reloo=T)
 ```
+
+loo model comparison output:
+
+       elpd_diff se_diff
+mbrmb3  0.0       0.0   
+mbrmb2 -5.9       3.7   
+mbrmb  -6.4       3.8  
+
+R2 for mbrmb3
+ Estimate  Est.Error      Q2.5     Q97.5
+R2 0.524531 0.05082824 0.4201043 0.6351251
