@@ -80,9 +80,12 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
 
   
   if("EMP"%in%Sources){
+    
     #download the file
-    #download.file("ftp://ftp.wildlife.ca.gov/IEP_Zooplankton/1972-2018CBMatrix.xlsx", 
-    #              "1972-2018CBMatrix.xlsx", mode="wb")
+    if (!file.exists("1972-2018CBMatrix.xlsx")) {
+      download.file("ftp://ftp.wildlife.ca.gov/IEP_Zooplankton/1972-2018CBMatrix.xlsx", 
+                    "1972-2018CBMatrix.xlsx", mode="wb")
+    }
     
     
     # Import the EMP data
@@ -143,9 +146,12 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
 
   
   if("FMWT"%in%Sources){
+    
     #download the file
-    #download.file("ftp://ftp.wildlife.ca.gov/TownetFallMidwaterTrawl/Zoopl_TownetFMWT/FMWT%20TNSZooplanktonDataCPUEOct2017.xls", 
-    #             "FMWT_TNSZooplanktonDataCPUEOct2017.xls", mode="wb")
+    if (!file.exists("FMWT_TNSZooplanktonDataCPUEOct2017.xls")) {
+      download.file("ftp://ftp.wildlife.ca.gov/TownetFallMidwaterTrawl/Zoopl_TownetFMWT/FMWT%20TNSZooplanktonDataCPUEOct2017.xls", 
+                    "FMWT_TNSZooplanktonDataCPUEOct2017.xls", mode="wb")
+    }
 
     # Import the FMWT data
     
@@ -423,11 +429,22 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
 
 # Ideas for testing -------------------------------------------------------
 
-#1) Make sure rows aren't repeated by looking for repeats of paste(SurveyID, Taxlifestage)
+# 1)  Make sure rows aren't repeated by looking for repeats of 
+#   paste(SurveyID, Taxlifestage)
 
 
 
 # Issues ------------------------------------------------------------------
 
-#In 20mm, was station 706 sampled twice on 7/6/2017? It is listed twice in the data with different meterstart and ends.
-#Currently, the summed groups replace higher level classifications like Pseudodiaptomus spp. Should I add those unID / unknown categories back in? If users wish to calculate other sums it might be important. 
+
+
+# TODO --------------------------------------------------------------------
+
+# 1)  Test case_when statements that are assigning appropriate NAs and 0s 
+#   depending on intro, start, and end years to make sure they are working 
+#   correctly
+
+# 2)  Do we need to make some of these case_when statements for FRP data or 
+#   are 0s and NAs already assigned appropriately?
+
+# 3)  If (or when) possible, add download link for FRP and 20mm data
