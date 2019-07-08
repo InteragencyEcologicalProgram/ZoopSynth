@@ -45,9 +45,12 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
   # unified set of "Taxname" and "Lifestage" values.
   
   crosswalk <- read_excel("new_crosswalk.xlsx", sheet = "Hierarchy2")%>%
-    mutate_at(vars(c("EMPstart", "EMPend", "Intro", "FMWTstart", "FMWTend", "twentymmstart", "twentymmend", "twentymmstart2")), ~parse_date(as.character(.), format="%Y"))%>% ##NOTE MAY NEED TO CHANGE END DATES TO LAST DATE OF YEAR DEPENDING ON THEIR MEANING (LAST YEAR IN USE? OR FIRST YEAR NOT IN USE?)
+    mutate_at(vars(c("EMPstart", "EMPend", "Intro", "FMWTstart", "FMWTend", "twentymmstart", "twentymmend", "twentymmstart2")), ~parse_date(as.character(.), format="%Y"))%>%
     mutate_at(vars(c("EMPstart", "FMWTstart", "twentymmstart", "twentymmstart2", "EMPend", "FMWTend", "twentymmend")), ~replace_na(., as_date(Inf)))%>% #Change any NAs for starts or ends to Infinity (i.e. never started or ended)
-    mutate_at(vars(c("Intro")), ~replace_na(., as_date(-Inf))) #Change any NAs in Intro date to -Inf (i.e., always been around)
+    mutate(EMPend = if_else(is.finite(EMPend), EMPend+years(1), EMPend))%>% #Change end dates to beginning of next year (first day it was not counted)
+    mutate(FMWTend = if_else(is.finite(FMWTend), FMWTend+years(1), FMWTend))%>% #Change end dates to beginning of next year (first day it was not counted)
+    mutate(twentymmend = if_else(is.finite(twentymmend), twentymmend+years(1), twentymmend))%>% #Change end dates to beginning of next year (first day it was not counted)
+    mutate(Intro=replace_na(Intro, as_date(-Inf))) #Change any NAs in Intro date to -Inf (i.e., always been around)
   
   # Load station key to later incorporate latitudes and longitudes
   
@@ -420,9 +423,11 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
                 mutate(Taxatype=ifelse(Taxname%in%Groups, "UnID species", "Species")))%>% 
     ungroup()%>%
     mutate(Taxlifestage=paste(Taxname, Lifestage), #add back in the Taxlifestage variable (removed by the LCD function)
-           Orphan=ifelse(Taxlifestage%in%Orphans, T, F)) #add an identifier for orphan taxa (species not counted in all data sources)
+           Orphan=ifelse(Taxlifestage%in%Orphans, T, F), #add an identifier for orphan taxa (species not counted in all data sources)
+           Taxname = ifelse(Taxatype=="UnID species", paste0(Taxname, "_UnID"), Taxname),
+           Taxlifestage=paste(Taxname, Lifestage))
   
-  print("NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE", quote=F)
+  print("NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE. Do not compare UnID categories across data sources.", quote=F)
   
   return(zoop)
 }
@@ -448,3 +453,6 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
 #   are 0s and NAs already assigned appropriately?
 
 # 3)  If (or when) possible, add download link for FRP and 20mm data
+
+# 4)  Speed up code. Try using data.table speed with tidyverse syntax 
+#   using the dtplyr package. 
