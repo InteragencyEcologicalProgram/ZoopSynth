@@ -26,6 +26,8 @@ ui <- fluidPage(
                                "Taxon:",
                                choices = c("ACARJUV", "ACARTELA","ACARTIA",
                                            "ASINEJUV",   "ASPLANCH",   "BARNNAUP",   "BOSMINA","CALJUV")),
+            dateRangeInput("dates", label = h3("Date range")),
+
         downloadButton("download", "Download")
             ),
 
@@ -41,11 +43,13 @@ ui <- fluidPage(
 # Define server logic required to draw a plot
 server <- function(input, output) {
     FMWT_EMP_20mm = read.csv("FMWT_EMP_20mm.csv")
+    FMWT_EMP_20mm$Date = as.Date(FMWT_EMP_20mm$Date)
     
     output$distPlot <- renderPlot({
         #select the data the user wants
-        x    <- FMWT_EMP_20mm[which(FMWT_EMP_20mm$Project == input$survey &
-                                    FMWT_EMP_20mm$LCDtax == input$taxon), ]
+        x    <- filter(FMWT_EMP_20mm, Project == input$survey & LCDtax == input$taxon &
+                           Date >= input$dates[1] & Date <= input$dates[2])
+
 
         # draw the histogram with the specified number of bins
         ggplot(x, aes(x=Date, y = CPUE, color = LCDtax)) + geom_point(aes(pch = Project))
