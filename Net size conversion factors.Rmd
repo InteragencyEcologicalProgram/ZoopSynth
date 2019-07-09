@@ -1,0 +1,152 @@
+---
+title: "Net size conversion factors"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+Trying to create a model to account for undersampling of small zooplankters by CB nets
+Using Bayesian models with brms to utilize complex model structures (hurdle_lognormal), but maybe there's an easier frequentist way to do this?
+
+
+```{r setup, include=FALSE}
+require(tidyverse)
+require(readxl)
+require(lubridate)
+require(brms)
+```
+
+# Load data and combine data
+
+##Load data and rename columns
+
+```{r}
+EMP_CB <- read_excel("1972-2018CBMatrix.xlsx", 
+                      sheet = "CB CPUE Matrix 1972-2018", 
+                      col_types = c("numeric","numeric", "numeric", "numeric", "date", 
+                                    "text", "text", "text", "numeric", 
+                                    "text", rep("numeric", 62)))%>%
+  rename(Volume=CBVolume)
+
+EMP_Pump <- read_excel("1972-2018Pump Matrix.xlsx", 
+                      sheet = "Pump CPUE Matrix 1972-2018", 
+                      col_types = c("numeric","numeric", "numeric", "numeric", "date", 
+                                    "text", "text", "text", "numeric", 
+                                    "text", rep("numeric", 36)))%>%
+  rename(Date=SampleDate, Volume=PumpVolume)
+```
+
+##Select columns in common, add sample and gear identifiers, combine data
+
+```{r}
+#Select columns in common between two datasets, rename taxa columns with distinct names
+
+#Create vector of taxonomic variables
+Taxvars<-c("LIMNOSPP", "LIMNOSINE", "LIMNOTET", "OITHDAV", "OITHSIM", "OITHSPP", "OTHCYCAD", "ALLCYCADULTS", "HARPACT", "CYCJUV", "LIMNOJUV", "OITHJUV", "OTHCYCJUV", "ALLCYCJUV", "COPNAUP", "EURYNAUP", "OTHCOPNAUP", "PDIAPNAUP", "SINONAUP", "ALLCOPNAUP", "ASPLANCH", "KERATELA", "OTHROT", "POLYARTH", "SYNCH", "SYNCHBIC", "TRICHO", "ALLROTIFERS", "BARNNAUP")
+
+#create vector of taxonomic variables minus the summed "ALL" categories
+Taxvars2<-c("LIMNOSPP", "LIMNOSINE", "LIMNOTET", "OITHDAV", "OITHSIM", "OITHSPP", "OTHCYCAD", "HARPACT", "CYCJUV", "LIMNOJUV", "OITHJUV", "OTHCYCJUV", "COPNAUP", "EURYNAUP", "OTHCOPNAUP", "PDIAPNAUP", "SINONAUP", "ASPLANCH", "KERATELA", "OTHROT", "POLYARTH", "SYNCH", "SYNCHBIC", "TRICHO", "BARNNAUP")
+
+EMP_CB2<-EMP_CB%>%
+  select(intersect(names(.), names(EMP_Pump)))%>% #select columns in common between two datasets
+  select(-Survey, -SurveyCode, -SurveyRep, -EZStation, -Core)%>% #Remove some variables
+  mutate(SampleID=paste(Date, Station))%>% #Create stationID identifier
+  mutate(CPUE_Total=rowSums(select_at(., .vars=vars(Taxvars2))))%>% #Calculate total CPUE for total catch variable below
+  rename_at(vars(Taxvars),
+            ~paste0(., "_CB"))%>% #append "_CB" to taxonomic variables
+  mutate_at(vars(paste0(Taxvars, "_CB")), list(l=~log(.+1)))%>% #create log(x+1) transformed counts
+  mutate_at(vars(paste0(Taxvars, "_CB_l")), list(s=~(.-mean(.))/sd(.)))%>% #Standardize the logged counts to help models fit
+  mutate(Catch_total_CB=CPUE_Total*Volume, #Add a total catch variable in case more zooplankton in a net clogs the net and helps catch more of the smaller zooplankters
+         Catch_total_CB_s=(Catch_total_CB-mean(Catch_total_CB, na.rm=T))/sd(Catch_total_CB, na.rm=T))%>% #standardize total catch
+  select(-Volume)
+
+#Do the same for the Pump samples, except total pump catch shouldn't matter 
+EMP_Pump2<-EMP_Pump%>%
+  select(intersect(names(.), names(EMP_CB)))%>%
+  select(-Survey, -SurveyCode, -SurveyRep, -EZStation, -Core)%>%
+  mutate(SampleID=paste(Date, Station))%>%
+  rename_at(vars(Taxvars),
+              ~paste0(., "_Pump"))%>%
+  mutate_at(vars(paste0(Taxvars, "_Pump")), list(l=~log(.+1)))%>%
+  mutate_at(vars(paste0(Taxvars, "_Pump_l")), list(s=~(.-mean(.))/sd(.)))%>%
+  select(-Volume)
+
+#Join pump and CB data
+EMP<-EMP_CB2%>%
+  inner_join(EMP_Pump2, 
+             by = c("Year", "Date", "Station", "Region", "Secchi", "Chl-a", "Temperature", "ECSurfacePreTow", "ECBottomPreTow", "SampleID"))%>%
+  mutate(Secchi_s=(Secchi-mean(Secchi, na.rm=T))/sd(Secchi, na.rm=T),
+         Chl_s=(`Chl-a`-mean(`Chl-a`, na.rm=T))/sd(`Chl-a`, na.rm=T),
+         Temperature_s=(Temperature-mean(Temperature, na.rm=T))/sd(Temperature, na.rm=T))
+```
+
+# Graph
+
+```{r}
+ggplot(filter(EMP, Date>as_date("2007-01-01") & (LIMNOSINE_Pump>0 | LIMNOSINE_CB_l>0)), aes(x=LIMNOSINE_CB_l, y=LIMNOSINE_Pump_l))+
+  geom_point()+
+  theme_bw()+
+  theme(panel.grid=element_blank())
+```
+
+# Model
+
+##With Pump count as response variable 
+```{r}
+m<-censReg(log(LIMNOSINE_Pump+1) ~ log(LIMNOSINE_CB+1) * Secchi, data = filter(EMP, Date>as_date("2007-01-01")))
+
+mbrm<-brm(LIMNOSINE_Pump~(LIMNOSINE_CB_l+Secchi_s+Chl_s+Temperature_s+Catch_total_CB_s)^3, 
+          data = filter(EMP, Date>as_date("2007-01-01") & (LIMNOSINE_Pump>0 | LIMNOSINE_CB_l>0)), 
+          family=hurdle_lognormal(),
+          prior = prior(normal(0,5), class=b),
+          chains=2, cores=2,
+          control=list(adapt_delta=0.95))
+
+mbrm2<-update(mbrm, formula.=.~.-Chl_s:Temperature_s:Catch_total_CB_s,
+          chains=2, cores=2,
+          control=list(adapt_delta=0.95))
+
+mbrm3<-update(mbrm2, formula.=.~.-LIMNOSINE_CB_l:Chl_s:Catch_total_CB_s,
+          chains=2, cores=2,
+          control=list(adapt_delta=0.95))
+```
+
+##With CB count as the response variable, probably more appropriate since this is what we are modeling: how many small zooplankters are caught in the CB net?
+```{r}
+mbrmb<-brm(LIMNOSINE_CB~(LIMNOSINE_Pump_l+Secchi_s+Chl_s+Temperature_s+Catch_total_CB_s)^3, 
+          data = filter(EMP, Date>as_date("2007-01-01") & (LIMNOSINE_Pump>0 | LIMNOSINE_CB_l>0)), 
+          family=hurdle_lognormal(),
+          prior = prior(normal(0,5), class=b),
+          chains=2, cores=2,
+          control=list(adapt_delta=0.95))
+mbrmb<-add_criterion(mbrmb, c("loo", "waic"), reloo=T)
+
+mbrmb2<-update(mbrmb, formula.=.~.-LIMNOSINE_Pump_l:Secchi_s:Catch_total_CB_s -LIMNOSINE_Pump_l:Secchi_s:Temperature_s -Secchi_s:Chl_s:Temperature_s,
+          chains=2, cores=2,
+          control=list(adapt_delta=0.95))
+mbrmb2<-add_criterion(mbrmb2, c("loo", "waic"), reloo=T)
+
+##Best model v
+mbrmb3<-update(mbrmb2, formula.=.~.-Secchi_s:Temperature_s:Catch_total_CB_s -LIMNOSINE_Pump_l:Secchi_s:Chl_s,
+          chains=2, cores=2,
+          control=list(adapt_delta=0.95))
+mbrmb3<-add_criterion(mbrmb3, c("loo", "waic"), reloo=T)
+##Best model ^
+
+mbrmb4<-update(mbrmb3, formula.=.~.-Secchi_s:Chl_s:Catch_total_CB_s,
+          chains=2, cores=2,
+          control=list(adapt_delta=0.95))
+mbrmb4<-add_criterion(mbrmb4, c("loo", "waic"), reloo=T)
+```
+
+loo model comparison output:
+
+       elpd_diff se_diff
+mbrmb3  0.0       0.0   
+mbrmb4 -2.4       2.2   
+mbrmb2 -5.9       3.7   
+mbrmb  -6.4       3.8  
+
+R2 for mbrmb3
+ Estimate  Est.Error      Q2.5     Q97.5
+R2 0.524531 0.05082824 0.4201043 0.6351251
