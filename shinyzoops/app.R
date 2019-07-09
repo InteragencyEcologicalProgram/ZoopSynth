@@ -40,7 +40,7 @@ ui <- fluidPage(
                         min = 37, max = 39, value = c(37,39)),
             sliderInput("Longrange",
                         "Longitude Range:",
-                        min = -119, max = -125, value = c(-119, -125)),
+                        min = -125, max = -119, value = c(-125, -119)),
             dateRangeInput("Daterange", label = h3("Date range")),
 
         downloadButton("download", "Download")
@@ -67,15 +67,16 @@ server <- function(input, output) {
                        Latrange= input$Latrange, Longrange= input$Longrange)
 
         # draw the scatterplot of the the critters
-        ggplot(x, aes(x=Date, y = CPUE, color = LCDtax)) + geom_point(aes(pch = Project))
+        ggplot(x, aes(x=Date, y = CPUE)) + geom_point(aes(pch = Source))
     })
     output$download = downloadHandler(
         filename = function() {
             paste("data-", Sys.Date(), ".csv", sep="")
         },
         content = function(file) {
-            x    <- FMWT_EMP_20mm[which(FMWT_EMP_20mm$Project == input$survey &
-                                            FMWT_EMP_20mm$LCDtax == input$taxon), ]
+            x    <- Zooper(Sources = input$Sources, Daterange= input$Daterange,
+                           Months = input$Months, Years = input$Years,  SalSurfrange= input$SalSurfrange,
+                           Latrange= input$Latrange, Longrange= input$Longrange)
             write.csv(x, file)
         }
     )
@@ -83,3 +84,4 @@ server <- function(input, output) {
 
 # Run the application 
 shinyApp(ui = ui, server = server)
+
