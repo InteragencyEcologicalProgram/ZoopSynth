@@ -195,6 +195,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
         CPUE==0 & Date >= FMWTstart & Date < FMWTend ~ 0,
         CPUE==0 & Date >= FMWTend ~ NA_real_
       ))%>%
+      filter(!is.na(CPUE))%>%
       select(-FMWT, -FMWTstart, -FMWTend, -Intro) #Remove FMWT taxa codes
   }
   
@@ -362,7 +363,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
     zoop<-filter(zoop, Month%in%Months)
   }
   
-  if(!every(Year, is.na)) {
+  if(!every(Years, is.na)) {
     zoop<-filter(zoop, Year%in%Years)
   }
   
@@ -462,4 +463,4 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
 
 # 5) Split out Townet data from FMWT trawl data
 
-test = Zooper(Sources = c("EMP","FMWT"), Years = 2010)
+#test = Zooper(Sources = c("EMP","FMWT"), Years = 2010)
