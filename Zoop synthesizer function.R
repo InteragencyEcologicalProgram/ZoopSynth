@@ -362,7 +362,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
     zoop<-filter(zoop, Month%in%Months)
   }
   
-  if(!every(Months, is.na)) {
+  if(!every(Year, is.na)) {
     zoop<-filter(zoop, Year%in%Years)
   }
   
@@ -461,3 +461,5 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
 #   using the dtplyr package. 
 
 # 5) Split out Townet data from FMWT trawl data
+
+test = Zooper(Sources = c("EMP","FMWT"), Years = 2010)
