@@ -456,3 +456,5 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
 
 # 4)  Speed up code. Try using data.table speed with tidyverse syntax 
 #   using the dtplyr package. 
+
+# 5) Split out Townet data from FMWT trawl data

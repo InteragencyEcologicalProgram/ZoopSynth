@@ -1,4 +1,8 @@
-#
+# This is a Shiny web application designed to allow users to select which zooplankton data they would
+#like to combine and download the resulting data.
+
+#It also currently makes a graph of the data, but it's not super userful.
+
 # This is a Shiny web application. You can run the application by clicking
 # the 'Run App' button above.
 #
@@ -9,7 +13,8 @@
 
 library(shiny)
 library(tidyverse)
-# Define UI for application that draws a histogram
+
+# Define UI for application that draws a scaterplot and allows you to download data
 ui <- fluidPage(
 
     # Application title
@@ -18,15 +23,25 @@ ui <- fluidPage(
     # check boxes where you choose data you want
     sidebarLayout(
         sidebarPanel(
-            checkboxGroupInput("survey",
-                        "Surveys:",
-                        choices = c("EMP", "FRP", "FMWT", "Townet", "20mm")),
+            checkboxGroupInput("Sources",
+                        "Sources:",
+                        choices = c("EMP", "FRP", "FMWT", "20mm")),
+            #Note: we will want to split out townet eventually
 
-            checkboxGroupInput("taxon",
-                               "Taxon:",
-                               choices = c("ACARJUV", "ACARTELA","ACARTIA",
-                                           "ASINEJUV",   "ASPLANCH",   "BARNNAUP",   "BOSMINA","CALJUV")),
-            dateRangeInput("dates", label = h3("Date range")),
+          
+            sliderInput("Months",
+                               "Months:",
+                               min = 1, max = 12, value = c(1,12)),
+            sliderInput("SalSurfrage",
+                        "Surface Slainity:",
+                        min = 0, max = 32, value = c(0,7)),
+            sliderInput("Latrange",
+                        "Latitude Range",
+                        min = 37, max = 39, value = c(37,39)),
+            sliderInput("Longrange",
+                        "Longitude Range:",
+                        min = -119, max = -125, value = c(-119, -125)),
+            dateRangeInput("Daterange", label = h3("Date range")),
 
         downloadButton("download", "Download")
             ),
@@ -42,16 +57,16 @@ ui <- fluidPage(
 
 # Define server logic required to draw a plot
 server <- function(input, output) {
-    FMWT_EMP_20mm = read.csv("FMWT_EMP_20mm.csv")
-    FMWT_EMP_20mm$Date = as.Date(FMWT_EMP_20mm$Date)
+    #Source Sam's function that gets the data from online
+    source("Zoop synthesizer function.R")
     
     output$distPlot <- renderPlot({
         #select the data the user wants
-        x    <- filter(FMWT_EMP_20mm, Project == input$survey & LCDtax == input$taxon &
-                           Date >= input$dates[1] & Date <= input$dates[2])
+        x    <- Zooper(Sources = input$Sources, Daterange= input$Daterange,
+                       Months = input$Months, Years = input$Years,  SalSurfrange= input$SalSurfrange,
+                       Latrange= input$Latrange, Longrange= input$Longrange)
 
-
-        # draw the histogram with the specified number of bins
+        # draw the scatterplot of the the critters
         ggplot(x, aes(x=Date, y = CPUE, color = LCDtax)) + geom_point(aes(pch = Project))
     })
     output$download = downloadHandler(
