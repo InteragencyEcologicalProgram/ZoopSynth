@@ -9,7 +9,11 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   # resolution.
   
   # Option "Data" allows you to choose a final output dataset for either 
-  # community (Data="Community") or Taxa-specific (Data="Taxa) analyses.
+  # community (Data="Community"; the default) or Taxa-specific (Data="Taxa) 
+  # analyses.
+  
+  # If you want all available data on given Taxa, use Data="Taxa"
+  # If you want to conduct a community analysis, use Data="Community"
   
   # Briefly, Data="Community" optimizes for community-level analyses by
   # taking all taxa x life stage combinations that are not measured in 
@@ -61,7 +65,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   require(tidyverse) 
   require(readxl)
   
-  #Requires Github developer version: devtools::install_github("tidyverse/dtplyr")
+  #Requires Github developer version of dtplyr: devtools::install_github("tidyverse/dtplyr")
   require(dtplyr)
   
   require(data.table)
@@ -87,26 +91,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   
   data.list<-list()
   
-  # Define function to calculate least common denominator for each taxonomic
-  # level
-  
-  Taxcats<-c("Genus_g", "Family_g", "Order_g", "Class_g", "Phylum_g") #Make vector of taxonomic categories
-  
-  LCD<-function(df, Taxagroup){
-    Taxagroup2<-sym(Taxagroup) #unquote input
-    Taxagroup2<-enquo(Taxagroup2) #capture expression to pass on to functions below
-    out<-df%>%
-      filter(!is.na(!!Taxagroup2))%>% #filter to include only data belonging to the taxonomic grouping
-      lazy_dt()%>%
-      group_by_at(vars(-c("Taxname", "Phylum", "Class", "Order", "Family", "Genus", "Species", "Taxlifestage", "CPUE",Taxcats[!Taxcats%in%Taxagroup])))%>% #Group data by relavent grouping variables (including taxonomic group) for later data summation
-      summarise(CPUE=sum(CPUE, na.rm=T))%>% #Add up all members of each grouping taxon
-      ungroup()%>%
-      as_tibble()%>%
-      mutate(Taxname=!!Taxagroup2, #Add summarized group names to Taxname
-             Taxatype="Summed group")%>% #Add a label to these summed groups so they can be removed later if users wish
-      mutate(Taxname=paste0(Taxname, "_all")) #Differentiate grouped Taxnames from others
-    return(out)
-  }
+
   
   # EMP ---------------------------------------------------------------------
   
@@ -449,6 +434,27 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   
   
   if(Data=="Taxa"){
+    
+    
+    #Make vector of taxonomic categories that we will use later
+    Taxcats<-c("Genus_g", "Family_g", "Order_g", "Class_g", "Phylum_g") 
+    
+    # Define function to calculate least common denominator for each taxonomic level
+    LCD<-function(df, Taxagroup){
+      Taxagroup2<-sym(Taxagroup) #unquote input
+      Taxagroup2<-enquo(Taxagroup2) #capture expression to pass on to functions below
+      out<-df%>%
+        filter(!is.na(!!Taxagroup2))%>% #filter to include only data belonging to the taxonomic grouping
+        lazy_dt()%>%
+        group_by_at(vars(-c("Taxname", "Phylum", "Class", "Order", "Family", "Genus", "Species", "Taxlifestage", "CPUE",Taxcats[!Taxcats%in%Taxagroup])))%>% #Group data by relavent grouping variables (including taxonomic group) for later data summation
+        summarise(CPUE=sum(CPUE, na.rm=T))%>% #Add up all members of each grouping taxon
+        ungroup()%>%
+        as_tibble()%>%
+        mutate(Taxname=!!Taxagroup2, #Add summarized group names to Taxname
+               Taxatype="Summed group")%>% #Add a label to these summed groups so they can be removed later if users wish
+        mutate(Taxname=paste0(Taxname, "_all")) #Differentiate grouped Taxnames from others
+      return(out)
+    }
     
     # Select higher level groupings that correspond to Taxnames, i.e., are a 
     # classification category in one of the original datasets, and rename 
