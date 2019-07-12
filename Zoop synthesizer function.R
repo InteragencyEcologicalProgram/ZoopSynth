@@ -104,7 +104,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
     zoo_EMP <- read_excel("1972-2018CBMatrix.xlsx", 
                           sheet = "CB CPUE Matrix 1972-2018", 
                           col_types = c("numeric","numeric", "numeric", "numeric", "date", 
-                                        "text", "text", "text", "numeric", 
+                                        "text", "text", "text", "numeric", "text", "text",
                                         "text", "numeric", "numeric", "numeric", "numeric", 
                                         "numeric", "numeric", "numeric", "numeric", "numeric",
                                         "numeric", "numeric", "numeric", "numeric", "numeric",
@@ -123,12 +123,13 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
     # alter data to match other datasets
     
     data.list[["EMP"]] <- zoo_EMP%>%
+      mutate(Datetime=suppressWarnings(parse_date_time(paste(Date, Time), "%Y-%m-%d %H:%M")))%>% #create a variable for datetime
       gather(key="EMP", value="CPUE", -SurveyCode, -Year, -Survey, -SurveyRep, 
              -Date, -Station, -EZStation, -DWRStation, 
              -Core, -Region, -Secchi, -`Chl-a`, -Temperature,
-             -ECSurfacePreTow, -ECBottomPreTow, -CBVolume)%>% #transform from wide to long
+             -ECSurfacePreTow, -ECBottomPreTow, -CBVolume, -Datetime, -Time, -TideCode)%>% #transform from wide to long
       mutate(Source="EMP")%>% #add variable for data source
-      select(Source, Year, Survey, Date, 
+      select(Source, Year, Survey, Date, Datetime, Tide=TideCode, 
              Station, Region, Chl=`Chl-a`, CondBott = ECBottomPreTow, CondSurf = ECSurfacePreTow, Secchi, 
              Temperature, Volume = CBVolume, EMP, CPUE)%>% #Select for columns in common and rename columns to match
       left_join(crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
@@ -172,7 +173,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
     suppressWarnings(zoo_FMWT <- read_excel("FMWT_TNSZooplanktonDataCPUEOct2017.xls", 
                                             sheet = "FMWT&TNS ZP CPUE", 
                                             col_types=c("text", rep("numeric", 3), "date", "text", "text", 
-                                                        "text", "numeric", "text", "text", rep("numeric", 4), 
+                                                        "text", "numeric", rep("text", 3), rep("numeric", 3), 
                                                         "text", rep("numeric", 5), "text", rep("numeric", 55))))
     
     # Tranform from "wide" to "long" format, add some variables, 
@@ -187,7 +188,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
              -SurfSalinityGroup, -CondBott, -PPTBott, 
              -TempSurf, -Secchi, -Turbidity, -Microcystis, 
              -TotalMeter, -Volume)%>% #transform from wide to long
-      select(Source=Project, Year, Survey, Date, Datetime, Station, Region, TideCode, DepthBottom, CondSurf, CondBott, Temperature = TempSurf, Secchi, Turbidity, Microcystis, Volume, FMWT, CPUE)%>% #Select for columns in common and rename columns to match
+      select(Source=Project, Year, Survey, Date, Datetime, Station, Region, Tide=TideCode, DepthBottom, CondSurf, CondBott, Temperature = TempSurf, Secchi, Turbidity, Microcystis, Volume, FMWT, CPUE)%>% #Select for columns in common and rename columns to match
       left_join(crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
                   select(-EMP, -twentymm, -FRP, -Level, -EMPstart, -EMPend, -twentymmstart, -twentymmend, -twentymmstart2)%>% #only retain FMWT codes
                   filter(!is.na(FMWT))%>% #Only retain Taxnames corresponding to FMWT codes
