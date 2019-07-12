@@ -1,4 +1,4 @@
-Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), Months=NA, Years=NA, SalBottrange=NA, SalSurfrange=NA, Temprange=NA, Latrange=NA, Longrange=NA){
+Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Daterange=c(NA, NA), Months=NA, Years=NA, SalBottrange=NA, SalSurfrange=NA, Temprange=NA, Latrange=NA, Longrange=NA){
   
   
   # Documentation -----------------------------------------------------------
@@ -129,7 +129,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
              -Core, -Region, -Secchi, -`Chl-a`, -Temperature,
              -ECSurfacePreTow, -ECBottomPreTow, -CBVolume, -Datetime, -Time, -TideCode)%>% #transform from wide to long
       mutate(Source="EMP")%>% #add variable for data source
-      select(Source, Year, Survey, Date, Datetime, Tide=TideCode, 
+      select(Source, Year, Date, Datetime, Tide=TideCode, 
              Station, Region, Chl=`Chl-a`, CondBott = ECBottomPreTow, CondSurf = ECSurfacePreTow, Secchi, 
              Temperature, Volume = CBVolume, EMP, CPUE)%>% #Select for columns in common and rename columns to match
       left_join(crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
@@ -160,7 +160,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
   # FMWT --------------------------------------------------------------------
   
   
-  if("FMWT"%in%Sources){
+  if("FMWT"%in%Sources | "TNS"%in%Sources){
     
     #download the file
     if (!file.exists("FMWT_TNSZooplanktonDataCPUEOct2017.xls")) {
@@ -175,6 +175,15 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
                                             col_types=c("text", rep("numeric", 3), "date", "text", "text", 
                                                         "text", "numeric", rep("text", 3), rep("numeric", 3), 
                                                         "text", rep("numeric", 5), "text", rep("numeric", 55))))
+    #Allow users to select TNS or FMWT data separately
+    if(!("TNS"%in%Sources)){
+      zoo_FMWT <- filter(zoo_FMWT, Project!="TNS")
+    }
+    
+    if(!("FMWT"%in%Sources)){
+      zoo_FMWT <- filter(zoo_FMWT, Project!="FMWT")
+    }
+      
     
     # Tranform from "wide" to "long" format, add some variables, 
     # alter data to match other datasets
@@ -188,7 +197,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
              -SurfSalinityGroup, -CondBott, -PPTBott, 
              -TempSurf, -Secchi, -Turbidity, -Microcystis, 
              -TotalMeter, -Volume)%>% #transform from wide to long
-      select(Source=Project, Year, Survey, Date, Datetime, Station, Region, Tide=TideCode, DepthBottom, CondSurf, CondBott, Temperature = TempSurf, Secchi, Turbidity, Microcystis, Volume, FMWT, CPUE)%>% #Select for columns in common and rename columns to match
+      select(Source=Project, Year, Date, Datetime, Station, Region, Tide=TideCode, DepthBottom, CondSurf, CondBott, Temperature = TempSurf, Secchi, Turbidity, Microcystis, Volume, FMWT, CPUE)%>% #Select for columns in common and rename columns to match
       left_join(crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
                   select(-EMP, -twentymm, -FRP, -Level, -EMPstart, -EMPend, -twentymmstart, -twentymmend, -twentymmstart2)%>% #only retain FMWT codes
                   filter(!is.na(FMWT))%>% #Only retain Taxnames corresponding to FMWT codes
@@ -444,7 +453,8 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
     mutate(Taxlifestage=paste(Taxname, Lifestage), #add back in the Taxlifestage variable (removed by the LCD function)
            Orphan=ifelse(Taxlifestage%in%Orphans, T, F), #add an identifier for orphan taxa (species not counted in all data sources)
            Taxname = ifelse(Taxatype=="UnID species", paste0(Taxname, "_UnID"), Taxname),
-           Taxlifestage=paste(Taxname, Lifestage))
+           Taxlifestage=paste(Taxname, Lifestage))%>%
+    select_at(vars(-Taxcats))
   
   print("NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE. Do not compare UnID categories across data sources.", quote=F)
   
