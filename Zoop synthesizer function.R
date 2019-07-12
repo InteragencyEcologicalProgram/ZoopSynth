@@ -1,4 +1,4 @@
-Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Daterange=c(NA, NA), Months=NA, Years=NA, SalBottrange=NA, SalSurfrange=NA, Temprange=NA, Latrange=NA, Longrange=NA){
+Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community", Daterange=c(NA, NA), Months=NA, Years=NA, SalBottrange=NA, SalSurfrange=NA, Temprange=NA, Latrange=NA, Longrange=NA){
   
   
   # Documentation -----------------------------------------------------------
@@ -7,6 +7,27 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Daterange=c(NA,
   # parameters) and calculates least common denominator taxa to facilitate
   # comparisons across datasets with differing levels of taxonomic
   # resolution.
+  
+  # Option "Data" allows you to choose a final output dataset for either 
+  # community (Data="Community") or Taxa-specific (Data="Taxa) analyses.
+  
+  # Briefly, Data="Community" optimizes for community-level analyses by
+  # taking all taxa x life stage combinations that are not measured in 
+  # every input dataset, and summing them up taxonomic levels to the lowest 
+  # taxonomic level they belong to that is covered by all datasets. Remaining
+  # Taxa x life stage combos that are not covered in all datasets up to the 
+  # phylum level (usually something like Annelida or Nematoda or Insect Pupae)
+  # are removed from the final dataset.
+  
+  # Data="Taxa" optimizes for the Taxa-level user by maintaining all data at
+  # the original taxonomic level (but it outputs warnings for taxa not measured
+  # in all datasets, which we call "orphans"). To facilitate comparions across 
+  # datasets, this option also sums data into general categories that are 
+  # comparable across all datasets and years: "summed groups." The new variable 
+  # "Taxatype" identifies which taxa are summed groups (Taxatype="Summed group"),
+  # which are measured to the species level (Taxatype = "Species"), and which 
+  # are higher taxonomic groupings with the species designation unknown:
+  # (Taxatype = "UnID species").
   
   # Includes options to filter by Date, Month, Year, Bottom salinity,
   # Surface salinity, Temperature, Latitude, or Longitude.
@@ -412,19 +433,27 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Daterange=c(NA,
   
   # Make list of taxa x life stage combos present in all original datasets
   
-  CommonTax<-Reduce(intersect, lapply(unique(zoop$Source), function(x) as_vector(zoop%>%
+  Commontax<-Reduce(intersect, lapply(unique(zoop$Source), function(x) as_vector(zoop%>%
                                                                                    filter(Source==x)%>%
                                                                                    select(Taxlifestage)%>%
                                                                                    unique())))
-  
+
   # Make list of removed or lumped taxa for output
   
-  Lumped<-setdiff(unique(zoop$Taxlifestage), CommonTax)
+  Lumped<-setdiff(unique(zoop$Taxlifestage), Commontax)
+
   
-  # Select higher level groupings that correspond to Taxnames, i.e., are a 
-  # classification category in one of the original datasets, and rename 
-  # them as "Taxonomiclevel_g"
+
+# Apply LCD approach for taxa-level data user ----------------------
+
   
+  
+  if(Data=="Taxa"){
+    
+    # Select higher level groupings that correspond to Taxnames, i.e., are a 
+    # classification category in one of the original datasets, and rename 
+    # them as "Taxonomiclevel_g"
+    
   zoop<-zoop%>%
     mutate_at(c("Genus", "Family", "Order", "Class", "Phylum"), list(g=~ifelse(.%in%unique(Taxname), ., NA)))
   
@@ -457,6 +486,67 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Daterange=c(NA,
     select_at(vars(-Taxcats))
   
   print("NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE. Do not compare UnID categories across data sources.", quote=F)
+  }
+  
+
+# Apply LCD approach for community data user ------------------------------
+
+  
+  if(Data=="Community"){
+    
+    #Create taxonomy table for all taxa present in all datasets
+    Commontaxkey<-tibble(Taxlifestage=Commontax)%>%
+      left_join(crosswalk%>%
+                  select(Taxname, Lifestage, Phylum, Class, Order, Family, Genus)%>%
+                  mutate(Taxlifestage=paste(Taxname, Lifestage))%>%
+                  distinct(),
+                by="Taxlifestage")%>%
+      mutate_at(c("Genus", "Family", "Order", "Class", "Phylum"), list(lifestage=~ifelse(is.na(.), NA, paste(., Lifestage))))%>% #Create taxa x life stage variable for each taxonomic level
+      select(Genus_lifestage, Family_lifestage, Order_lifestage, Class_lifestage, Phylum_lifestage)%>% #only retain columns we need
+      distinct() #remove duplicates
+    
+    #Create taxonomy table for taxa not present in all datasets, then select their new names corresponding to taxa x life stage combinations that are measured in all datasets
+    Lumpedkey<-tibble(Taxlifestage=Lumped)%>%
+      left_join(crosswalk%>%
+                  select(Taxname, Lifestage, Phylum, Class, Order, Family, Genus)%>%
+                  mutate(Taxlifestage=paste(Taxname, Lifestage))%>%
+                  distinct(),
+                by="Taxlifestage")%>%
+      mutate_at(c("Genus", "Family", "Order", "Class", "Phylum"), list(lifestage=~ifelse(is.na(.), NA, paste(., Lifestage))))%>% #Create taxa x life stage variable for each taxonomic level
+      mutate(Taxname_new=case_when( #This will go level by leve, look for matches with the Commontaxkey, and assign the taxonomic level that matches. The "TRUE" at end specifies what to do if no conditions are met. 
+        !is.na(Genus_lifestage) & Genus_lifestage%in%Commontaxkey$Genus_lifestage ~ Genus,
+        !is.na(Family_lifestage) & Family_lifestage%in%Commontaxkey$Family_lifestage ~ Family,
+        !is.na(Order_lifestage) & Order_lifestage%in%Commontaxkey$Order_lifestage ~ Order,
+        !is.na(Class_lifestage) & Class_lifestage%in%Commontaxkey$Class_lifestage ~ Class,
+        !is.na(Phylum_lifestage) & Phylum_lifestage%in%Commontaxkey$Phylum_lifestage ~ Phylum,
+        TRUE ~ "REMOVE" #If no match is found, change to the Taxname REMOVE so we know to later remove these data from the final database
+      ))
+    
+    
+    #Create a names vector to expedite renaming Taxnames in the next step
+    LCDnames<-setNames(Lumpedkey$Taxname_new, Lumpedkey$Taxlifestage) 
+    
+    #
+    zoop<-zoop%>%
+      mutate(Taxname=recode(Taxlifestage, !!!LCDnames, .default=Taxname))%>%
+      filter(Taxname!="REMOVE")%>%
+      mutate(Taxlifestage=paste(Taxname, Lifestage))%>%
+      select(-Phylum, -Class, -Order, -Family, -Genus, -Species)%>%
+      lazy_dt()%>%
+      group_by_at(vars(-CPUE))%>%
+      summarise(CPUE=sum(CPUE, na.rm=T))%>%
+      as_tibble()%>%
+      left_join(crosswalk%>%
+                  select(Taxname, Lifestage, Phylum, Class, Order, Family, Genus, Species)%>%
+                  mutate(Taxlifestage=paste(Taxname, Lifestage))%>%
+                  select(-Taxname, -Lifestage)%>%
+                  bind_rows(Lumpedkey%>%
+                              select(Taxlifestage, Phylum, Class, Order, Family, Genus))%>%
+                  distinct(),
+                by="Taxlifestage"
+                  )
+  }
+  
   
   return(zoop)
 }
@@ -485,6 +575,5 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Daterange=c(NA,
 
 # 4)  Try speeding up code more. Bottleneck now is probably read_excel()
 
-# 5) Split out Townet data from FMWT trawl data
-
-#test = Zooper(Sources = c("EMP","FMWT"), Years = 2010)
+# 5)  Do we want to append something like "_UnID" to the taxnames of Lumped 
+# (LCDed) taxa under option Data=="Community"???
