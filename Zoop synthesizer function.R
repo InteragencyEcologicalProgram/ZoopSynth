@@ -1,8 +1,8 @@
-Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), Months=NA, Years=NA, SalBottrange=NA, SalSurfrange=NA, Temprange=NA, Latrange=NA, Longrange=NA){
+Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Daterange=c(NA, NA), Months=NA, Years=NA, SalBottrange=NA, SalSurfrange=NA, Temprange=NA, Latrange=NA, Longrange=NA){
   
-
-# Documentation -----------------------------------------------------------
-
+  
+  # Documentation -----------------------------------------------------------
+  
   # This function combines any combination of the zoo datasets (included as
   # parameters) and calculates least common denominator taxa to facilitate
   # comparisons across datasets with differing levels of taxonomic
@@ -32,13 +32,18 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
   # include, in decimal degree format. Don't forget Longitudes should be 
   # negative
   
-
-# Setup -------------------------------------------------------------------
-
+  
+  # Setup -------------------------------------------------------------------
+  
   ##NOTE THIS FUNCTION IS SUPER SLOW UNLESS YOU INSTALL THE DEVELOPER VERSION OF DPLYR DUE TO AN ISSUE WITH THE SUMMARISE FUNCTION
   #devtools::install_github("tidyverse/dplyr")
   require(tidyverse) 
   require(readxl)
+  
+  #Requires Github developer version: devtools::install_github("tidyverse/dtplyr")
+  require(dtplyr)
+  
+  require(data.table)
   require(lubridate)
   
   # Load crosswalk key to convert each dataset's taxonomic codes to a
@@ -64,23 +69,26 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
   # Define function to calculate least common denominator for each taxonomic
   # level
   
+  Taxcats<-c("Genus_g", "Family_g", "Order_g", "Class_g", "Phylum_g") #Make vector of taxonomic categories
+  
   LCD<-function(df, Taxagroup){
-    Taxagroup<-sym(Taxagroup) #unquote input
-    Taxagroup<-enquo(Taxagroup) #capture expression to pass on to functions below
+    Taxagroup2<-sym(Taxagroup) #unquote input
+    Taxagroup2<-enquo(Taxagroup2) #capture expression to pass on to functions below
     out<-df%>%
-      filter(!is.na(!!Taxagroup))%>% #filter to include only data belonging to the taxonomic grouping
-      group_by_at(vars(-Taxname, -Phylum, -Class, -Order, -Family, -Genus, -Species, -Taxlifestage, -Phylum_g, -Class_g, -Order_g, -Family_g, -Genus_g, -CPUE))%>%
-      group_by(!!Taxagroup, add=T)%>% #Group data by relavent grouping variables (including taxonomic group) for later data summation
+      filter(!is.na(!!Taxagroup2))%>% #filter to include only data belonging to the taxonomic grouping
+      lazy_dt()%>%
+      group_by_at(vars(-c("Taxname", "Phylum", "Class", "Order", "Family", "Genus", "Species", "Taxlifestage", "CPUE",Taxcats[!Taxcats%in%Taxagroup])))%>% #Group data by relavent grouping variables (including taxonomic group) for later data summation
       summarise(CPUE=sum(CPUE, na.rm=T))%>% #Add up all members of each grouping taxon
       ungroup()%>%
-      mutate(Taxname=!!Taxagroup, #Add summarized group names to Taxname
+      as_tibble()%>%
+      mutate(Taxname=!!Taxagroup2, #Add summarized group names to Taxname
              Taxatype="Summed group")%>% #Add a label to these summed groups so they can be removed later if users wish
       mutate(Taxname=paste0(Taxname, "_all")) #Differentiate grouped Taxnames from others
     return(out)
   }
-
-# EMP ---------------------------------------------------------------------
-
+  
+  # EMP ---------------------------------------------------------------------
+  
   
   if("EMP"%in%Sources){
     
@@ -94,33 +102,34 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
     # Import the EMP data
     
     zoo_EMP <- read_excel("1972-2018CBMatrix.xlsx", 
-                      sheet = "CB CPUE Matrix 1972-2018", 
-                      col_types = c("numeric","numeric", "numeric", "numeric", "date", 
-                                    "text", "text", "text", "numeric", 
-                                    "text", "numeric", "numeric", "numeric", "numeric", 
-                                    "numeric", "numeric", "numeric", "numeric", "numeric",
-                                    "numeric", "numeric", "numeric", "numeric", "numeric",
-                                    "numeric", "numeric", "numeric", "numeric", "numeric",
-                                    "numeric", "numeric", "numeric", "numeric", "numeric",
-                                    "numeric", "numeric", "numeric", "numeric", "numeric",
-                                    "numeric", "numeric", "numeric", "numeric", "numeric",
-                                    "numeric", "numeric", "numeric",
-                                    "numeric", "numeric", "numeric", "numeric", "numeric",
-                                    "numeric", "numeric", "numeric", "numeric", "numeric",
-                                    "numeric", "numeric", "numeric", "numeric", "numeric",
-                                    "numeric", "numeric", "numeric", "numeric", "numeric",
-                                    "numeric", "numeric", "numeric", "numeric", "numeric"))
+                          sheet = "CB CPUE Matrix 1972-2018", 
+                          col_types = c("numeric","numeric", "numeric", "numeric", "date", 
+                                        "text", "text", "text", "numeric", "text", "text",
+                                        "text", "numeric", "numeric", "numeric", "numeric", 
+                                        "numeric", "numeric", "numeric", "numeric", "numeric",
+                                        "numeric", "numeric", "numeric", "numeric", "numeric",
+                                        "numeric", "numeric", "numeric", "numeric", "numeric",
+                                        "numeric", "numeric", "numeric", "numeric", "numeric",
+                                        "numeric", "numeric", "numeric", "numeric", "numeric",
+                                        "numeric", "numeric", "numeric", "numeric", "numeric",
+                                        "numeric", "numeric", "numeric",
+                                        "numeric", "numeric", "numeric", "numeric", "numeric",
+                                        "numeric", "numeric", "numeric", "numeric", "numeric",
+                                        "numeric", "numeric", "numeric", "numeric", "numeric",
+                                        "numeric", "numeric", "numeric", "numeric", "numeric",
+                                        "numeric", "numeric", "numeric", "numeric", "numeric"))
     
     # Tranform from "wide" to "long" format, add some variables, 
     # alter data to match other datasets
     
     data.list[["EMP"]] <- zoo_EMP%>%
+      mutate(Datetime=suppressWarnings(parse_date_time(paste(Date, Time), "%Y-%m-%d %H:%M")))%>% #create a variable for datetime
       gather(key="EMP", value="CPUE", -SurveyCode, -Year, -Survey, -SurveyRep, 
              -Date, -Station, -EZStation, -DWRStation, 
              -Core, -Region, -Secchi, -`Chl-a`, -Temperature,
-             -ECSurfacePreTow, -ECBottomPreTow, -CBVolume)%>% #transform from wide to long
+             -ECSurfacePreTow, -ECBottomPreTow, -CBVolume, -Datetime, -Time, -TideCode)%>% #transform from wide to long
       mutate(Source="EMP")%>% #add variable for data source
-      select(Source, Year, Survey, Date, 
+      select(Source, Year, Date, Datetime, Tide=TideCode, 
              Station, Region, Chl=`Chl-a`, CondBott = ECBottomPreTow, CondSurf = ECSurfacePreTow, Secchi, 
              Temperature, Volume = CBVolume, EMP, CPUE)%>% #Select for columns in common and rename columns to match
       left_join(crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
@@ -139,31 +148,42 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
         CPUE==0 & Date >= EMPend ~ NA_real_
       ))%>% 
       select(-EMP, -EMPstart, -EMPend, -Intro)%>% #Remove EMP taxa codes 
+      lazy_dt()%>% #Speed up code using dtplyr package that takes advantage of data.table speed
       group_by_at(vars(-CPUE))%>%
       summarise(CPUE=sum(CPUE, na.rm=T))%>% #Some taxa now have the same names (e.g., CYCJUV and OTHCYCJUV)
       #so we now add those categories together.
-      ungroup()
+      ungroup()%>%
+      as_tibble() #required to finish operation after lazy_dt()
   }
   
-
-# FMWT --------------------------------------------------------------------
-
   
-  if("FMWT"%in%Sources){
+  # FMWT --------------------------------------------------------------------
+  
+  
+  if("FMWT"%in%Sources | "TNS"%in%Sources){
     
     #download the file
     if (!file.exists("FMWT_TNSZooplanktonDataCPUEOct2017.xls")) {
       download.file("ftp://ftp.wildlife.ca.gov/TownetFallMidwaterTrawl/Zoopl_TownetFMWT/FMWT%20TNSZooplanktonDataCPUEOct2017.xls", 
                     "FMWT_TNSZooplanktonDataCPUEOct2017.xls", mode="wb")
     }
-
+    
     # Import the FMWT data
     
     suppressWarnings(zoo_FMWT <- read_excel("FMWT_TNSZooplanktonDataCPUEOct2017.xls", 
-                                        sheet = "FMWT&TNS ZP CPUE", 
-                                        col_types=c("text", rep("numeric", 3), "date", "text", "text", 
-                                                    "text", "numeric", "text", "text", rep("numeric", 4), 
-                                                    "text", rep("numeric", 5), "text", rep("numeric", 55))))
+                                            sheet = "FMWT&TNS ZP CPUE", 
+                                            col_types=c("text", rep("numeric", 3), "date", "text", "text", 
+                                                        "text", "numeric", rep("text", 3), rep("numeric", 3), 
+                                                        "text", rep("numeric", 5), "text", rep("numeric", 55))))
+    #Allow users to select TNS or FMWT data separately
+    if(!("TNS"%in%Sources)){
+      zoo_FMWT <- filter(zoo_FMWT, Project!="TNS")
+    }
+    
+    if(!("FMWT"%in%Sources)){
+      zoo_FMWT <- filter(zoo_FMWT, Project!="FMWT")
+    }
+      
     
     # Tranform from "wide" to "long" format, add some variables, 
     # alter data to match other datasets
@@ -177,7 +197,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
              -SurfSalinityGroup, -CondBott, -PPTBott, 
              -TempSurf, -Secchi, -Turbidity, -Microcystis, 
              -TotalMeter, -Volume)%>% #transform from wide to long
-      select(Source=Project, Year, Survey, Date, Datetime, Station, Region, TideCode, DepthBottom, CondSurf, CondBott, Temperature = TempSurf, Secchi, Turbidity, Microcystis, Volume, FMWT, CPUE)%>% #Select for columns in common and rename columns to match
+      select(Source=Project, Year, Date, Datetime, Station, Region, Tide=TideCode, DepthBottom, CondSurf, CondBott, Temperature = TempSurf, Secchi, Turbidity, Microcystis, Volume, FMWT, CPUE)%>% #Select for columns in common and rename columns to match
       left_join(crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
                   select(-EMP, -twentymm, -FRP, -Level, -EMPstart, -EMPend, -twentymmstart, -twentymmend, -twentymmstart2)%>% #only retain FMWT codes
                   filter(!is.na(FMWT))%>% #Only retain Taxnames corresponding to FMWT codes
@@ -195,20 +215,21 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
         CPUE==0 & Date >= FMWTstart & Date < FMWTend ~ 0,
         CPUE==0 & Date >= FMWTend ~ NA_real_
       ))%>%
+      filter(!is.na(CPUE))%>%
       select(-FMWT, -FMWTstart, -FMWTend, -Intro) #Remove FMWT taxa codes
   }
   
-
-# twentymm ----------------------------------------------------------------
-
+  
+  # twentymm ----------------------------------------------------------------
+  
   # Import and modify 20mm data
   
   if("20mm"%in%Sources){
     suppressWarnings(zoopquery20mm <- read_excel("zoopquery20mm.xlsx", 
-                                col_types = c("date", "numeric", "numeric", 
-                                              "numeric", "numeric", "numeric", 
-                                              "numeric", "numeric", "numeric", 
-                                              "numeric", "text")))
+                                                 col_types = c("date", "numeric", "numeric", 
+                                                               "numeric", "numeric", "numeric", 
+                                                               "numeric", "numeric", "numeric", 
+                                                               "numeric", "text")))
     zoopquery20mm <- zoopquery20mm%>%
       mutate(SampleID = paste(Station20mm, SampleDate, TowNum))
     
@@ -268,23 +289,25 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
         CPUE==0 & Date >= twentymmstart2 ~ 0 #20mm dataset had one case of a taxa starting, ending, and starting again
       ))%>%
       select(-twentymmend, -twentymmstart, -twentymmstart2, -Intro)%>%
+      lazy_dt()%>% #Speed up
       group_by_at(vars(-CPUE))%>% #Some taxa names are repeated as in EMP so 
       summarise(CPUE=sum(CPUE, na.rm=T))%>% #this just adds up those duplications
       ungroup()%>%
-      mutate(SampleID=paste(Source, SampleID)) #Create identifier for each sample
+      mutate(SampleID=paste(Source, SampleID))%>% #Create identifier for each sample
+      as_tibble()
   }
   
-
-# FRP ---------------------------------------------------------------------
-
+  
+  # FRP ---------------------------------------------------------------------
+  
   # Import the FRP data
   
   if("FRP"%in%Sources){
     zoo_FRP <- read_excel("zoopsFRP2018.xlsx",
-                      col_types = c("text","date", "date", rep("numeric", 8), 
-                                    "text", "text", "text", 
-                                    "numeric", "numeric","numeric","numeric",
-                                    "numeric", "text"), na=c("", "NA"))
+                          col_types = c("text","date", "date", rep("numeric", 8), 
+                                        "text", "text", "text", 
+                                        "numeric", "numeric","numeric","numeric",
+                                        "numeric", "text"), na=c("", "NA"))
     
     #Already in long format
     data.list[["FRP"]] <- zoo_FRP%>%
@@ -302,16 +325,18 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
                 by = "FRP")%>%
       mutate(Taxlifestage=paste(Taxname, Lifestage))%>% #create variable for combo taxonomy x life stage
       select(-FRP)%>% #Remove FRP taxa codes
+      lazy_dt()%>% #Speed up code
       group_by_at(vars(-CPUE))%>% #Some taxa names are repeated as in EMP so 
       summarise(CPUE=sum(CPUE, na.rm=T))%>% #this just adds up those duplications
       ungroup()%>%
-      mutate(SampleID=paste(Source, SampleID)) #Create identifier for each sample
-      
+      mutate(SampleID=paste(Source, SampleID))%>% #Create identifier for each sample
+      as_tibble()
+    
   }
   
-
-# Combine data ----------------------------------------
-
+  
+  # Combine data ----------------------------------------
+  
   zoop<-bind_rows(data.list)%>% # Combine data
     filter(!is.na(Taxname))%>% #Remove NA taxnames (should only correspond to previously summed "all" categories from input datasets)
     mutate(SalSurf=((0.36966/(((CondSurf*0.001)^(-1.07))-0.00074))*1.28156),
@@ -320,15 +345,15 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
            Month=month(Date))%>%
     left_join(stations, by=c("Source", "Station")) #Add lat and long
   
-
-# Filter data -------------------------------------------------------------
-
+  
+  # Filter data -------------------------------------------------------------
+  
   #Filter data by specified variables if users provide appropriate ranges
   
   if(!every(SalBottrange, is.na)) {
     if(some(SalBottrange, is.na)) {
       stop("One element of SalBottrange cannot be NA, use Inf or -Inf to set limitless bounds")
-      }
+    }
     zoop<-filter(zoop, between(SalBott, min(SalBottrange), max(SalBottrange)))
   }
   
@@ -362,7 +387,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
     zoop<-filter(zoop, Month%in%Months)
   }
   
-  if(!every(Year, is.na)) {
+  if(!every(Years, is.na)) {
     zoop<-filter(zoop, Year%in%Years)
   }
   
@@ -381,16 +406,16 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
     zoop<-filter(zoop, between(Longitude, min(Longrange), max(Longrange)))
   }
   
-
-# Apply LCD approach ------------------------------------------------------
-
+  
+  # Apply LCD approach ------------------------------------------------------
+  
   
   # Make list of taxa x life stage combos present in all original datasets
   
   CommonTax<-Reduce(intersect, lapply(unique(zoop$Source), function(x) as_vector(zoop%>%
-                                                                                  filter(Source==x)%>%
-                                                                                  select(Taxlifestage)%>%
-                                                                                  unique())))
+                                                                                   filter(Source==x)%>%
+                                                                                   select(Taxlifestage)%>%
+                                                                                   unique())))
   
   # Make list of removed or lumped taxa for output
   
@@ -421,14 +446,15 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
   
   # Calculate summed groups and create a final dataset
   
-  zoop<-map_dfr(c("Genus_g", "Family_g", "Order_g", "Class_g", "Phylum_g"), .f=LCD, df=zoop)%>% #Taxonomic level by level, summarise for each of these grouping categories and bind them all together
+  zoop<-map_dfr(Taxcats, .f=LCD, df=zoop)%>% #Taxonomic level by level, summarise for each of these grouping categories and bind them all together
     bind_rows(zoop%>% #Bind these summarized groupings to the original taxonomic categories in the original dataset
                 mutate(Taxatype=ifelse(Taxname%in%Groups, "UnID species", "Species")))%>% 
     ungroup()%>%
     mutate(Taxlifestage=paste(Taxname, Lifestage), #add back in the Taxlifestage variable (removed by the LCD function)
            Orphan=ifelse(Taxlifestage%in%Orphans, T, F), #add an identifier for orphan taxa (species not counted in all data sources)
            Taxname = ifelse(Taxatype=="UnID species", paste0(Taxname, "_UnID"), Taxname),
-           Taxlifestage=paste(Taxname, Lifestage))
+           Taxlifestage=paste(Taxname, Lifestage))%>%
+    select_at(vars(-Taxcats))
   
   print("NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE. Do not compare UnID categories across data sources.", quote=F)
   
@@ -457,9 +483,8 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "20mm"), Daterange=c(NA, NA), M
 
 # 3)  If (or when) possible, add download link for FRP and 20mm data
 
-# 4)  Speed up code. Try using data.table speed with tidyverse syntax 
-#   using the dtplyr package. 
+# 4)  Try speeding up code more. Bottleneck now is probably read_excel()
 
 # 5) Split out Townet data from FMWT trawl data
 
-test = Zooper(Sources = c("EMP","FMWT"), Years = 2010)
+#test = Zooper(Sources = c("EMP","FMWT"), Years = 2010)
