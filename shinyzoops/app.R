@@ -41,7 +41,8 @@ ui <- fluidPage(
             sliderInput("Longrange",
                         "Longitude Range:",
                         min = -125, max = -119, value = c(-125, -119)),
-            dateRangeInput("Daterange", label = h3("Date range")),
+            dateRangeInput("Daterange", label = "Date range", 
+                           start = "1972-01-01", end = "2018-12-31", startview = "year"),
 
         downloadButton("download", "Download")
             ),
@@ -59,11 +60,11 @@ ui <- fluidPage(
 server <- function(input, output) {
     #Source Sam's function that gets the data from online
     source("Zoop synthesizer function.R")
-    
+            
     output$distPlot <- renderPlot({
         #select the data the user wants
-        x    <- Zooper(Sources = input$Sources, Daterange= input$Daterange,
-                       Months = input$Months, Years = input$Years,  SalSurfrange= input$SalSurfrange,
+x    <- Zooper(Sources = input$Sources, Daterange= input$Daterange,
+                       Months = input$Months,  SalSurfrange= input$SalSurfrange,
                        Latrange= input$Latrange, Longrange= input$Longrange)
 
         # draw the scatterplot of the the critters
@@ -75,7 +76,7 @@ server <- function(input, output) {
         },
         content = function(file) {
             x    <- Zooper(Sources = input$Sources, Daterange= input$Daterange,
-                           Months = input$Months, Years = input$Years,  SalSurfrange= input$SalSurfrange,
+                           Months = input$Months,  SalSurfrange= input$SalSurfrange,
                            Latrange= input$Latrange, Longrange= input$Longrange)
             write.csv(x, file)
         }
@@ -85,3 +86,4 @@ server <- function(input, output) {
 # Run the application 
 shinyApp(ui = ui, server = server)
 
+test = Zooper(c("FMWT", "FRP"), Years = 2010)
