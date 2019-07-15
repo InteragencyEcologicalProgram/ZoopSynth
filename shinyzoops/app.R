@@ -61,13 +61,13 @@ ui <- fluidPage(
 # Define server logic required to draw a plot
 server <- function(input, output) {
     #Source Sam's function that gets the data from online
-    source("Zoop synthesizer function.R")
+    source("../Zoop synthesizer function.R")
             
     output$distPlot <- renderPlot({
         #select the data the user wants
 x    <- Zooper(Data = input$Datatype, Sources = input$Sources, Daterange= input$Daterange,
                       Months = input$Months,  SalSurfrange= input$SalSurfrange,
-                       Latrange= input$Latrange, Longrange= input$Longrange)
+                       Latrange= input$Latrange, Longrange= input$Longrange, Shiny=T)
 
         # draw the scatterplot of the the critters
         ggplot(x, aes(x=Date, y = CPUE)) + geom_point(aes(pch = Source))
@@ -79,7 +79,7 @@ x    <- Zooper(Data = input$Datatype, Sources = input$Sources, Daterange= input$
         content = function(file) {
             x    <- Zooper(Data = input$Datatype, Sources = input$Sources, Daterange= input$Daterange,
                            Months = input$Months,  SalSurfrange= input$SalSurfrange,
-                           Latrange= input$Latrange, Longrange= input$Longrange)
+                           Latrange= input$Latrange, Longrange= input$Longrange, Shiny=T)
             write.csv(x, file)
         }
     )
@@ -88,4 +88,4 @@ x    <- Zooper(Data = input$Datatype, Sources = input$Sources, Daterange= input$
 # Run the application 
 shinyApp(ui = ui, server = server)
 
-test = Zooper(Data = "Taxa", c("FMWT", "FRP"), Years = 2010)
+#test = Zooper(Data = "Taxa", c("FMWT", "FRP"), Years = 2010)

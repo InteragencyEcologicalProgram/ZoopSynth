@@ -1,4 +1,4 @@
-Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community", Daterange=c(NA, NA), Months=NA, Years=NA, SalBottrange=NA, SalSurfrange=NA, Temprange=NA, Latrange=NA, Longrange=NA){
+Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community", Daterange=c(NA, NA), Months=NA, Years=NA, SalBottrange=NA, SalSurfrange=NA, Temprange=NA, Latrange=NA, Longrange=NA, Shiny=F){
   
   
   # Documentation -----------------------------------------------------------
@@ -71,10 +71,17 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   require(data.table)
   require(lubridate)
   
+  #Allow shiny app to load data files 1 directory upwards
+  if(Shiny){
+    File_prefix<-"../"
+  } else {
+    File_prefix<-""
+  }
+  
   # Load crosswalk key to convert each dataset's taxonomic codes to a
   # unified set of "Taxname" and "Lifestage" values.
   
-  crosswalk <- read_excel("new_crosswalk.xlsx", sheet = "Hierarchy2")%>%
+  crosswalk <- read_excel(paste0(File_prefix,"new_crosswalk.xlsx"), sheet = "Hierarchy2")%>%
     mutate_at(vars(c("EMPstart", "EMPend", "Intro", "FMWTstart", "FMWTend", "twentymmstart", "twentymmend", "twentymmstart2")), ~parse_date(as.character(.), format="%Y"))%>%
     mutate_at(vars(c("EMPstart", "FMWTstart", "twentymmstart", "twentymmstart2", "EMPend", "FMWTend", "twentymmend")), ~replace_na(., as_date(Inf)))%>% #Change any NAs for starts or ends to Infinity (i.e. never started or ended)
     mutate(EMPend = if_else(is.finite(EMPend), EMPend+years(1), EMPend))%>% #Change end dates to beginning of next year (first day it was not counted)
@@ -84,7 +91,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   
   # Load station key to later incorporate latitudes and longitudes
   
-  stations <- read_excel("zoop_stations.xlsx", sheet="lat_long")%>%
+  stations <- read_excel(paste0(File_prefix,"zoop_stations.xlsx"), sheet="lat_long")%>%
     rename(Source=Project)
   
   # Initialize list of dataframes
@@ -99,7 +106,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   if("EMP"%in%Sources){
     
     #download the file
-    if (!file.exists("1972-2018CBMatrix.xlsx")) {
+    if (!file.exists(paste0(File_prefix,"1972-2018CBMatrix.xlsx"))) {
       download.file("ftp://ftp.wildlife.ca.gov/IEP_Zooplankton/1972-2018CBMatrix.xlsx", 
                     "1972-2018CBMatrix.xlsx", mode="wb")
     }
@@ -107,7 +114,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
     
     # Import the EMP data
     
-    zoo_EMP <- read_excel("1972-2018CBMatrix.xlsx", 
+    zoo_EMP <- read_excel(paste0(File_prefix,"1972-2018CBMatrix.xlsx"), 
                           sheet = "CB CPUE Matrix 1972-2018", 
                           col_types = c("numeric","numeric", "numeric", "numeric", "date", 
                                         "text", "text", "text", "numeric", "text", "text",
@@ -157,14 +164,14 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   if("FMWT"%in%Sources | "TNS"%in%Sources){
     
     #download the file
-    if (!file.exists("FMWT_TNSZooplanktonDataCPUEOct2017.xls")) {
+    if (!file.exists(paste0(File_prefix,"FMWT_TNSZooplanktonDataCPUEOct2017.xls"))) {
       download.file("ftp://ftp.wildlife.ca.gov/TownetFallMidwaterTrawl/Zoopl_TownetFMWT/FMWT%20TNSZooplanktonDataCPUEOct2017.xls", 
                     "FMWT_TNSZooplanktonDataCPUEOct2017.xls", mode="wb")
     }
     
     # Import the FMWT data
     
-    suppressWarnings(zoo_FMWT <- read_excel("FMWT_TNSZooplanktonDataCPUEOct2017.xls", 
+    suppressWarnings(zoo_FMWT <- read_excel(paste0(File_prefix,"FMWT_TNSZooplanktonDataCPUEOct2017.xls"), 
                                             sheet = "FMWT&TNS ZP CPUE", 
                                             col_types=c("text", rep("numeric", 3), "date", "text", "text", 
                                                         "text", "numeric", rep("text", 3), rep("numeric", 3), 
@@ -219,7 +226,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   # Import and modify 20mm data
   
   if("20mm"%in%Sources){
-    suppressWarnings(zoopquery20mm <- read_excel("zoopquery20mm.xlsx", 
+    suppressWarnings(zoopquery20mm <- read_excel(paste0(File_prefix,"zoopquery20mm.xlsx"), 
                                                  col_types = c("date", "numeric", "numeric", 
                                                                "numeric", "numeric", "numeric", 
                                                                "numeric", "numeric", "numeric", 
@@ -254,8 +261,8 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
     # import survey and station informationf from excel files (these excel files are from 20mm mdb - requires a lot of different
     # packages to import directly from mdb so just converted them to excel files for now)
     
-    enviro20mm<-left_join(suppressWarnings(read_excel("20mm_Survey.xlsx")),
-                          suppressWarnings(read_excel("20mm_Station.xlsx", col_types = c(rep("numeric", 14), "text"))),
+    enviro20mm<-left_join(suppressWarnings(read_excel(paste0(File_prefix,"20mm_Survey.xlsx"))),
+                          suppressWarnings(read_excel(paste0(File_prefix,"20mm_Station.xlsx"), col_types = c(rep("numeric", 14), "text"))),
                           by = "SurveyID",
                           suffix=c("_Survey", "_Station"))%>% #merge based on survey ID - unique for every date (date not in station data)
       rename(Date=SampleDate)
@@ -297,7 +304,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   # Import the FRP data
   
   if("FRP"%in%Sources){
-    zoo_FRP <- read_excel("zoopsFRP2018.xlsx",
+    zoo_FRP <- read_excel(paste0(File_prefix,"zoopsFRP2018.xlsx"),
                           col_types = c("text","date", "date", rep("numeric", 8), 
                                         "text", "text", "text", 
                                         "numeric", "numeric","numeric","numeric",
@@ -504,6 +511,10 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
 
   
   if(Data=="Community"){
+    
+    if(length(unique(zoop$Source))==1){
+      return(zoop)
+    }
     
     #Create taxonomy table for all taxonomic levels present in all datasets
     Commontaxkey<-map_dfr(Taxcats, Commontaxer)%>%
