@@ -487,4 +487,4 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Daterange=c(NA,
 
 # 5) Split out Townet data from FMWT trawl data
 
-#test = Zooper(Sources = c("EMP","FMWT"), Years = 2010)
+test = Zooper(Sources = c("EMP","FMWT"), Months = c(9,10), Years = 2010)
