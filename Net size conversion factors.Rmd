@@ -101,14 +101,6 @@ mbrm<-brm(LIMNOSINE_Pump~(LIMNOSINE_CB_l+Secchi_s+Chl_s+Temperature_s+Catch_tota
           prior = prior(normal(0,5), class=b),
           chains=2, cores=2,
           control=list(adapt_delta=0.95))
-
-mbrm2<-update(mbrm, formula.=.~.-Chl_s:Temperature_s:Catch_total_CB_s,
-          chains=2, cores=2,
-          control=list(adapt_delta=0.95))
-
-mbrm3<-update(mbrm2, formula.=.~.-LIMNOSINE_CB_l:Chl_s:Catch_total_CB_s,
-          chains=2, cores=2,
-          control=list(adapt_delta=0.95))
 ```
 
 ##With CB count as the response variable, probably more appropriate since this is what we are modeling: how many small zooplankters are caught in the CB net?
