@@ -23,16 +23,18 @@ ui <- fluidPage(
     # check boxes where you choose data you want
     sidebarLayout(
         sidebarPanel(
+            radioButtons("Datatype", "Data Type", choices = c("Taxa", "Community"), selected = "Community",
+                         inline = TRUE),
             checkboxGroupInput("Sources",
                         "Sources:",
-                        choices = c("EMP", "FRP", "FMWT", "20mm")),
+                        choices = c("EMP", "FRP", "FMWT", "TNS", "20mm")),
             #Note: we will want to split out townet eventually
 
           
             sliderInput("Months",
                                "Months:",
                                min = 1, max = 12, value = c(1,12)),
-            sliderInput("SalSurfrage",
+            sliderInput("SalSurfrange",
                         "Surface Slainity:",
                         min = 0, max = 32, value = c(0,7)),
             sliderInput("Latrange",
@@ -63,8 +65,8 @@ server <- function(input, output) {
             
     output$distPlot <- renderPlot({
         #select the data the user wants
-x    <- Zooper(Sources = input$Sources, Daterange= input$Daterange,
-                       Months = input$Months,  SalSurfrange= input$SalSurfrange,
+x    <- Zooper(Data = input$Datatype, Sources = input$Sources, Daterange= input$Daterange,
+                      Months = input$Months,  SalSurfrange= input$SalSurfrange,
                        Latrange= input$Latrange, Longrange= input$Longrange)
 
         # draw the scatterplot of the the critters
@@ -75,7 +77,7 @@ x    <- Zooper(Sources = input$Sources, Daterange= input$Daterange,
             paste("data-", Sys.Date(), ".csv", sep="")
         },
         content = function(file) {
-            x    <- Zooper(Sources = input$Sources, Daterange= input$Daterange,
+            x    <- Zooper(Data = input$Datatype, Sources = input$Sources, Daterange= input$Daterange,
                            Months = input$Months,  SalSurfrange= input$SalSurfrange,
                            Latrange= input$Latrange, Longrange= input$Longrange)
             write.csv(x, file)
@@ -86,4 +88,4 @@ x    <- Zooper(Sources = input$Sources, Daterange= input$Daterange,
 # Run the application 
 shinyApp(ui = ui, server = server)
 
-test = Zooper(c("FMWT", "FRP"), Years = 2010)
+test = Zooper(Data = "Taxa", c("FMWT", "FRP"), Years = 2010)

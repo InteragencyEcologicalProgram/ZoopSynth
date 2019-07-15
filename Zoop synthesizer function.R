@@ -307,7 +307,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
     data.list[["FRP"]] <- zoo_FRP%>%
       mutate(Station=replace(Station, Station=="Lindsey Tules", "Lindsey tules"),
              Station=replace(Station, Station=="LinBR", "LinBr"))%>% #Rename inconsistent station names to match
-      mutate(Datetime=parse_date_time(paste0(Date, " ", lubridate::hour(time), ":", lubridate::minute(time)), "%Y-%m-%d %%H:%M"))%>% #Create a variable for datetime
+      mutate(Datetime=parse_date_time(paste0(Date, " ", hour(time), ":", minute(time)), "%Y-%m-%d %%H:%M"))%>% #Create a variable for datetime
       mutate(Source="FRP")%>% #add variable for data source
       select(Source, Date, Datetime, 
              Station, CondSurf = SC, Secchi, pH, DO, Turbidity, Tide, Microcystis,
@@ -583,7 +583,6 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
 # 5)  Do we want to append something like "_UnID" to the taxnames of Lumped 
 # (LCDed) taxa under option Data=="Community"???
 
-#test = Zooper(Sources = c("EMP","FMWT"), Months = c(9,10), Years = 2010)
 
 # 6)  How do we apply the LCD approach for community data to issues arrising
 #   from changing taxonomic resolution over time in individual datasets
