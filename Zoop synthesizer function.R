@@ -396,7 +396,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
     if(some(Longrange, is.na)) {
       stop("One element of Longrange cannot be NA, use Inf or -Inf to set limitless bounds")
     }
-    if(some(Longrange<0)) {warning("Longitudes should be negative for the Delta")}    
+    if(some(Longrange>0, isTRUE)) {warning("Longitudes should be negative for the Delta")}    
     zoop<-filter(zoop, between(Longitude, min(Longrange), max(Longrange)))
   }
   
