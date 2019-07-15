@@ -307,7 +307,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
     data.list[["FRP"]] <- zoo_FRP%>%
       mutate(Station=replace(Station, Station=="Lindsey Tules", "Lindsey tules"),
              Station=replace(Station, Station=="LinBR", "LinBr"))%>% #Rename inconsistent station names to match
-      mutate(Datetime=parse_date_time(paste0(Date, " ", hour(time), ":", minute(time)), "%Y-%m-%d %%H:%M"))%>% #Create a variable for datetime
+      mutate(Datetime=parse_date_time(paste0(Date, " ", lubridate::hour(time), ":", lubridate::minute(time)), "%Y-%m-%d %%H:%M"))%>% #Create a variable for datetime
       mutate(Source="FRP")%>% #add variable for data source
       select(Source, Date, Datetime, 
              Station, CondSurf = SC, Secchi, pH, DO, Turbidity, Tide, Microcystis,
