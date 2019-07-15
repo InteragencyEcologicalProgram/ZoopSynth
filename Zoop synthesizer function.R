@@ -583,9 +583,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
 # 5)  Do we want to append something like "_UnID" to the taxnames of Lumped 
 # (LCDed) taxa under option Data=="Community"???
 
-<<<<<<< HEAD
-test = Zooper(Sources = c("EMP","FMWT"), Months = c(9,10), Years = 2010)
-=======
+
 # 6)  How do we apply the LCD approach for community data to issues arrising
 #   from changing taxonomic resolution over time in individual datasets
->>>>>>> 6d615248ea9c78168997e6300b59b417c7d520ba
+
