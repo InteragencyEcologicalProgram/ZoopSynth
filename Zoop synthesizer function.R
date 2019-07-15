@@ -418,14 +418,32 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   
   # Make list of taxa x life stage combos present in all original datasets
   
-  Commontax<-Reduce(intersect, lapply(unique(zoop$Source), function(x) as_vector(zoop%>%
-                                                                                   filter(Source==x)%>%
-                                                                                   select(Taxlifestage)%>%
-                                                                                   unique())))
+  #Function to detect common taxonomic names across all source datasets
+  Commontaxer<-function(Taxagroup){
+    Taxagroup<-sym(Taxagroup) #unquote input
+    Taxagroup<-enquo(Taxagroup) #capture expression to pass on to functions below
+    zoop%>%
+      filter(!is.na(!!Taxagroup))%>%
+      select(!!Taxagroup, Lifestage, Source)%>%
+      distinct()%>%
+      group_by(!!Taxagroup, Lifestage)%>%
+      summarise(n=n())%>% #Create index of number of data sources in which each taxagroup x lifestage combo appears
+      ungroup()%>%
+      filter(n==length(unique(zoop$Source)))%>% #only retain taxagroup x lifestage combos that appear in all datasets
+      select(!!Taxagroup, Lifestage)
+  }
+  
+  #Find all common Taxname x life stage combinations, turn into vector of Taxlifestages
+  Commontax<-Commontaxer("Taxname")
+  Commontax<-paste(Commontax$Taxname, Commontax$Lifestage)
 
-  # Make list of removed or lumped taxa for output
+  # Make list of taxalifestages that do not appear in all datasets
   
   Lumped<-setdiff(unique(zoop$Taxlifestage), Commontax)
+  
+  
+  #Make vector of taxonomic categories that we will use later
+  Taxcats<-c("Genus", "Family", "Order", "Class", "Phylum")
 
   
 
@@ -435,9 +453,8 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   
   if(Data=="Taxa"){
     
-    
-    #Make vector of taxonomic categories that we will use later
-    Taxcats<-c("Genus_g", "Family_g", "Order_g", "Class_g", "Phylum_g") 
+    #Make vector of _g Taxonomic variables
+    Taxcats_g<-paste0(Taxcats, "_g")
     
     # Define function to calculate least common denominator for each taxonomic level
     LCD<-function(df, Taxagroup){
@@ -446,7 +463,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
       out<-df%>%
         filter(!is.na(!!Taxagroup2))%>% #filter to include only data belonging to the taxonomic grouping
         lazy_dt()%>%
-        group_by_at(vars(-c("Taxname", "Phylum", "Class", "Order", "Family", "Genus", "Species", "Taxlifestage", "CPUE",Taxcats[!Taxcats%in%Taxagroup])))%>% #Group data by relavent grouping variables (including taxonomic group) for later data summation
+        group_by_at(vars(-c("Taxname", "Phylum", "Class", "Order", "Family", "Genus", "Species", "Taxlifestage", "CPUE",Taxcats_g[!Taxcats_g%in%Taxagroup])))%>% #Group data by relavent grouping variables (including taxonomic group) for later data summation
         summarise(CPUE=sum(CPUE, na.rm=T))%>% #Add up all members of each grouping taxon
         ungroup()%>%
         as_tibble()%>%
@@ -481,7 +498,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   
   # Calculate summed groups and create a final dataset
   
-  zoop<-map_dfr(Taxcats, .f=LCD, df=zoop)%>% #Taxonomic level by level, summarise for each of these grouping categories and bind them all together
+  zoop<-map_dfr(Taxcats_g, .f=LCD, df=zoop)%>% #Taxonomic level by level, summarise for each of these grouping categories and bind them all together
     bind_rows(zoop%>% #Bind these summarized groupings to the original taxonomic categories in the original dataset
                 mutate(Taxatype=ifelse(Taxname%in%Groups, "UnID species", "Species")))%>% 
     ungroup()%>%
@@ -489,7 +506,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
            Orphan=ifelse(Taxlifestage%in%Orphans, T, F), #add an identifier for orphan taxa (species not counted in all data sources)
            Taxname = ifelse(Taxatype=="UnID species", paste0(Taxname, "_UnID"), Taxname),
            Taxlifestage=paste(Taxname, Lifestage))%>%
-    select_at(vars(-Taxcats))
+    select_at(vars(-Taxcats_g))
   
   print("NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE. Do not compare UnID categories across data sources.", quote=F)
   }
@@ -500,16 +517,10 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   
   if(Data=="Community"){
     
-    #Create taxonomy table for all taxa present in all datasets
-    Commontaxkey<-tibble(Taxlifestage=Commontax)%>%
-      left_join(crosswalk%>%
-                  select(Taxname, Lifestage, Phylum, Class, Order, Family, Genus)%>%
-                  mutate(Taxlifestage=paste(Taxname, Lifestage))%>%
-                  distinct(),
-                by="Taxlifestage")%>%
+    #Create taxonomy table for all taxonomic levels present in all datasets
+    Commontaxkey<-map_dfr(Taxcats, Commontaxer)%>%
       mutate_at(c("Genus", "Family", "Order", "Class", "Phylum"), list(lifestage=~ifelse(is.na(.), NA, paste(., Lifestage))))%>% #Create taxa x life stage variable for each taxonomic level
-      select(Genus_lifestage, Family_lifestage, Order_lifestage, Class_lifestage, Phylum_lifestage)%>% #only retain columns we need
-      distinct() #remove duplicates
+      select(Genus_lifestage, Family_lifestage, Order_lifestage, Class_lifestage, Phylum_lifestage) #only retain columns we need
     
     #Create taxonomy table for taxa not present in all datasets, then select their new names corresponding to taxa x life stage combinations that are measured in all datasets
     Lumpedkey<-tibble(Taxlifestage=Lumped)%>%
@@ -583,3 +594,6 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
 
 # 5)  Do we want to append something like "_UnID" to the taxnames of Lumped 
 # (LCDed) taxa under option Data=="Community"???
+
+# 6)  How do we apply the LCD approach for community data to issues arrising
+#   from changing taxonomic resolution over time in individual datasets
