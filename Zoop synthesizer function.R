@@ -111,19 +111,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
                           sheet = "CB CPUE Matrix 1972-2018", 
                           col_types = c("numeric","numeric", "numeric", "numeric", "date", 
                                         "text", "text", "text", "numeric", "text", "text",
-                                        "text", "numeric", "numeric", "numeric", "numeric", 
-                                        "numeric", "numeric", "numeric", "numeric", "numeric",
-                                        "numeric", "numeric", "numeric", "numeric", "numeric",
-                                        "numeric", "numeric", "numeric", "numeric", "numeric",
-                                        "numeric", "numeric", "numeric", "numeric", "numeric",
-                                        "numeric", "numeric", "numeric", "numeric", "numeric",
-                                        "numeric", "numeric", "numeric", "numeric", "numeric",
-                                        "numeric", "numeric", "numeric",
-                                        "numeric", "numeric", "numeric", "numeric", "numeric",
-                                        "numeric", "numeric", "numeric", "numeric", "numeric",
-                                        "numeric", "numeric", "numeric", "numeric", "numeric",
-                                        "numeric", "numeric", "numeric", "numeric", "numeric",
-                                        "numeric", "numeric", "numeric", "numeric", "numeric"))
+                                        "text", rep("numeric", 62)))
     
     # Tranform from "wide" to "long" format, add some variables, 
     # alter data to match other datasets
