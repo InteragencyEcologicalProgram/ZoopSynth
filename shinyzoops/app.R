@@ -87,5 +87,3 @@ x    <- Zooper(Data = input$Datatype, Sources = input$Sources, Daterange= input$
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-
-#test = Zooper(Data = "Taxa", c("FMWT", "FRP"), Years = 2010)
