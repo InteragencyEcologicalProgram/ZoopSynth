@@ -30,12 +30,10 @@ ui <- fluidPage(
                         choices = c("EMP", "FRP", "FMWT", "TNS", "20mm")),
             checkboxGroupInput("Filters",
                                "Filters:",
-                               choices = c("Months", "Surface salinity", "Latitude", "Longitude", "Dates")),
+                               choices = c("Months", "Surface_salinity", "Latitude", "Longitude", "Dates")),
             conditionalPanel(condition = "input.Filters.includes('Months')",
-                             sliderInput("Months",
-                                         "Months:",
-                                         min = 1, max = 12, value = c(1,12))),
-            conditionalPanel(condition = "input.Filters.includes('Surface salinity')",
+                             selectInput("Months", "Months:", choices=1:12, selected = 1, multiple = T)),
+            conditionalPanel(condition = "input.Filters.includes('Surface_salinity')",
                              sliderInput("SalSurfrange",
                                          "Surface salinity:",
                                          min = 0, max = 32, value = c(0,7))),
@@ -72,34 +70,35 @@ server <- function(input, output) {
         
         output$distPlot <- renderPlot({
             #select the data the user wants
-            x    <- Zooper(Data = input$Datatype, 
+            data    <- Zooper(Data = input$Datatype, 
                            Sources = input$Sources, 
-                           Daterange= ifelse("Dates"%in%input$Filters, input$Daterange, c(NA, NA)),
-                           Months = ifelse("Months"%in%input$Filters, input$Months[1]:input$Months[2], NA),  
-                           SalSurfrange = ifelse("Surface salinity"%in%input$Filters, input$SalSurfrange, NA),
+                           Daterange = ifelse("Dates"%in%input$Filters, input$Daterange, c(NA, NA)),
+                           Months = ifelse("Months"%in%input$Filters, as.integer(input$Months), NA),  
+                           SalSurfrange = ifelse("Surface_salinity"%in%input$Filters, input$SalSurfrange, NA),
                            Latrange = ifelse("Latitude"%in%input$Filters, input$Latrange, NA), 
-                           Longrange =  ifelse("Longitudee"%in%input$Filters, input$Longrange, NA), 
+                           Longrange =  ifelse("Longitude"%in%input$Filters, input$Longrange, NA), 
                            Shiny=T)
             
             # draw the scatterplot of the the critters
-            ggplot(x, aes(x=Date, y = CPUE)) + geom_point(aes(pch = Source))+ggtitle(nrow(x))
+            ggplot(data, aes(x=Date, y = CPUE)) + geom_point(aes(pch = Source))+ggtitle(nrow(data))
         })
     })
+    observeEvent(input$Months, {print(min(input$Latrange))})
     
     output$download = downloadHandler(
         filename = function() {
             paste("data-", Sys.Date(), ".csv", sep="")
         },
         content = function(file) {
-            x    <- Zooper(Data = input$Datatype, 
+            data    <- Zooper(Data = input$Datatype, 
                            Sources = input$Sources, 
                            Daterange= ifelse("Dates"%in%input$Filters, input$Daterange, c(NA, NA)),
-                           Months = ifelse("Months"%in%input$Filters, input$Months[1]:input$Months[2], NA),  
+                           Months = ifelse("Months"%in%input$Filters, as.integer(input$Months), NA),  
                            SalSurfrange = ifelse("Surface salinity"%in%input$Filters, input$SalSurfrange, NA),
                            Latrange = ifelse("Latitude"%in%input$Filters, input$Latrange, NA), 
                            Longrange =  ifelse("Longitudee"%in%input$Filters, input$Longrange, NA), 
                            Shiny=T)
-            write.csv(x, file)
+            write.csv(data, file)
         }
     )
 }
