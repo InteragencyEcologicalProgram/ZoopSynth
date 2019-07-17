@@ -78,13 +78,13 @@ server <- function(input, output) {
         output$distPlot <- renderPlot({
             #select the data the user wants
             data    <- Zooper(Data = input$Datatype, 
-                           Sources = input$Sources, 
-                           Daterange = ifelse("Dates"%in%input$Filters, input$Daterange, c(NA, NA)),
-                           Months = ifelse("Months"%in%input$Filters, as.integer(input$Months), NA),  
-                           SalSurfrange = ifelse("Surface_salinity"%in%input$Filters, input$SalSurfrange, NA),
-                           Latrange = ifelse("Latitude"%in%input$Filters, input$Latrange, NA), 
-                           Longrange =  ifelse("Longitude"%in%input$Filters, input$Longrange, NA), 
-                           Shiny=T)
+                              Sources = input$Sources, 
+                              Daterange = ifelse("Dates"%in%input$Filters, input$Daterange, c(NA, NA)),
+                              Months = ifelse("Months"%in%input$Filters, as.integer(input$Months), NA),  
+                              SalSurfrange = ifelse("Surface_salinity"%in%input$Filters, input$SalSurfrange, NA),
+                              Latrange = ifelse("Latitude"%in%input$Filters, input$Latrange, NA), 
+                              Longrange =  ifelse("Longitude"%in%input$Filters, input$Longrange, NA), 
+                              Shiny=T)
             
             # draw the scatterplot of the the critters
             ggplot(data, aes(x=Date, y = CPUE)) + geom_point(aes(pch = Source))+ggtitle(nrow(data))

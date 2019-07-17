@@ -89,7 +89,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
     mutate(twentymmend = if_else(is.finite(twentymmend), twentymmend+years(1), twentymmend))%>% #Change end dates to beginning of next year (first day it was not counted)
     mutate(Intro=replace_na(Intro, as_date(-Inf))) #Change any NAs in Intro date to -Inf (i.e., always been around)
   
-  
+  #Make it possible to re-download data if desired
   if(ReDownloadData){
     source(paste0(File_prefix, "Zoop data downloader.R"))
     Zoopdownloader(paste0(File_prefix, "zoopforzooper.Rdata"))
