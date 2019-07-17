@@ -11,8 +11,15 @@
 #    http://shiny.rstudio.com/
 #
 
-library(shiny)
-library(tidyverse)
+require(shiny)
+require(tidyverse) 
+require(readxl)
+
+#Requires Github developer version of dtplyr: devtools::install_github("tidyverse/dtplyr")
+require(dtplyr)
+
+require(data.table)
+require(lubridate)
 
 # Define UI for application that draws a scaterplot and allows you to download data
 ui <- fluidPage(
