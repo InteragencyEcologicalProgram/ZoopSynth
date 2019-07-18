@@ -22,6 +22,8 @@ require(data.table)
 require(lubridate)
 
 load("../zoopforzooper.Rdata")
+#Source Sam's function that gets the data from online
+source("../Zoop synthesizer function.R")
 
 # Define UI for application that draws a scaterplot and allows you to download data
 ui <- fluidPage(
@@ -73,25 +75,26 @@ ui <- fluidPage(
 # Define server logic required to draw a plot
 server <- function(input, output) {
     
-    observeEvent(input$Run, {
-        #Source Sam's function that gets the data from online
-        source("../Zoop synthesizer function.R")
+    #Using eventReactive so app only updates when "Run" button is clicked, letting you check all the boxes you want before running the app
+    zooplot <- eventReactive(input$Run, {
+        
+        #select the data the user wants
+        
+        data <- Zooper(Data = input$Datatype, 
+                       Sources = input$Sources, 
+                       Daterange = ifelse(rep("Dates"%in%input$Filters, 2), input$Daterange, c(NA, NA)),
+                       Months = ifelse(rep("Months"%in%input$Filters, length(input$Months)), as.integer(input$Months), rep(NA, length(input$Months))),  
+                       SalSurfrange = ifelse(rep("Surface_salinity"%in%input$Filters, 2), input$SalSurfrange, c(NA, NA)),
+                       Latrange = ifelse(rep("Latitude"%in%input$Filters, 2), input$Latrange, c(NA, NA)), 
+                       Longrange = ifelse(rep("Longitude"%in%input$Filters, 2), input$Longrange, c(NA, NA)), 
+                       Shiny=T)
+        # draw the scatterplot of the the critters
+        ggplot(data, aes(x=Date, y = CPUE)) + geom_point(aes(pch = Source))+ggtitle(nrow(data))
+    })
         
         output$distPlot <- renderPlot({
-            #select the data the user wants
-            data <- Zooper(Data = input$Datatype, 
-                           Sources = input$Sources, 
-                           Daterange = ifelse(rep("Dates"%in%input$Filters, 2), input$Daterange, c(NA, NA)),
-                           Months = ifelse(rep("Months"%in%input$Filters, length(input$Months)), as.integer(input$Months), rep(NA, length(input$Months))),  
-                           SalSurfrange = ifelse(rep("Surface_salinity"%in%input$Filters, 2), input$SalSurfrange, c(NA, NA)),
-                           Latrange = ifelse(rep("Latitude"%in%input$Filters, 2), input$Latrange, c(NA, NA)), 
-                           Longrange = ifelse(rep("Longitude"%in%input$Filters, 2), input$Longrange, c(NA, NA)), 
-                           Shiny=T)
-            
-            # draw the scatterplot of the the critters
-            ggplot(data, aes(x=Date, y = CPUE)) + geom_point(aes(pch = Source))+ggtitle(nrow(data))
+            zooplot()
         })
-    })
     
     output$download = downloadHandler(
         filename = function() {
