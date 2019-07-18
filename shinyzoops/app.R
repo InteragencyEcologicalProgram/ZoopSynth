@@ -92,6 +92,7 @@ server <- function(input, output) {
                        Latrange = ifelse(rep("Latitude"%in%input$Filters, 2), input$Latrange, c(NA, NA)), 
                        Longrange = ifelse(rep("Longitude"%in%input$Filters, 2), input$Longrange, c(NA, NA)), 
                        Shiny=T)
+        
         # draw the scatterplot of the the critters
         ggplot(data, aes(x=Date, y = CPUE)) +
             geom_point(aes(shape = Source))+

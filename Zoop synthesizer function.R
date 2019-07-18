@@ -249,7 +249,14 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   # "orphan taxa"
   
   Orphans<-paste(Lumped[-str_which(paste0("[", paste(Groups, collapse="|"), "]"), word(Lumped, 1, -2))], collapse=", ")
+  
+  if(Shiny==F){
   print(paste("NOTE: These species are not counted in all datasets:", Orphans), quote=F)
+  }
+  
+  if(Shiny==T) {
+    shiny::showNotification(paste("NOTE: These species are not counted in all datasets:", Orphans), type = "warning", duration = NULL)
+  }
   
   # Calculate summed groups and create a final dataset
   
@@ -263,7 +270,14 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
            Taxlifestage=paste(Taxname, Lifestage))%>%
     select_at(vars(-Taxcats_g))
   
+  if(Shiny==F){
   print("NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE. Do not compare UnID categories across data sources.", quote=F)
+  }
+  
+  if(Shiny==T) {
+    shiny::showNotification("NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE. Do not compare UnID categories across data sources.", type = "warning", duration = NULL)
+  }
+  
   }
   
 
