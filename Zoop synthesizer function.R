@@ -95,9 +95,13 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
     Zoopdownloader(paste0(File_prefix, "zoopforzooper.Rdata"))
   }
   
-  # Read in data
+  # Read in data if not already loaded
+  
+  if(!exists("zoop")){
   
   load(paste0(File_prefix, "zoopforzooper.Rdata"))
+    
+  }
   
   # Filter data -------------------------------------------------------------
   

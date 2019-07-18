@@ -21,6 +21,8 @@ require(dtplyr)
 require(data.table)
 require(lubridate)
 
+load("../zoopforzooper.Rdata")
+
 # Define UI for application that draws a scaterplot and allows you to download data
 ui <- fluidPage(
 
@@ -77,20 +79,19 @@ server <- function(input, output) {
         
         output$distPlot <- renderPlot({
             #select the data the user wants
-            data    <- Zooper(Data = input$Datatype, 
-                              Sources = input$Sources, 
-                              Daterange = ifelse("Dates"%in%input$Filters, input$Daterange, c(NA, NA)),
-                              Months = ifelse("Months"%in%input$Filters, as.integer(input$Months), NA),  
-                              SalSurfrange = ifelse("Surface_salinity"%in%input$Filters, input$SalSurfrange, NA),
-                              Latrange = ifelse("Latitude"%in%input$Filters, input$Latrange, NA), 
-                              Longrange =  ifelse("Longitude"%in%input$Filters, input$Longrange, NA), 
-                              Shiny=T)
+            data <- Zooper(Data = input$Datatype, 
+                           Sources = input$Sources, 
+                           Daterange = ifelse(rep("Dates"%in%input$Filters, 2), input$Daterange, c(NA, NA)),
+                           Months = ifelse(rep("Months"%in%input$Filters, length(input$Months)), as.integer(input$Months), rep(NA, length(input$Months))),  
+                           SalSurfrange = ifelse(rep("Surface_salinity"%in%input$Filters, 2), input$SalSurfrange, c(NA, NA)),
+                           Latrange = ifelse(rep("Latitude"%in%input$Filters, 2), input$Latrange, c(NA, NA)), 
+                           Longrange = ifelse(rep("Longitude"%in%input$Filters, 2), input$Longrange, c(NA, NA)), 
+                           Shiny=T)
             
             # draw the scatterplot of the the critters
             ggplot(data, aes(x=Date, y = CPUE)) + geom_point(aes(pch = Source))+ggtitle(nrow(data))
         })
     })
-    observeEvent(input$Months, {print(min(input$Latrange))})
     
     output$download = downloadHandler(
         filename = function() {
