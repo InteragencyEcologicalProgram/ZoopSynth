@@ -75,6 +75,10 @@ ui <- fluidPage(
 # Define server logic required to draw a plot
 server <- function(input, output) {
     
+    observeEvent(input$Run, {
+        showNotification("Crunching data...", type = "message", duration = NULL)
+    })
+    
     #Using eventReactive so app only updates when "Run" button is clicked, letting you check all the boxes you want before running the app
     zooplot <- eventReactive(input$Run, {
         
@@ -89,7 +93,10 @@ server <- function(input, output) {
                        Longrange = ifelse(rep("Longitude"%in%input$Filters, 2), input$Longrange, c(NA, NA)), 
                        Shiny=T)
         # draw the scatterplot of the the critters
-        ggplot(data, aes(x=Date, y = CPUE)) + geom_point(aes(pch = Source))+ggtitle(nrow(data))
+        ggplot(data, aes(x=Date, y = CPUE)) +
+            geom_point(aes(shape = Source))+
+            theme_bw()+
+            theme(panel.grid=element_blank())
     })
         
         output$distPlot <- renderPlot({
