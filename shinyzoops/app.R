@@ -124,7 +124,7 @@ server <- function(input, output, session) {
         } else {
             plotdata()
         }
-    })
+    }, ignoreInit=T)
     
     output$select_Taxlifestage <- renderUI({
         

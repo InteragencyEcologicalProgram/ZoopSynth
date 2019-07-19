@@ -60,7 +60,6 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   
   # Setup -------------------------------------------------------------------
   
-  ##NOTE THIS FUNCTION IS SUPER SLOW UNLESS YOU INSTALL THE DEVELOPER VERSION OF DPLYR DUE TO AN ISSUE WITH THE SUMMARISE FUNCTION
   #devtools::install_github("tidyverse/dplyr")
   require(tidyverse) 
   require(readxl)
