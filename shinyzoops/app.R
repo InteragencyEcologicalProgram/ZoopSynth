@@ -25,6 +25,11 @@ load("../zoopforzooper.Rdata")
 #Source Sam's function that gets the data from online
 source("../Zoop synthesizer function.R")
 
+
+info_loading <- "Data crunching in progress..."
+your_color01 <- "#CD2626"
+your_color02 <- "#D3D3D3"
+
 # Define UI for application that draws a scaterplot and allows you to download data
 ui <- fluidPage(
     
@@ -34,11 +39,11 @@ ui <- fluidPage(
     # check boxes where you choose data you want
     sidebarLayout(
         sidebarPanel(
-            radioButtons("Datatype", "Data Type", choices = c("Taxa", "Community"), selected = "Community",
-                         inline = TRUE),
             checkboxGroupInput("Sources",
                                "Sources:",
                                choices = c("EMP", "FRP", "FMWT", "TNS", "20mm")),
+            radioButtons("Datatype", "Data Type", choices = c("Taxa", "Community"), selected = "Community",
+                         inline = TRUE),
             checkboxGroupInput("Filters",
                                "Filters:",
                                choices = c("Months", "Surface_salinity", "Latitude", "Longitude", "Dates")),
@@ -60,6 +65,8 @@ ui <- fluidPage(
                              dateRangeInput("Daterange", label = "Date range", 
                                             start = "1972-01-01", end = "2018-12-31", startview = "year")),
             actionButton("Run", "Run"),
+            conditionalPanel(condition = "input.Datatype.includes('Taxa')", 
+                             uiOutput("select_Taxlifestage")),
             downloadButton("download", "Download")
         ),
         
@@ -69,37 +76,81 @@ ui <- fluidPage(
         ),
         position = "left",
         fluid = F
-    )
+    ),
+        
+        tags$head(tags$style(type="text/css",
+                             paste0("
+                                             #loadmessage {
+                                             position: fixed;
+                                             top: 0px;
+                                             left: 0px;
+                                             width: 100%;
+                                             padding: 5px 0px 5px 0px;
+                                             text-align: center;
+                                             font-weight: bold;
+                                             font-size: 100%;
+                                             color: ", your_color01,";
+                                             background-color: ", your_color02,";
+                                             z-index: 105;
+                                             }
+                                             "))),
+    conditionalPanel(condition="$('html').hasClass('shiny-busy')",
+                     tags$div(info_loading,id="loadmessage"))
 )
 
 # Define server logic required to draw a plot
-server <- function(input, output) {
-    
-    observeEvent(input$Run, {
-        showNotification("Crunching data...", type = "message", duration = NULL)
-    })
+server <- function(input, output, session) {
     
     #Using eventReactive so app only updates when "Run" button is clicked, letting you check all the boxes you want before running the app
-    plotdata <- eventReactive(input$Run, {
+    plotdata <- eventReactive(c(input$Run, input$Datatype), {
         
-        #select the data the user wants
+            #select the data the user wants
+            
+            Zooper(Data = input$Datatype, 
+                   Sources = input$Sources, 
+                   Daterange = ifelse(rep("Dates"%in%input$Filters, 2), input$Daterange, c(NA, NA)),
+                   Months = ifelse(rep("Months"%in%input$Filters, length(input$Months)), as.integer(input$Months), rep(NA, length(input$Months))),  
+                   SalSurfrange = ifelse(rep("Surface_salinity"%in%input$Filters, 2), input$SalSurfrange, c(NA, NA)),
+                   Latrange = ifelse(rep("Latitude"%in%input$Filters, 2), input$Latrange, c(NA, NA)), 
+                   Longrange = ifelse(rep("Longitude"%in%input$Filters, 2), input$Longrange, c(NA, NA)), 
+                   Shiny=T)
+    }, ignoreInit=T)
+    
+    plotdata2 <- reactive({
+        if (length(input$Taxlifestage)>0){
+            filter(plotdata(), Taxlifestage%in%input$Taxlifestage)
+        } else {
+            plotdata()
+        }
+    })
+    
+    output$select_Taxlifestage <- renderUI({
         
-        data <- Zooper(Data = input$Datatype, 
-                       Sources = input$Sources, 
-                       Daterange = ifelse(rep("Dates"%in%input$Filters, 2), input$Daterange, c(NA, NA)),
-                       Months = ifelse(rep("Months"%in%input$Filters, length(input$Months)), as.integer(input$Months), rep(NA, length(input$Months))),  
-                       SalSurfrange = ifelse(rep("Surface_salinity"%in%input$Filters, 2), input$SalSurfrange, c(NA, NA)),
-                       Latrange = ifelse(rep("Latitude"%in%input$Filters, 2), input$Latrange, c(NA, NA)), 
-                       Longrange = ifelse(rep("Longitude"%in%input$Filters, 2), input$Longrange, c(NA, NA)), 
-                       Shiny=T)
+        
+        choice_Taxlifestage <- reactive({
+            plotdata()%>%
+                arrange(Taxatype, Taxname, Lifestage)%>%
+                pull(Taxlifestage)%>%
+                unique()
+            
+        })
+        
+        selectInput('Taxlifestage', 'Select Taxa', choices =choice_Taxlifestage(), multiple =T, selected=choice_Taxlifestage(), selectize = F, size=10) # <- put the reactive element here
+        
+    })
+    
+    zooplot <- reactive( {
+        
+            plotdata2()%>%
+                ggplot(aes(x=Date, y = CPUE)) +
+                geom_point(aes(shape = Source))+
+                ggtitle(nrow(plotdata2()))+
+                theme_bw()+
+                theme(panel.grid=element_blank())
     })
     
     output$distPlot <- renderPlot({
-        plotdata()%>%
-            ggplot(aes(x=Date, y = CPUE)) +
-            geom_point(aes(shape = Source))+
-            theme_bw()+
-            theme(panel.grid=element_blank())
+        zooplot()
     })
     
     
@@ -108,14 +159,19 @@ server <- function(input, output) {
             paste("data-", Sys.Date(), ".csv", sep="")
         },
         content = function(file) {
-            data    <- Zooper(Data = input$Datatype, 
-                              Sources = input$Sources, 
-                              Daterange= ifelse("Dates"%in%input$Filters, input$Daterange, c(NA, NA)),
-                              Months = ifelse("Months"%in%input$Filters, as.integer(input$Months), NA),  
-                              SalSurfrange = ifelse("Surface salinity"%in%input$Filters, input$SalSurfrange, NA),
-                              Latrange = ifelse("Latitude"%in%input$Filters, input$Latrange, NA), 
-                              Longrange =  ifelse("Longitudee"%in%input$Filters, input$Longrange, NA), 
-                              Shiny=T)
+            data <- Zooper(Data = input$Datatype, 
+                           Sources = input$Sources, 
+                           Daterange = ifelse(rep("Dates"%in%input$Filters, 2), input$Daterange, c(NA, NA)),
+                           Months = ifelse(rep("Months"%in%input$Filters, length(input$Months)), as.integer(input$Months), rep(NA, length(input$Months))),  
+                           SalSurfrange = ifelse(rep("Surface_salinity"%in%input$Filters, 2), input$SalSurfrange, c(NA, NA)),
+                           Latrange = ifelse(rep("Latitude"%in%input$Filters, 2), input$Latrange, c(NA, NA)), 
+                           Longrange = ifelse(rep("Longitude"%in%input$Filters, 2), input$Longrange, c(NA, NA)), 
+                           Shiny=T)
+            data <-if (length(input$Taxlifestage)>0){
+                filter(data, Taxlifestage%in%input$Taxlifestage)
+            } else {
+                data
+            }
             write.csv(data, file)
         }
     )
