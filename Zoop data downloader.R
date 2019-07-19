@@ -216,15 +216,22 @@ Zoopdownloader <- function(path="zoopforzooper.Rdata"){
   # FRP ---------------------------------------------------------------------
   
   # Import the FRP data
+    
+    #download the file
+    if (!file.exists("zoopsFRP2018.csv")) {
+      download.file("https://portal.edirepository.org/nis/dataviewer?packageid=edi.269.2&entityid=d4c76f209a0653aa86bab1ff93ab9853",
+                    "zoopsFRP2018.csv", mode="wb")
+    }
   
-    zoo_FRP <- read_excel("zoopsFRP2018.xlsx",
-                          col_types = c("text","date", "date", rep("numeric", 8), 
-                                        "text", "text", "text", 
-                                        "numeric", "numeric","numeric","numeric",
-                                        "numeric", "text"), na=c("", "NA"))
+    zoo_FRP <- read_csv("~/test.csv",
+                        col_types = paste0("c","c", "t", "d", "d", "d", "d", "d", "d", "d", "d", 
+                                           "c", "c", "c", 
+                                           "d", "d","d","d",
+                                           "d", "c"), na=c("", "NA"))
     
     #Already in long format
     data.list[["FRP"]] <- zoo_FRP%>%
+      mutate(Date=parse_date_time(Date, "%m/%d/%Y"))%>%
       mutate(Station=replace(Station, Station=="Lindsey Tules", "Lindsey tules"),
              Station=replace(Station, Station=="LinBR", "LinBr"))%>% #Rename inconsistent station names to match
       mutate(Datetime=parse_date_time(paste0(Date, " ", hour(time), ":", minute(time)), "%Y-%m-%d %%H:%M"))%>% #Create a variable for datetime
