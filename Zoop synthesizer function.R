@@ -264,7 +264,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
                 mutate(Taxatype=ifelse(Taxname%in%Groups, "UnID species", "Species")))%>% 
     ungroup()%>%
     mutate(Taxlifestage=paste(Taxname, Lifestage), #add back in the Taxlifestage variable (removed by the LCD function)
-           Orphan=ifelse(Taxlifestage%in%Orphans, T, F), #add an identifier for orphan taxa (species not counted in all data sources)
+           Orphan=ifelse(Taxlifestage%in%strsplit(Orphans, ", ")[[1]], T, F), #add an identifier for orphan taxa (species not counted in all data sources)
            Taxname = ifelse(Taxatype=="UnID species", paste0(Taxname, "_UnID"), Taxname),
            Taxlifestage=paste(Taxname, Lifestage))%>%
     select_at(vars(-Taxcats_g))
@@ -285,7 +285,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   
   if(Data=="Community"){
     
-    if(length(unique(zoop$Source))==1){
+    if(!(length(Lumped)>0)){
       return(zoop)
     }
     
@@ -310,6 +310,24 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
         !is.na(Phylum_lifestage) & Phylum_lifestage%in%Commontaxkey$Phylum_lifestage ~ Phylum,
         TRUE ~ "REMOVE" #If no match is found, change to the Taxname REMOVE so we know to later remove these data from the final database
       ))
+    
+    if("REMOVE"%in%Lumpedkey$Taxname_new){
+      
+      Removed<-Lumpedkey%>%
+        filter(Taxname_new=="REMOVE")%>%
+        pull(Taxlifestage)%>%
+        unique()
+      
+      Removed<-paste(Removed, collapse=", ")
+      
+      if(Shiny==F){
+        print(paste("These species have no relatives common to all datasets and have been removed: ", Removed), quote=F)
+      }
+      
+      if(Shiny==T) {
+        shiny::showNotification(paste("These species have no relatives common to all datasets and have been removed: ", Removed), type = "warning", duration = NULL)
+      }
+    }
     
     
     #Create a names vector to expedite renaming Taxnames in the next step
