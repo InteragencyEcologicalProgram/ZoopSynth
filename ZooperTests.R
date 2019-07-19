@@ -20,10 +20,26 @@ Allc<-Zooper(Data = "Community")
 Allt<-Zooper(Data = "Taxa")
 all_equal(unique(Allc$SampleID), unique(Allt$SampleID))
 
-#Are the overall CPUEs from the 2 methods equal? (Had to remove some taxa from the "Taxa" method that were removed in the "Community" method before comparing)
+#Are the overall CPUEs from the 2 methods equal? 
+
+#(Had to remove some taxa from the "Taxa" method that were removed in the "Community" method before comparing)
 
 sum(Allc$CPUE) == sum(filter(Allt, 
            Taxatype!="Summed group" & !(Taxlifestage%in%c("Annelida_UnID Adult", "Diptera_UnID Pupae", "Lumbricidae_UnID Adult", "UnID Invertebrate Adult", "Actinopterygii_UnID Adult", "Nematoda_UnID Adult", "Gyraulus_UnID Adult", "Hirudinea_UnID Adult", "Polychaeta_UnID Adult", "Hydra_UnID Adult", "Tardigrada_UnID Adult", "Girardia tigrina Adult", "Gastropoda_UnID Adult", "Bivalvia_UnID Adult", "Ferrissia californica Adult", "Bivalvia_UnID Juvenile", "Physa_UnID Adult")))$CPUE)
+
+
+#Make sure all columns have >1 unique value (should return 0 row tibble)
+Unique_valsc<-Allc%>% summarise_all(n_distinct)%>%
+  gather("Column", "Distinct_number")%>%
+  filter(Distinct_number<2)
+
+nrow(Unique_valsc)<1
+
+Unique_valst<-Allt%>% summarise_all(n_distinct)%>%
+  gather("Column", "Distinct_number")%>%
+  filter(Distinct_number<2)
+
+nrow(Unique_valst)<1
 
 
 #####################################################################################
