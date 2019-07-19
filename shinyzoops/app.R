@@ -67,6 +67,8 @@ ui <- fluidPage(
             actionButton("Run", "Run"),
             conditionalPanel(condition = "input.Datatype.includes('Taxa')", 
                              uiOutput("select_Taxlifestage")),
+            conditionalPanel(condition = "input.Datatype.includes('Taxa')", 
+                             actionButton("Update_taxa", "Update taxa")),
             downloadButton("download", "Download")
         ),
         
@@ -116,7 +118,7 @@ server <- function(input, output, session) {
                    Shiny=T)
     }, ignoreInit=T)
     
-    plotdata2 <- reactive({
+    plotdata2 <- eventReactive(c(input$Run, input$Datatype, input$Update_taxa), {
         if (length(input$Taxlifestage)>0){
             filter(plotdata(), Taxlifestage%in%input$Taxlifestage)
         } else {
@@ -135,7 +137,7 @@ server <- function(input, output, session) {
             
         })
         
-        selectInput('Taxlifestage', 'Select Taxa', choices =choice_Taxlifestage(), multiple =T, selected=choice_Taxlifestage(), selectize = F, size=10) # <- put the reactive element here
+        selectInput('Taxlifestage', 'Select Taxa (Use Ctr / Cmd / shift to select multiple)', choices =choice_Taxlifestage(), multiple =T, selected=choice_Taxlifestage(), selectize = F, size=10) # <- put the reactive element here
         
     })
     
