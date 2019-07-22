@@ -61,13 +61,13 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   # Setup -------------------------------------------------------------------
   
   #devtools::install_github("tidyverse/dplyr")
-  require(tidyverse) 
+  require(tidyverse)
   require(readxl)
   
   #Requires Github developer version of dtplyr: devtools::install_github("tidyverse/dtplyr")
   require(dtplyr)
   
-  require(data.table)
+  
   require(lubridate)
   
   # Load crosswalk key to convert each dataset's taxonomic codes to a

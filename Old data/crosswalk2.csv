@@ -1,0 +1,81 @@
+"","LCDtax","Taxon","EMP","FRP","Veg","frac1","frac2"
+"1","AVERNAL","Acanthocyclops vernalis","CVERNAL","Acanthocyclops","Acanthocyclops vernalis adult",0,1
+"2","BOSMINA","Bosmina longirostris","BOSMINA","Bosmina","Bosmina not_spec",0.0418978277237309,0.958102172276269
+"3","CALJUV","Other calanoid copepodids","OTHCALJUV","calanoid copepodid","Calanoid copepodid",0.0222273889028337,0.977772611097166
+"4","CALJUV","Eurytemora affinis copepodids","EURYCOP","Eurytemora copepodid","Calanoid copepodid",0.0222273889028337,0.977772611097166
+"5","CALJUV","Acartiella sinensis copepodid","ASINEJUV","Acartiella copepodid","Calanoid copepodid",0.0222273889028337,0.977772611097166
+"6","CALJUV","Acartia spp. copepodids","ACARJUV","Acartia copepodid","Calanoid copepodid",0.0222273889028337,0.977772611097166
+"7","CALJUV","Pseudodiaptomus spp. copepodids","PDIAPCOP","Pseudodiaptomus copepodid","Calanoid copepodid",0.0222273889028337,0.977772611097166
+"8","CALJUV","Calanoid copepodids","CALJUV","calanoid copepodid","Calanoid copepodid",0.0222273889028337,0.977772611097166
+"9","CALJUV","Diaptomidae copepodids, several genera","DIAPTJUV","Diaptomus copepodid","Calanoid copepodid",0.0222273889028337,0.977772611097166
+"10","CALJUV","Tortanus spp. copepodids","TORTJUV","Tortanus copepodid","Calanoid copepodid",0.0222273889028337,0.977772611097166
+"11","CALJUV","Sinocalanus copepodids","SINOCOP","Sinocalanus copepodid","Calanoid copepodid",0.0222273889028337,0.977772611097166
+"12","COPNAUP","Copepod nauplii","OTHNAUP","Copepod Nauplii","Copepod nauplii",0.963608470547347,0.0363915294526528
+"13","COPNAUP","Other copepod nauplii","OTHNAUP","Copepod Nauplii","Copepod nauplii",0.963608470547347,0.0363915294526528
+"14","COPNAUP","Eurytemora affinis nauplii","EURYNAUP","Eurytemora nauplii","Copepod nauplii",0.963608470547347,0.0363915294526528
+"15","COPNAUP","Sinocalanus doerrii nauplii","SINONAUP","Sinocalanus nauplii","Copepod nauplii",0.963608470547347,0.0363915294526528
+"16","COPNAUP","Pseudodiaptomus spp.nauplii","PDPTNAUP","Pseudodiaptomus nauplii","Copepod nauplii",0.963608470547347,0.0363915294526528
+"17","CYCJUV","Cyclopoid copepodids","CYCJUV","Cyclopoid Copepodid","Cyclopoid copepodid",0.715958464164465,0.284041535835535
+"18","CYCJUV","Oithona spp.copepodids","OITHCOP","Oithona juvenile","Cyclopoid copepodid",0.715958464164465,0.284041535835535
+"19","CYCJUV","Other cyclopoid copepodids","CYCLCOP","Cyclopoid Copepodid","Cyclopoid copepodid",0.715958464164465,0.284041535835535
+"20","CYCJUV","Limnoithona spp. copepodids","LIMNOCOP","Limnoithona juvenile","Cyclopoid copepodid",0.715958464164465,0.284041535835535
+"21","DAPHNIA","Daphnia spp.","DAPHNIA","Daphnia","Daphnia not_spec",0.00458360569068325,0.995416394309317
+"22","DIAPHAN","Diaphanosoma spp.","DIAPHAN","Diaphanosoma","Diaphanosoma not_spec",0.102682912932215,0.897317087067785
+"23","DIAPTOM","Diaptomidae","DIAPTOM","Diaptomus spp.","Diaptomus not_spec",0,1
+"24","EURYTEM","Eurytemora affinis","EURYTEM","Eurytemora spp.","Eurytemora affinis adult",0.0384615384615385,0.961538461538462
+"25","HARPACT","All life stages of harpactacoids","HARPACT","Harpacticoids","HARPACTICOIDS not_spec",0.473548807818415,0.526451192181585
+"26","LIMNOSPP","Limnoithona sinensis","LSINEAD","Limnoithona sinensis","Limnoithona tetraspina not_spec",0.831624802152135,0.168375197847865
+"27","LIMNOSPP","Limnoithona tetraspina","LTETRAD","Limnoithona tetraspina","Limnoithona tetraspina not_spec",0.831624802152135,0.168375197847865
+"28","LIMNOSPP","Limnoithona spp.","LIMNO","Limnoithona spp.","Limnoithona tetraspina not_spec",0.831624802152135,0.168375197847865
+"29","OSTRAC","Ostracods","OSTRAC","Ostracods","Ostracods not_spec",0.576202709408796,0.423797290591204
+"30","OTHCALAD","Acartia spp.","ACARTIA","Acartia spp.","Calanoid adult",0.00484908153404824,0.995150918465952
+"31","OTHCALAD","Other Calanoid adults","OTHCALAD","Calanoid Other","Calanoid adult",0.00484908153404824,0.995150918465952
+"32","OTHCALAD","Acartiella sinensis","ACARTELA","Acartiella","Calanoid adult",0.00484908153404824,0.995150918465952
+"33","OTHCALAD","Tortanus dextrilobatus","TDEXTAD","Tortanus dextrilobatus","Calanoid adult",0.00484908153404824,0.995150918465952
+"34","OTHCALAD","Tortanus spp.","TORTANUS","Tortanus discaudatus","Calanoid adult",0.00484908153404824,0.995150918465952
+"35","OTHCALAD","Osphrantrichium","OSPHRAN","Osphranticum","Calanoid adult",0.00484908153404824,0.995150918465952
+"36","OTHCALAD","Other Calanoid adults","OTHCALAD","Calanoid UNID","Aglaodiaptomus forbesi not_spec",0.00484908153404824,0.995150918465952
+"37","OTHCALAD","Tortanus spp.","TORTANUS","Tortanus","Calanoid adult",0.00484908153404824,0.995150918465952
+"38","OTHCLADO","Other cladocera genera","OTHCLAD","Cladocera Other","Camptocercus not_spec",0.0894014373131754,0.910598562686825
+"39","OTHCLADO","Other cladocera genera","OTHCLAD","Cladocera Other","Chydorus not_spec",0.0894014373131754,0.910598562686825
+"40","OTHCLADO","Other cladocera genera","OTHCLAD","Cladocera Other","Picripleuroxus not_spec",0.0894014373131754,0.910598562686825
+"41","OTHCLADO","Other cladocera genera","OTHCLAD","Cladocera Other","Pleuroxus not_spec",0.0894014373131754,0.910598562686825
+"42","OTHCLADO","Other cladocera genera","OTHCLAD","Cladocera Other","Alonella not_spec",0.0894014373131754,0.910598562686825
+"43","OTHCLADO","Other cladocera genera","OTHCLAD","Cladocera Other","Simocephalus not_spec",0.0894014373131754,0.910598562686825
+"44","OTHCLADO","Other cladocera genera","OTHCLAD","Cladocera Other","Alona not_spec",0.0894014373131754,0.910598562686825
+"45","OTHCLADO","Other cladocera genera","OTHCLAD","Cladocera Other","Graptoleberis not_spec",0.0894014373131754,0.910598562686825
+"46","OTHCLADO","Other cladocera genera","OTHCLAD","Cladocera Other","Scaphloberis not_spec",0.0894014373131754,0.910598562686825
+"47","OTHCLADO","Ceriodaphnia","CERIODAP","Ceriodaphnia","Ceriodaphnia not_spec",0.0894014373131754,0.910598562686825
+"48","OTHCLADO","Other cladocera genera","OTHCLAD","Cladocera Other","Eurycercus not_spec",0.0894014373131754,0.910598562686825
+"49","OTHCYCAD","Oithona similis","OITHSIM","Oithona similis","Cyclopoid adult",0.0335390608032963,0.966460939196704
+"50","OTHCYCAD","Other Cyclopoid adults","OTHCYC","Cyclopoid Other","Microcyclops rubellus not_spec",0.0335390608032963,0.966460939196704
+"51","OTHCYCAD","Other Cyclopoid adults","OTHCYC","Cyclopoid Other","Ectocyclops phaleratus not_spec",0.0335390608032963,0.966460939196704
+"52","OTHCYCAD","Other Cyclopoid adults","OTHCYC","Cyclopoid Other","Diacyclops thomasi not_spec",0.0335390608032963,0.966460939196704
+"53","OTHCYCAD","Other Cyclopoid adults","OTHCYC","Cyclopoid Other","Eucyclops prionophorus not_spec",0.0335390608032963,0.966460939196704
+"54","OTHCYCAD","Other Cyclopoid adults","OTHCYC","Cyclopoid Other","Cyclopoid adult",0.0335390608032963,0.966460939196704
+"55","OTHCYCAD","Other Cyclopoid adults","OTHCYC","Cyclopoid Other","Eucyclops agilis not_spec",0.0335390608032963,0.966460939196704
+"56","OTHCYCAD","Oithona davisae","OITHDAV","Oithona davisae","Cyclopoid adult",0.0335390608032963,0.966460939196704
+"57","OTHCYCAD","Other Cyclopoid adults","OTHCYC","Cyclopoid Other","Mesocyclops edax not_spec",0.0335390608032963,0.966460939196704
+"58","OTHCYCAD","Other Cyclopoid adults","OTHCYC","Cyclopoid UNID","Cyclopoid adult",0.0335390608032963,0.966460939196704
+"59","OTHCYCAD","Other Cyclopoid adults","OTHCYC","Cyclopoid Other","Eucyclops pectinifer not_spec",0.0335390608032963,0.966460939196704
+"60","OTHCYCAD","Other Cyclopoid adults","OTHCYC","Cyclopoid Other","Cyclopoid adult",0.0335390608032963,0.966460939196704
+"61","OTHCYCAD","Oithona spp.","OITHSPP","Oithona spp.","Cyclopoid adult",0.0335390608032963,0.966460939196704
+"62","OTHCYCAD","Other Cyclopoid adults","OTHCYC","Cyclopoid Other","Eucyclops not_spec",0.0335390608032963,0.966460939196704
+"63","other","Barnacle nauplii","BARNNAUP","Barnacle Nauplii",NA,0.104122283874082,0.895877716125918
+"64","other","other copepodid","OTHCPDID","Copepod UNID",NA,0.104122283874082,0.895877716125918
+"65","other","Cumacians","CUMAC","Cumaceans",NA,0.104122283874082,0.895877716125918
+"66","other","Other copepod","OTHCOP","Copepod UNID",NA,0.104122283874082,0.895877716125918
+"67","other","Crab zoea","CRABZOEA","crab zoea",NA,0.104122283874082,0.895877716125918
+"68","OTHROT","Trichocerca spp.","TRICHO","Trichocerca","Rotifers not_spec",0.986049021787352,0.0139509782126485
+"69","OTHROT","Asplanchna spp.","ASPLANCH","Asplanchna","Rotifers not_spec",0.986049021787352,0.0139509782126485
+"70","OTHROT","Polyarthra spp.","POLYARTH","Polyarthra","Rotifers not_spec",0.986049021787352,0.0139509782126485
+"71","OTHROT","Other rotifers","OTHROT","Rotifer UNID","Rotifers not_spec",0.986049021787352,0.0139509782126485
+"72","OTHROT","Synchaeta bicornis","SYNCHBIC","Synchaeta bicornis","Rotifers not_spec",0.986049021787352,0.0139509782126485
+"73","OTHROT","Other rotifers","OTHROT","Rotifer Other","Rotifers not_spec",0.986049021787352,0.0139509782126485
+"74","OTHROT","Synchaeta spp. (not bicornis)","SYNCH","Synchaeta","Rotifers not_spec",0.986049021787352,0.0139509782126485
+"75","OTHROT","Keratella spp.","KERATELA","Keratella","Rotifers not_spec",0.986049021787352,0.0139509782126485
+"76","PDIAPFOR","Pseudodiaptomus marinus","PDIAPMAR","Pseudodiaptomus marinus","Pseudodiaptomus forbesi adult",0,1
+"77","PDIAPFOR","Pseudodiaptomus forbesi","PDIAPFOR","Pseudodiaptomus forbesii","Pseudodiaptomus forbesi adult",0,1
+"78","PDIAPFOR","Pseudodiaptomus forbesi","PDIAPFOR","P. forbesi (gravid)","Pseudodiaptomus forbesi adult",0,1
+"79","PDIAPFOR","Pseudodiaptomus forbesi","PDIAPFOR","Pseudodiaptomus spp.","Pseudodiaptomus forbesi adult",0,1
+"80","SINOCAL","Sinocalanus doerrii","SINOCAL","Sinocalanus","Sinocalanus doerrii adult",0.00369335307181916,0.996306646928181

@@ -12,13 +12,11 @@
 #
 
 require(shiny)
-require(tidyverse) 
+require(tidyverse)
 require(readxl)
 
 #Requires Github developer version of dtplyr: devtools::install_github("tidyverse/dtplyr")
 require(dtplyr)
-
-require(data.table)
 require(lubridate)
 
 load("Data/zoopforzooper.Rdata")
@@ -52,15 +50,15 @@ ui <- fluidPage(
             conditionalPanel(condition = "input.Filters.includes('Surface_salinity')",
                              sliderInput("SalSurfrange",
                                          "Surface salinity:",
-                                         min = 0, max = 32, value = c(0,7))),
+                                         min = 0, max = 32, value = c(0,7), step=0.1)),
             conditionalPanel(condition = "input.Filters.includes('Latitude')",
                              sliderInput("Latrange",
                                          "Latitude Range",
-                                         min = 37, max = 39, value = c(37,39))),
+                                         min = 37, max = 39, value = c(37,39), step=0.1)),
             conditionalPanel(condition = "input.Filters.includes('Longitude')",
                              sliderInput("Longrange",
                                          "Longitude Range:",
-                                         min = -125, max = -119, value = c(-125, -119))),
+                                         min = -125, max = -119, value = c(-125, -119), step=0.1)),
             conditionalPanel(condition = "input.Filters.includes('Dates')",
                              dateRangeInput("Daterange", label = "Date range", 
                                             start = "1972-01-01", end = "2018-12-31", startview = "year")),
@@ -151,12 +149,23 @@ server <- function(input, output, session) {
     
     zooplot <- reactive( {
         
-            plotdata2()%>%
-                ggplot(aes(x=Date, y = CPUE)) +
-                geom_point(aes(shape = Source))+
-                ggtitle(nrow(plotdata2()))+
-                theme_bw()+
-                theme(panel.grid=element_blank())
+        plotdata2()%>%
+            mutate(Season=case_when(
+                Month%in%c(1,2,3) ~ "Winter",
+                Month%in%c(4,5,6) ~ "Spring",
+                Month%in%c(7,8,9) ~ "Summer",
+                Month%in%c(10,11,12) ~ "Fall"
+            ))%>%
+            mutate(Season=factor(Season, levels=c("Fall", "Winter", "Spring", "Summer")))%>%
+            select(Source, Year, Season, SampleID)%>%
+            distinct()%>%
+            group_by(Source, Year, Season)%>%
+            summarise(N_samples=n())%>%
+            ggplot(aes(x=Year, y = N_samples, fill=Source)) +
+            geom_bar(stat="identity")+
+            facet_wrap(~Season)+
+            theme_bw()+
+            theme(panel.grid=element_blank(), strip.background=element_blank())
     })
     
     output$distPlot <- renderPlot({
