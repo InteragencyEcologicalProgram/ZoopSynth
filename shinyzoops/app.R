@@ -39,11 +39,11 @@ ui <- fluidPage(
     # check boxes where you choose data you want
     sidebarLayout(
         sidebarPanel(
+            radioButtons("Datatype", "Data Type", choices = c("Taxa", "Community"), selected = "Community",
+                         inline = TRUE),
             checkboxGroupInput("Sources",
                                "Sources:",
                                choices = c("EMP", "FRP", "FMWT", "TNS", "20mm")),
-            radioButtons("Datatype", "Data Type", choices = c("Taxa", "Community"), selected = "Community",
-                         inline = TRUE),
             checkboxGroupInput("Filters",
                                "Filters:",
                                choices = c("Months", "Surface_salinity", "Latitude", "Longitude", "Dates")),
@@ -65,9 +65,9 @@ ui <- fluidPage(
                              dateRangeInput("Daterange", label = "Date range", 
                                             start = "1972-01-01", end = "2018-12-31", startview = "year")),
             actionButton("Run", "Run"),
-            conditionalPanel(condition = "input.Datatype.includes('Taxa')", 
+            conditionalPanel(condition = "output.Datatype == 'Taxa'", 
                              uiOutput("select_Taxlifestage")),
-            conditionalPanel(condition = "input.Datatype.includes('Taxa')", 
+            conditionalPanel(condition = "output.Datatype == 'Taxa'", 
                              actionButton("Update_taxa", "Update taxa")),
             downloadButton("download", "Download")
         ),
@@ -104,7 +104,7 @@ ui <- fluidPage(
 server <- function(input, output, session) {
     
     #Using eventReactive so app only updates when "Run" button is clicked, letting you check all the boxes you want before running the app
-    plotdata <- eventReactive(c(input$Run, input$Datatype), {
+    plotdata <- eventReactive(input$Run, {
         
             #select the data the user wants
             
@@ -116,10 +116,10 @@ server <- function(input, output, session) {
                    Latrange = ifelse(rep("Latitude"%in%input$Filters, 2), input$Latrange, c(NA, NA)), 
                    Longrange = ifelse(rep("Longitude"%in%input$Filters, 2), input$Longrange, c(NA, NA)), 
                    Shiny=T)
-    }, ignoreInit=T)
+    })
     
-    plotdata2 <- eventReactive(c(input$Run, input$Datatype, input$Update_taxa), {
-        if (length(input$Taxlifestage)>0){
+    plotdata2 <- eventReactive(c(input$Run, input$Update_taxa), {
+        if (length(input$Taxlifestage)>0 & input$Datatype=="Taxa"){
             filter(plotdata(), Taxlifestage%in%input$Taxlifestage)
         } else {
             plotdata()
@@ -130,15 +130,23 @@ server <- function(input, output, session) {
         
         
         choice_Taxlifestage <- reactive({
+            if (input$Datatype=="Taxa"){
             plotdata()%>%
                 arrange(Taxatype, Taxname, Lifestage)%>%
                 pull(Taxlifestage)%>%
                 unique()
+            } else {
+                NULL
+            }
             
         })
         
         selectInput('Taxlifestage', 'Select Taxa (Use Ctr / Cmd / shift to select multiple)', choices =choice_Taxlifestage(), multiple =T, selected=choice_Taxlifestage(), selectize = F, size=10) # <- put the reactive element here
         
+    })
+    
+    output$Datatype<-reactive( {
+        ifelse("Taxatype"%in%colnames(plotdata2()), "Taxa", "Community")
     })
     
     zooplot <- reactive( {
@@ -175,8 +183,8 @@ server <- function(input, output, session) {
                 data
             }
             write.csv(data, file)
-        }
-    )
+        })
+    outputOptions(output, "Datatype", suspendWhenHidden = FALSE)
 }
 
 # Run the application 
