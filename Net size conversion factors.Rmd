@@ -95,15 +95,39 @@ ggplot(filter(EMP, Date>as_date("2007-01-01") & (LIMNOSINE_Pump>0 | LIMNOSINE_CB
 ```{r}
 m<-censReg(log(LIMNOSINE_Pump+1) ~ log(LIMNOSINE_CB+1) * Secchi, data = filter(EMP, Date>as_date("2007-01-01")))
 
-mbrm<-brm(LIMNOSINE_Pump~(LIMNOSINE_CB_l+Secchi_s+Chl_s+Temperature_s+Catch_total_CB_s)^3, 
+mbrm0<-brm(LIMNOSINE_Pump~LIMNOSINE_CB_l, 
           data = filter(EMP, Date>as_date("2007-01-01") & (LIMNOSINE_Pump>0 | LIMNOSINE_CB>0)), 
           family=hurdle_lognormal(),
           prior = prior(normal(0,5), class=b),
           chains=2, cores=2,
           control=list(adapt_delta=0.95))
+mbrm0<-add_criterion(mbrm0, c("loo", "waic"), reloo=T)
+
+mbrm01<-brm(LIMNOSINE_Pump~LIMNOSINE_CB_l, 
+          data = filter(EMP, Date>as_date("2007-01-01")), 
+          family=hurdle_lognormal(),
+          prior = prior(normal(0,5), class=b),
+          chains=2, cores=2,
+          control=list(adapt_delta=0.95))
+mbrm01<-add_criterion(mbrm01, c("loo", "waic"), reloo=T)
+
+mbrm02<-brm(LIMNOSINE_Pump_l~LIMNOSINE_CB_l, 
+          data = filter(EMP, Date>as_date("2007-01-01")), 
+          family=gaussian(),
+          prior = prior(normal(0,5), class=b),
+          chains=2, cores=2,
+          control=list(adapt_delta=0.95))
+mbrm02<-add_criterion(mbrm02, c("loo", "waic"), reloo=T)
+
+mbrm<-brm(LIMNOSINE_Pump_l~(LIMNOSINE_CB_l+Secchi_s+Chl_s+Temperature_s+Catch_total_CB_s)^3, 
+          data = filter(EMP, Date>as_date("2007-01-01")), 
+          family=gaussian(),
+          prior = prior(normal(0,5), class=b),
+          chains=2, cores=2,
+          control=list(adapt_delta=0.95))
 mbrm<-add_criterion(mbrm, c("loo", "waic"), reloo=T)
 
-mbrm2<-update(mbrm, formula.=.~.-Chl_s:Temperature_s:Catch_total_CB_s - Secchi_s:Chl_s:Catch_total_CB_s - LIMNOSINE_CB_l:Chl_s:Catch_total_CB_s,
+mbrm2<-update(mbrm, formula.=.~(LIMNOSINE_CB_l+Secchi_s+Chl_s+Temperature_s)^3,
           chains=2, cores=2,
           control=list(adapt_delta=0.95))
 mbrm2<-add_criterion(mbrm2, c("loo", "waic"), reloo=T)
@@ -122,6 +146,36 @@ mbrm5<-update(mbrm4, formula.=.~.-Chl_s:Catch_total_CB_s - LIMNOSINE_CB_l:Secchi
           chains=2, cores=2,
           control=list(adapt_delta=0.95))
 mbrm5<-add_criterion(mbrm5, c("loo", "waic"), reloo=T)
+
+mbrm6<-update(mbrm5, formula.=.~.-Temperature_s:Catch_total_CB_s -Secchi_s:Catch_total_CB_s -LIMNOSINE_CB_l:Catch_total_CB_s - Catch_total_CB_s,
+          chains=2, cores=2,
+          control=list(adapt_delta=0.95))
+mbrm6<-add_criterion(mbrm6, c("loo", "waic"), reloo=T)
+
+mbrm7<-update(mbrm, formula.=.~(LIMNOSINE_CB_l+Secchi_s+Temperature_s)^3,
+          chains=2, cores=2,
+          control=list(adapt_delta=0.95))
+mbrm7<-add_criterion(mbrm7, c("loo", "waic"), reloo=T)
+
+mbrm8<-update(mbrm7, formula.=.~.-LIMNOSINE_CB_l:Secchi_s:Temperature_s,
+          chains=2, cores=2,
+          control=list(adapt_delta=0.95))
+mbrm8<-add_criterion(mbrm8, c("loo", "waic"), reloo=T)
+
+mbrm9<-update(mbrm8, formula.=.~.-Secchi_s:Temperature_s,
+          chains=2, cores=2,
+          control=list(adapt_delta=0.95))
+mbrm9<-add_criterion(mbrm9, c("loo", "waic"), reloo=T)
+
+mbrm10<-update(mbrm9, formula.=.~.-LIMNOSINE_CB_l:Secchi_s,
+          chains=2, cores=2,
+          control=list(adapt_delta=0.95))
+mbrm10<-add_criterion(mbrm10, c("loo", "waic"), reloo=T)
+
+mbrm11<-update(mbrm10, formula.=.~.-Secchi_s,
+          chains=2, cores=2,
+          control=list(adapt_delta=0.95))
+mbrm11<-add_criterion(mbrm11, c("loo", "waic"), reloo=T)
 ```
 
 ##With CB count as the response variable, probably more appropriate since this is what we are modeling: how many small zooplankters are caught in the CB net?
@@ -133,6 +187,14 @@ mbrmb<-brm(LIMNOSINE_CB~(LIMNOSINE_Pump_l+Secchi_s+Chl_s+Temperature_s+Catch_tot
           chains=2, cores=2,
           control=list(adapt_delta=0.95))
 mbrmb<-add_criterion(mbrmb, c("loo", "waic"), reloo=T)
+
+mbrmb1<-brm(LIMNOSINE_CB_l~(LIMNOSINE_Pump_l+Secchi_s+Chl_s+Temperature_s+Catch_total_CB_s)^3, 
+          data = filter(EMP, Date>as_date("2007-01-01")), 
+          family=hurdle_lognormal(),
+          prior = prior(normal(0,5), class=b),
+          chains=2, cores=2,
+          control=list(adapt_delta=0.95))
+mbrmb1<-add_criterion(mbrmb1, c("loo", "waic"), reloo=T)
 
 mbrmb2<-update(mbrmb, formula.=.~.-LIMNOSINE_Pump_l:Secchi_s:Catch_total_CB_s -LIMNOSINE_Pump_l:Secchi_s:Temperature_s -Secchi_s:Chl_s:Temperature_s,
           chains=2, cores=2,
@@ -170,16 +232,10 @@ prc_missing<-0.1
 
 dtest<-EMP%>%
   filter(Date>as_date("2007-01-01") & (LIMNOSINE_Pump>0 | LIMNOSINE_CB>0))%>%
-  select(LIMNOSINE_Pump_l, Date, LIMNOSINE_CB, Secchi_s, Chl_s, Temperature_s, Catch_total_CB_s)%>%
+  select(LIMNOSINE_Pump, Date, LIMNOSINE_CB_l, Secchi_s, Chl_s, Temperature_s, Catch_total_CB_s)%>%
   mutate(r = runif(nrow(.)),
-         LIMNOSINE_Pump_l_2=ifelse(r <= prc_missing, NA, LIMNOSINE_Pump_l))
+         LIMNOSINE_Pump_2=ifelse(r <= prc_missing, NA, LIMNOSINE_Pump))
 
-missform<-bf(LIMNOSINE_CB~(mi(LIMNOSINE_Pump_l)+Secchi_s+Chl_s+Temperature_s+Catch_total_CB_s)^3 - mi(LIMNOSINE_Pump_l):Secchi_s:Catch_total_CB_s - Secchi_s:Temperature_s:Catch_total_CB_s - mi(LIMNOSINE_Pump_l):Secchi_s:Chl_s - Secchi_s:Chl_s:Catch_total_CB_s) + 
-  bf(LIMNOSINE_Pump_l | mi() ~ LIMNOSINE_CB+Secchi_s+Chl_s+Temperature_s+Catch_total_CB_s) + set_rescor(FALSE)
 
-mmiss<-brm(missform, data=dtest, 
-          family=hurdle_lognormal(),
-          chains=2, cores=2,
-          control=list(adapt_delta=0.95))
 ```
 
