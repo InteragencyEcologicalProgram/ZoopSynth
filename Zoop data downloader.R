@@ -1,4 +1,4 @@
-Zoopdownloader <- function(path="zoopforzooper.Rdata"){
+Zoopdownloader <- function(path="Data/zoopforzooper.Rdata"){
   
   # Setup -------------------------------------------------------------------
   require(tidyverse) 
@@ -13,7 +13,7 @@ Zoopdownloader <- function(path="zoopforzooper.Rdata"){
   # Load crosswalk key to convert each dataset's taxonomic codes to a
   # unified set of "Taxname" and "Lifestage" values.
   
-  crosswalk <- read_excel("new_crosswalk.xlsx", sheet = "Hierarchy2")%>%
+  crosswalk <- read_excel("Data/new_crosswalk.xlsx", sheet = "Hierarchy2")%>%
     mutate_at(vars(c("EMPstart", "EMPend", "Intro", "FMWTstart", "FMWTend", "twentymmstart", "twentymmend", "twentymmstart2")), ~parse_date(as.character(.), format="%Y"))%>%
     mutate_at(vars(c("EMPstart", "FMWTstart", "twentymmstart", "twentymmstart2", "EMPend", "FMWTend", "twentymmend")), ~replace_na(., as_date(Inf)))%>% #Change any NAs for starts or ends to Infinity (i.e. never started or ended)
     mutate(EMPend = if_else(is.finite(EMPend), EMPend+years(1), EMPend))%>% #Change end dates to beginning of next year (first day it was not counted)
@@ -23,7 +23,7 @@ Zoopdownloader <- function(path="zoopforzooper.Rdata"){
   
   # Load station key to later incorporate latitudes and longitudes
   
-  stations <- read_excel("zoop_stations.xlsx", sheet="lat_long")%>%
+  stations <- read_excel("Data/zoop_stations.xlsx", sheet="lat_long")%>%
     rename(Source=Project)
   
   # Initialize list of dataframes
@@ -36,15 +36,15 @@ Zoopdownloader <- function(path="zoopforzooper.Rdata"){
   
     
     #download the file
-    if (!file.exists("1972-2018CBMatrix.xlsx")) {
+    if (!file.exists("Data/1972-2018CBMatrix.xlsx")) {
       download.file("ftp://ftp.wildlife.ca.gov/IEP_Zooplankton/1972-2018CBMatrix.xlsx", 
-                    "1972-2018CBMatrix.xlsx", mode="wb")
+                    "Data/1972-2018CBMatrix.xlsx", mode="wb")
     }
     
     
     # Import the EMP data
     
-    zoo_EMP <- read_excel("1972-2018CBMatrix.xlsx", 
+    zoo_EMP <- read_excel("Data/1972-2018CBMatrix.xlsx", 
                           sheet = "CB CPUE Matrix 1972-2018", 
                           col_types = c("numeric","numeric", "numeric", "numeric", "date", 
                                         "text", "text", "text", "numeric", "text", "text",
@@ -90,14 +90,14 @@ Zoopdownloader <- function(path="zoopforzooper.Rdata"){
   # FMWT --------------------------------------------------------------------
     
     #download the file
-    if (!file.exists("FMWT_TNSZooplanktonDataCPUEOct2017.xls")) {
+    if (!file.exists("Data/FMWT_TNSZooplanktonDataCPUEOct2017.xls")) {
       download.file("ftp://ftp.wildlife.ca.gov/TownetFallMidwaterTrawl/Zoopl_TownetFMWT/FMWT%20TNSZooplanktonDataCPUEOct2017.xls", 
-                    "FMWT_TNSZooplanktonDataCPUEOct2017.xls", mode="wb")
+                    "Data/FMWT_TNSZooplanktonDataCPUEOct2017.xls", mode="wb")
     }
     
     # Import the FMWT data
     
-    suppressWarnings(zoo_FMWT <- read_excel("FMWT_TNSZooplanktonDataCPUEOct2017.xls", 
+    suppressWarnings(zoo_FMWT <- read_excel("Data/FMWT_TNSZooplanktonDataCPUEOct2017.xls", 
                                             sheet = "FMWT&TNS ZP CPUE", 
                                             col_types=c("text", rep("numeric", 3), "date", "text", "text", 
                                                         "text", "numeric", rep("text", 3), rep("numeric", 3), 
@@ -141,7 +141,7 @@ Zoopdownloader <- function(path="zoopforzooper.Rdata"){
   
   # Import and modify 20mm data
   
-    suppressWarnings(zoopquery20mm <- read_excel("zoopquery20mm.xlsx", 
+    suppressWarnings(zoopquery20mm <- read_excel("Data/zoopquery20mm.xlsx", 
                                                  col_types = c("date", "numeric", "numeric", 
                                                                "numeric", "numeric", "numeric", 
                                                                "numeric", "numeric", "numeric", 
@@ -176,8 +176,8 @@ Zoopdownloader <- function(path="zoopforzooper.Rdata"){
     # import survey and station informationf from excel files (these excel files are from 20mm mdb - requires a lot of different
     # packages to import directly from mdb so just converted them to excel files for now)
     
-    enviro20mm<-left_join(suppressWarnings(read_excel("20mm_Survey.xlsx")),
-                          suppressWarnings(read_excel("20mm_Station.xlsx", col_types = c(rep("numeric", 14), "text"))),
+    enviro20mm<-left_join(suppressWarnings(read_excel("Data/20mm_Survey.xlsx")),
+                          suppressWarnings(read_excel("Data/20mm_Station.xlsx", col_types = c(rep("numeric", 14), "text"))),
                           by = "SurveyID",
                           suffix=c("_Survey", "_Station"))%>% #merge based on survey ID - unique for every date (date not in station data)
       rename(Date=SampleDate)
@@ -218,12 +218,12 @@ Zoopdownloader <- function(path="zoopforzooper.Rdata"){
   # Import the FRP data
     
     #download the file
-    if (!file.exists("zoopsFRP2018.csv")) {
+    if (!file.exists("Data/zoopsFRP2018.csv")) {
       download.file("https://portal.edirepository.org/nis/dataviewer?packageid=edi.269.2&entityid=d4c76f209a0653aa86bab1ff93ab9853",
-                    "zoopsFRP2018.csv", mode="wb")
+                    "Data/zoopsFRP2018.csv", mode="wb")
     }
   
-    zoo_FRP <- read_csv("~/test.csv",
+    zoo_FRP <- read_csv("Data/zoopsFRP2018.csv",
                         col_types = paste0("c","c", "t", "d", "d", "d", "d", "d", "d", "d", "d", 
                                            "c", "c", "c", 
                                            "d", "d","d","d",

@@ -70,17 +70,10 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   require(data.table)
   require(lubridate)
   
-  #Allow shiny app to load data files 1 directory upwards
-  if(Shiny){
-    File_prefix<-"../"
-  } else {
-    File_prefix<-""
-  }
-  
   # Load crosswalk key to convert each dataset's taxonomic codes to a
   # unified set of "Taxname" and "Lifestage" values.
   
-  crosswalk <- read_excel(paste0(File_prefix,"new_crosswalk.xlsx"), sheet = "Hierarchy2")%>%
+  crosswalk <- read_excel("Data/new_crosswalk.xlsx", sheet = "Hierarchy2")%>%
     mutate_at(vars(c("EMPstart", "EMPend", "Intro", "FMWTstart", "FMWTend", "twentymmstart", "twentymmend", "twentymmstart2")), ~parse_date(as.character(.), format="%Y"))%>%
     mutate_at(vars(c("EMPstart", "FMWTstart", "twentymmstart", "twentymmstart2", "EMPend", "FMWTend", "twentymmend")), ~replace_na(., as_date(Inf)))%>% #Change any NAs for starts or ends to Infinity (i.e. never started or ended)
     mutate(EMPend = if_else(is.finite(EMPend), EMPend+years(1), EMPend))%>% #Change end dates to beginning of next year (first day it was not counted)
@@ -90,15 +83,15 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   
   #Make it possible to re-download data if desired
   if(ReDownloadData){
-    source(paste0(File_prefix, "Zoop data downloader.R"))
-    Zoopdownloader(paste0(File_prefix, "zoopforzooper.Rdata"))
+    source("Zoop data downloader.R")
+    Zoopdownloader("Data/zoopforzooper.Rdata")
   }
   
   # Read in data if not already loaded
   
   if(!exists("zoop")){
   
-  load(paste0(File_prefix, "zoopforzooper.Rdata"))
+  load("Data/zoopforzooper.Rdata")
     
   }
   
