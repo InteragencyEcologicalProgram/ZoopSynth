@@ -84,14 +84,14 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   #Make it possible to re-download data if desired
   if(ReDownloadData){
     source("Zoop data downloader.R")
-    Zoopdownloader("Data/zoopforzooper.Rdata")
+    Zoopdownloader("Data/zoopforzooper.Rds")
   }
   
   # Read in data if not already loaded
   
   if(!exists("zoop")){
   
-  load("Data/zoopforzooper.Rdata")
+    zoop<-readRDS("Data/zoopforzooper.Rds")
     
   }
   
@@ -166,22 +166,26 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   # Make list of taxa x life stage combos present in all original datasets
   
   #Function to detect common taxonomic names across all source datasets
-  Commontaxer<-function(Taxagroup){
+  Commontaxer<-function(Taxagroup, data){
     Taxagroup<-sym(Taxagroup) #unquote input
     Taxagroup<-enquo(Taxagroup) #capture expression to pass on to functions below
-    zoop%>%
+    N<-data%>%
+      pull(Source)%>%
+      unique()%>%
+      length()
+    data%>%
       filter(!is.na(!!Taxagroup))%>%
       select(!!Taxagroup, Lifestage, Source)%>%
       distinct()%>%
       group_by(!!Taxagroup, Lifestage)%>%
       summarise(n=n())%>% #Create index of number of data sources in which each taxagroup x lifestage combo appears
       ungroup()%>%
-      filter(n==length(unique(zoop$Source)))%>% #only retain taxagroup x lifestage combos that appear in all datasets
+      filter(n==N)%>% #only retain taxagroup x lifestage combos that appear in all datasets
       select(!!Taxagroup, Lifestage)
   }
   
   #Find all common Taxname x life stage combinations, turn into vector of Taxlifestages
-  Commontax<-Commontaxer("Taxname")
+  Commontax<-Commontaxer("Taxname", zoop)
   Commontax<-paste(Commontax$Taxname, Commontax$Lifestage)
 
   # Make list of taxalifestages that do not appear in all datasets
@@ -225,7 +229,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
     # them as "Taxonomiclevel_g"
     
   zoop<-zoop%>%
-    mutate_at(c("Genus", "Family", "Order", "Class", "Phylum"), list(g=~ifelse(.%in%unique(Taxname), ., NA)))
+    mutate_at(Taxcats, list(g=~ifelse(.%in%unique(Taxname), ., NA)))
   
   #Extract vector of grouping taxa (i.e. all unique taxa retained in the above step)
   
@@ -241,6 +245,8 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   # "orphan taxa"
   
   Orphans<-paste(Lumped[-str_which(paste0("[", paste(Groups, collapse="|"), "]"), word(Lumped, 1, -2))], collapse=", ")
+  
+  rm(Lumped)
   
   if(Shiny==F){
   print(paste("NOTE: These species are not counted in all datasets:", Orphans), quote=F)
@@ -261,6 +267,9 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
            Taxname = ifelse(Taxatype=="UnID species", paste0(Taxname, "_UnID"), Taxname),
            Taxlifestage=paste(Taxname, Lifestage))%>%
     select_at(vars(-Taxcats_g))
+  
+  rm(Groups)
+  rm(Orphans)
   
   if(Shiny==F){
   print("NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE. Do not compare UnID categories across data sources.", quote=F)
@@ -283,8 +292,8 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
     }
     
     #Create taxonomy table for all taxonomic levels present in all datasets
-    Commontaxkey<-map_dfr(Taxcats, Commontaxer)%>%
-      mutate_at(c("Genus", "Family", "Order", "Class", "Phylum"), list(lifestage=~ifelse(is.na(.), NA, paste(., Lifestage))))%>% #Create taxa x life stage variable for each taxonomic level
+    Commontaxkey<-map_dfr(Taxcats, Commontaxer, zoop)%>%
+      mutate_at(Taxcats, list(lifestage=~ifelse(is.na(.), NA, paste(., Lifestage))))%>% #Create taxa x life stage variable for each taxonomic level
       select(Genus_lifestage, Family_lifestage, Order_lifestage, Class_lifestage, Phylum_lifestage) #only retain columns we need
     
     #Create taxonomy table for taxa not present in all datasets, then select their new names corresponding to taxa x life stage combinations that are measured in all datasets
@@ -295,7 +304,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
                   distinct(),
                 by="Taxlifestage")%>%
       mutate_at(c("Genus", "Family", "Order", "Class", "Phylum"), list(lifestage=~ifelse(is.na(.), NA, paste(., Lifestage))))%>% #Create taxa x life stage variable for each taxonomic level
-      mutate(Taxname_new=case_when( #This will go level by leve, look for matches with the Commontaxkey, and assign the taxonomic level that matches. The "TRUE" at end specifies what to do if no conditions are met. 
+      mutate(Taxname_new=case_when( #This will go level by level, look for matches with the Commontaxkey, and assign the taxonomic level that matches. The "TRUE" at end specifies what to do if no conditions are met. 
         !is.na(Genus_lifestage) & Genus_lifestage%in%Commontaxkey$Genus_lifestage ~ Genus,
         !is.na(Family_lifestage) & Family_lifestage%in%Commontaxkey$Family_lifestage ~ Family,
         !is.na(Order_lifestage) & Order_lifestage%in%Commontaxkey$Order_lifestage ~ Order,
@@ -303,6 +312,9 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
         !is.na(Phylum_lifestage) & Phylum_lifestage%in%Commontaxkey$Phylum_lifestage ~ Phylum,
         TRUE ~ "REMOVE" #If no match is found, change to the Taxname REMOVE so we know to later remove these data from the final database
       ))
+    
+    rm(Lumped)
+    rm(Commontaxkey)
     
     if("REMOVE"%in%Lumpedkey$Taxname_new){
       

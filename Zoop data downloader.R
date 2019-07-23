@@ -1,4 +1,4 @@
-Zoopdownloader <- function(path="Data/zoopforzooper.Rdata"){
+Zoopdownloader <- function(path="Data/zoopforzooper.Rds"){
   
   # Setup -------------------------------------------------------------------
   require(tidyverse) 
@@ -266,6 +266,6 @@ Zoopdownloader <- function(path="Data/zoopforzooper.Rdata"){
     left_join(stations, by=c("Source", "Station")) #Add lat and long
   
     
-    save(zoop, file=path)
+    saveRDS(zoop, file=path)
   
 }

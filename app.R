@@ -19,7 +19,6 @@ require(readxl)
 require(dtplyr)
 require(lubridate)
 
-load("Data/zoopforzooper.Rdata")
 #Source Sam's function that gets the data from online
 source("Zoop synthesizer function.R")
 
@@ -104,16 +103,16 @@ server <- function(input, output, session) {
     #Using eventReactive so app only updates when "Run" button is clicked, letting you check all the boxes you want before running the app
     plotdata <- eventReactive(input$Run, {
         
-            #select the data the user wants
-            
-            Zooper(Data = input$Datatype, 
-                   Sources = input$Sources, 
-                   Daterange = ifelse(rep("Dates"%in%input$Filters, 2), input$Daterange, c(NA, NA)),
-                   Months = ifelse(rep("Months"%in%input$Filters, length(input$Months)), as.integer(input$Months), rep(NA, length(input$Months))),  
-                   SalSurfrange = ifelse(rep("Surface_salinity"%in%input$Filters, 2), input$SalSurfrange, c(NA, NA)),
-                   Latrange = ifelse(rep("Latitude"%in%input$Filters, 2), input$Latrange, c(NA, NA)), 
-                   Longrange = ifelse(rep("Longitude"%in%input$Filters, 2), input$Longrange, c(NA, NA)), 
-                   Shiny=T)
+        #select the data the user wants
+        
+        Zooper(Data = input$Datatype, 
+               Sources = input$Sources, 
+               Daterange = ifelse(rep("Dates"%in%input$Filters, 2), input$Daterange, c(NA, NA)),
+               Months = ifelse(rep("Months"%in%input$Filters, length(input$Months)), as.integer(input$Months), rep(NA, length(input$Months))),  
+               SalSurfrange = ifelse(rep("Surface_salinity"%in%input$Filters, 2), input$SalSurfrange, c(NA, NA)),
+               Latrange = ifelse(rep("Latitude"%in%input$Filters, 2), input$Latrange, c(NA, NA)), 
+               Longrange = ifelse(rep("Longitude"%in%input$Filters, 2), input$Longrange, c(NA, NA)), 
+               Shiny=T)
     })
     
     plotdata2 <- eventReactive(c(input$Run, input$Update_taxa), {
@@ -129,10 +128,12 @@ server <- function(input, output, session) {
         
         choice_Taxlifestage <- reactive({
             if (input$Datatype=="Taxa"){
-            plotdata()%>%
-                arrange(Taxatype, Taxname, Lifestage)%>%
-                pull(Taxlifestage)%>%
-                unique()
+                plotdata()%>%
+                    select(Taxatype, Taxname, Lifestage, Taxlifestage)%>%
+                    distinct()%>%
+                    arrange(Taxatype, Taxname, Lifestage)%>%
+                    pull(Taxlifestage)%>%
+                    unique()
             } else {
                 NULL
             }
