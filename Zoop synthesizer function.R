@@ -1,4 +1,4 @@
-Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community", Daterange=c(NA, NA), Months=NA, Years=NA, SalBottrange=NA, SalSurfrange=NA, Temprange=NA, Latrange=NA, Longrange=NA, Shiny=F, ReDownloadData=F){
+Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community", Daterange=c(NA, NA), Months=NA, Years=NA, SalBottrange=NA, SalSurfrange=NA, Temprange=NA, Latrange=NA, Longrange=NA, Shiny=F, ReLoadData=F, ReDownloadData=F){
   
   
   # Documentation -----------------------------------------------------------
@@ -82,9 +82,9 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
     mutate(Intro=replace_na(Intro, as_date(-Inf))) #Change any NAs in Intro date to -Inf (i.e., always been around)
   
   #Make it possible to re-download data if desired
-  if(ReDownloadData){
+  if(ReLoadData){
     source("Zoop data downloader.R")
-    Zoopdownloader("Data/zoopforzooper.Rds")
+    Zoopdownloader("Data/zoopforzooper.Rds", ReDownloadData)
   }
   
   # Read in data if not already loaded

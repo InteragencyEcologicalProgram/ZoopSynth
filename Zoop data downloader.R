@@ -1,4 +1,4 @@
-Zoopdownloader <- function(path="Data/zoopforzooper.Rds"){
+Zoopdownloader <- function(path="Data/zoopforzooper.Rds", ReDownloadData=F){
   
   # Setup -------------------------------------------------------------------
   require(tidyverse) 
@@ -36,7 +36,7 @@ Zoopdownloader <- function(path="Data/zoopforzooper.Rds"){
   
     
     #download the file
-    if (!file.exists("Data/1972-2018CBMatrix.xlsx")) {
+    if (!file.exists("Data/1972-2018CBMatrix.xlsx") | ReDownloadData) {
       download.file("ftp://ftp.wildlife.ca.gov/IEP_Zooplankton/1972-2018CBMatrix.xlsx", 
                     "Data/1972-2018CBMatrix.xlsx", mode="wb")
     }
@@ -90,7 +90,7 @@ Zoopdownloader <- function(path="Data/zoopforzooper.Rds"){
   # FMWT --------------------------------------------------------------------
     
     #download the file
-    if (!file.exists("Data/FMWT_TNSZooplanktonDataCPUEOct2017.xls")) {
+    if (!file.exists("Data/FMWT_TNSZooplanktonDataCPUEOct2017.xls") | ReDownloadData) {
       download.file("ftp://ftp.wildlife.ca.gov/TownetFallMidwaterTrawl/Zoopl_TownetFMWT/FMWT%20TNSZooplanktonDataCPUEOct2017.xls", 
                     "Data/FMWT_TNSZooplanktonDataCPUEOct2017.xls", mode="wb")
     }
@@ -218,7 +218,7 @@ Zoopdownloader <- function(path="Data/zoopforzooper.Rds"){
   # Import the FRP data
     
     #download the file
-    if (!file.exists("Data/zoopsFRP2018.csv")) {
+    if (!file.exists("Data/zoopsFRP2018.csv") | ReDownloadData) {
       download.file("https://portal.edirepository.org/nis/dataviewer?packageid=edi.269.2&entityid=d4c76f209a0653aa86bab1ff93ab9853",
                     "Data/zoopsFRP2018.csv", mode="wb")
     }
