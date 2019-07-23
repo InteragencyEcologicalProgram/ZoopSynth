@@ -76,9 +76,9 @@ ui <- fluidPage(
         position = "left",
         fluid = F
     ),
-        
-        tags$head(tags$style(type="text/css",
-                             paste0("
+    
+    tags$head(tags$style(type="text/css",
+                         paste0("
                                              #loadmessage {
                                              position: fixed;
                                              top: 0px;
@@ -124,7 +124,6 @@ server <- function(input, output, session) {
     }, ignoreInit=T)
     
     output$select_Taxlifestage <- renderUI({
-        
         
         choice_Taxlifestage <- reactive({
             if (input$Datatype=="Taxa"){
@@ -187,7 +186,7 @@ server <- function(input, output, session) {
                            Latrange = ifelse(rep("Latitude"%in%input$Filters, 2), input$Latrange, c(NA, NA)), 
                            Longrange = ifelse(rep("Longitude"%in%input$Filters, 2), input$Longrange, c(NA, NA)), 
                            Shiny=T)
-            data <-if (length(input$Taxlifestage)>0){
+            data <-if (length(input$Taxlifestage)>0 & input$Datatype=="Taxa"){
                 filter(data, Taxlifestage%in%input$Taxlifestage)
             } else {
                 data
