@@ -149,6 +149,10 @@ server <- function(input, output, session) {
     
     zooplot <- reactive( {
         
+        myColors <- RColorBrewer::brewer.pal(5,"Set2")
+        names(myColors) <- c("EMP", "FMWT", "TNS", "20mm", "FRP")
+        fillScale <- scale_fill_manual(name = "Source", values = myColors)
+        
         plotdata2()%>%
             mutate(Season=case_when(
                 Month%in%c(1,2,3) ~ "Winter",
@@ -165,7 +169,8 @@ server <- function(input, output, session) {
             geom_bar(stat="identity")+
             facet_wrap(~Season)+
             theme_bw()+
-            theme(panel.grid=element_blank(), strip.background=element_blank())
+            theme(panel.grid=element_blank(), strip.background=element_blank())+
+            fillScale
     })
     
     output$distPlot <- renderPlot({
