@@ -11,6 +11,7 @@
 #    http://shiny.rstudio.com/
 #
 
+require(RColorBrewer)
 require(shiny)
 require(tidyverse)
 require(readxl)
@@ -66,6 +67,9 @@ ui <- fluidPage(
                              uiOutput("select_Taxlifestage")),
             conditionalPanel(condition = "output.Datatype == 'Taxa'", 
                              actionButton("Update_taxa", "Update taxa")),
+            conditionalPanel(condition = "output.Datatype == 'Taxa'", 
+                             radioButtons("Plottype", "Plot Type", choices = c("Samples", "CPUE"), selected = "Samples",
+                                          inline = TRUE)),
             downloadButton("download", "Download")
         ),
         
@@ -99,6 +103,18 @@ ui <- fluidPage(
 
 # Define server logic required to draw a plot
 server <- function(input, output, session) {
+    
+    observeEvent(input$Datatype, {
+        if(input$Datatype=="Community"){
+            updateRadioButtons(session, "Plottype", selected = "Samples")
+        }
+    })
+    
+    observeEvent(c(input$Plottype, input$Taxlifestage), {
+        if(input$Plottype=="CPUE" & length(input$Taxlifestage)>20){
+            showNotification("We recommend you select fewer taxa for this plot (Make sure to click `Update taxa` after making your selection).", type="warning")
+        }
+    })
     
     #Using eventReactive so app only updates when "Run" button is clicked, letting you check all the boxes you want before running the app
     plotdata <- eventReactive(input$Run, {
@@ -149,28 +165,44 @@ server <- function(input, output, session) {
     
     zooplot <- reactive( {
         
-        myColors <- RColorBrewer::brewer.pal(5,"Set2")
-        names(myColors) <- c("EMP", "FMWT", "TNS", "20mm", "FRP")
-        fillScale <- scale_fill_manual(name = "Source", values = myColors)
-        
-        plotdata2()%>%
-            mutate(Season=case_when(
-                Month%in%c(1,2,3) ~ "Winter",
-                Month%in%c(4,5,6) ~ "Spring",
-                Month%in%c(7,8,9) ~ "Summer",
-                Month%in%c(10,11,12) ~ "Fall"
-            ))%>%
-            mutate(Season=factor(Season, levels=c("Fall", "Winter", "Spring", "Summer")))%>%
-            select(Source, Year, Season, SampleID)%>%
-            distinct()%>%
-            group_by(Source, Year, Season)%>%
-            summarise(N_samples=n())%>%
-            ggplot(aes(x=Year, y = N_samples, fill=Source)) +
-            geom_bar(stat="identity")+
-            facet_wrap(~Season)+
-            theme_bw()+
-            theme(panel.grid=element_blank(), strip.background=element_blank())+
-            fillScale
+        if(input$Plottype=="CPUE") {
+            colorCount <- plotdata2()%>%pull(Taxlifestage)%>%unique()%>%length()
+            plotdata2()%>%
+                filter(Volume>1)%>% # *****Currently removing data with very low sample volumes, should change this later*****
+                group_by(Taxlifestage, Year)%>%
+                summarise(CPUE=mean(CPUE, na.rm = T))%>%
+                ggplot(aes(x=Year, y=CPUE, color=Taxlifestage))+
+                geom_line(size=1)+
+                geom_point(size=2)+
+                coord_cartesian(expand=0)+
+                scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount))+
+                ylab("Average CPUE")+
+                theme_bw()+
+                theme(panel.grid=element_blank(), text=element_text(size=16))
+        } else {
+            myColors <- RColorBrewer::brewer.pal(5,"Set2")
+            names(myColors) <- c("EMP", "FMWT", "TNS", "20mm", "FRP")
+            fillScale <- scale_fill_manual(name = "Source", values = myColors)
+            
+            plotdata2()%>%
+                mutate(Season=case_when(
+                    Month%in%c(1,2,3) ~ "Winter",
+                    Month%in%c(4,5,6) ~ "Spring",
+                    Month%in%c(7,8,9) ~ "Summer",
+                    Month%in%c(10,11,12) ~ "Fall"
+                ))%>%
+                mutate(Season=factor(Season, levels=c("Fall", "Winter", "Spring", "Summer")))%>%
+                select(Source, Year, Season, SampleID)%>%
+                distinct()%>%
+                group_by(Source, Year, Season)%>%
+                summarise(N_samples=n())%>%
+                ggplot(aes(x=Year, y = N_samples, fill=Source)) +
+                geom_bar(stat="identity")+
+                facet_wrap(~Season)+
+                theme_bw()+
+                theme(panel.grid=element_blank(), strip.background=element_blank())+
+                fillScale
+        }
     })
     
     output$distPlot <- renderPlot({

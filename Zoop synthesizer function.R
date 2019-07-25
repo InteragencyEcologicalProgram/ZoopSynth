@@ -253,7 +253,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   }
   
   if(Shiny==T) {
-    shiny::showNotification(paste("NOTE: These species are not counted in all datasets:", Orphans), type = "warning", duration = NULL)
+    shiny::showNotification(paste("NOTE: These species are not counted in all datasets:", Orphans), type = "message", duration = NULL)
   }
   
   # Calculate summed groups and create a final dataset
@@ -276,7 +276,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   }
   
   if(Shiny==T) {
-    shiny::showNotification("NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE. Do not compare UnID categories across data sources.", type = "warning", duration = NULL)
+    shiny::showNotification("NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE. Do not compare UnID categories across data sources.", type = "message", duration = NULL)
   }
   
   }
@@ -330,7 +330,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
       }
       
       if(Shiny==T) {
-        shiny::showNotification(paste("These species have no relatives common to all datasets and have been removed: ", Removed), type = "warning", duration = NULL)
+        shiny::showNotification(paste("These species have no relatives common to all datasets and have been removed: ", Removed), type = "message", duration = NULL)
       }
     }
     
