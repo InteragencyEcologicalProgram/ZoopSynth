@@ -357,7 +357,10 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
                   mutate(Taxlifestage=paste(Taxname, Lifestage))%>%
                   select(-Taxname, -Lifestage)%>%
                   bind_rows(Lumpedkey%>%
-                              select(Taxlifestage, Phylum, Class, Order, Family, Genus))%>%
+                              filter(Taxname_new!="REMOVE")%>%
+                              select(Taxname_new, Lifestage, Phylum, Class, Order, Family, Genus)%>%
+                              mutate(Taxlifestage=paste(Taxname_new, Lifestage))%>%
+                              select(-Taxname_new, -Lifestage))%>%
                   distinct(),
                 by="Taxlifestage"
                   )

@@ -62,14 +62,13 @@ ui <- fluidPage(
                              sliderInput("Longrange",
                                          "Longitude Range:",
                                          min = -125, max = -119, value = c(-125, -119), step=0.1)),
+            radioButtons("Plottype", "Plot Type", choices = c("Samples", "CPUE"), selected = "Samples",
+                         inline = TRUE),
             actionButton("Run", "Run"),
             conditionalPanel(condition = "output.Datatype == 'Taxa'", 
                              uiOutput("select_Taxlifestage")),
             conditionalPanel(condition = "output.Datatype == 'Taxa'", 
                              actionButton("Update_taxa", "Update taxa")),
-            conditionalPanel(condition = "output.Datatype == 'Taxa'", 
-                             radioButtons("Plottype", "Plot Type", choices = c("Samples", "CPUE"), selected = "Samples",
-                                          inline = TRUE)),
             downloadButton("download", "Download")
         ),
         
@@ -104,11 +103,14 @@ ui <- fluidPage(
 # Define server logic required to draw a plot
 server <- function(input, output, session) {
     
-    observeEvent(input$Datatype, {
-        if(input$Datatype=="Community"){
-            updateRadioButtons(session, "Plottype", selected = "Samples")
-        }
-    })
+    #observeEvent(input$Datatype, {
+    #   if(input$Datatype=="Taxa"){
+    #       updateRadioButtons(session, "Plottype", choices = c("Samples", "Taxa"), selected = "Samples")
+    #    }
+    #    if(input$Datatype=="Community"){
+    #        updateRadioButtons(session, "Plottype", choices = c("Samples", "Community"), selected = "Samples")
+    #    }
+    #})
     
     observeEvent(c(input$Plottype, input$Taxlifestage), {
         if(input$Plottype=="CPUE" & length(input$Taxlifestage)>20){
@@ -163,23 +165,39 @@ server <- function(input, output, session) {
         ifelse("Taxatype"%in%colnames(plotdata2()), "Taxa", "Community")
     })
     
-    zooplot <- reactive( {
+    zooplot <- eventReactive(c(input$Run, input$Update_taxa, input$Plottype), {
         
         if(input$Plottype=="CPUE") {
-            colorCount <- plotdata2()%>%pull(Taxlifestage)%>%unique()%>%length()
-            plotdata2()%>%
-                filter(Volume>1)%>% # *****Currently removing data with very low sample volumes, should change this later*****
-                group_by(Taxlifestage, Year)%>%
-                summarise(CPUE=mean(CPUE, na.rm = T))%>%
-                ggplot(aes(x=Year, y=CPUE, color=Taxlifestage))+
-                geom_line(size=1)+
-                geom_point(size=2)+
-                coord_cartesian(expand=0)+
-                scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount))+
-                ylab("Average CPUE")+
-                theme_bw()+
-                theme(panel.grid=element_blank(), text=element_text(size=16))
-        } else {
+            if(input$Datatype=="Taxa"){
+                colorCount <- plotdata2()%>%pull(Taxlifestage)%>%unique()%>%length()
+                plotdata2()%>%
+                    filter(Volume>1)%>% # *****Currently removing data with very low sample volumes, should change this later*****
+                    group_by(Taxlifestage, Year)%>%
+                    summarise(CPUE=mean(CPUE, na.rm = T))%>%
+                    ggplot(aes(x=Year, y=CPUE, color=Taxlifestage))+
+                    geom_line(size=1)+
+                    geom_point(size=2)+
+                    coord_cartesian(expand=0)+
+                    scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount))+
+                    ylab("Average CPUE")+
+                    theme_bw()+
+                    theme(panel.grid=element_blank(), text=element_text(size=16))
+            }else {
+                colorCount <- plotdata2()%>%pull(Taxlifestage)%>%unique()%>%length()
+                plotdata2()%>%
+                    filter(Volume>1)%>% # *****Currently removing data with very low sample volumes, should change this later*****
+                    group_by(Year,Phylum, Class, Order, Family, Genus, Species, Lifestage, Taxlifestage)%>%
+                    summarise(CPUE=mean(CPUE))%>%ungroup%>%arrange(Phylum, Class, Order, Family, Genus, Species, Lifestage)%>%
+                    mutate(Taxlifestage=factor(Taxlifestage, unique(Taxlifestage)))%>%
+                    ggplot(aes(x=Year, y=CPUE, fill=Taxlifestage))+
+                    geom_bar(stat="identity")+
+                    coord_cartesian(expand=0)+
+                    scale_fill_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount))+
+                    ylab("Average CPUE")+
+                    theme_bw()+
+                    theme(panel.grid=element_blank())
+            }
+        }else{
             myColors <- RColorBrewer::brewer.pal(5,"Set2")
             names(myColors) <- c("EMP", "FMWT", "TNS", "20mm", "FRP")
             fillScale <- scale_fill_manual(name = "Source", values = myColors)
