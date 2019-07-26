@@ -6,8 +6,6 @@ Zoopdownloader <- function(path="Data/zoopforzooper.Rds", ReDownloadData=F){
   
   #Requires Github developer version of dtplyr: devtools::install_github("tidyverse/dtplyr")
   require(dtplyr)
-  
-  require(data.table)
   require(lubridate)
   
   # Load crosswalk key to convert each dataset's taxonomic codes to a
@@ -257,13 +255,14 @@ Zoopdownloader <- function(path="Data/zoopforzooper.Rds", ReDownloadData=F){
   
   # Combine data ----------------------------------------
   
-  zoop<-bind_rows(data.list)%>% # Combine data
-    filter(!is.na(Taxname))%>% #Remove NA taxnames (should only correspond to previously summed "all" categories from input datasets)
-    mutate(SalSurf=((0.36966/(((CondSurf*0.001)^(-1.07))-0.00074))*1.28156),
-           SalBott=((0.36966/(((CondBott*0.001)^(-1.07))-0.00074))*1.28156),#Convert conductivity to salinity using formula in FMWT metadata
-           Year=year(Date), #add variables for year and month
-           Month=month(Date))%>%
-    left_join(stations, by=c("Source", "Station")) #Add lat and long
+    zoop<-bind_rows(data.list)%>% # Combine data
+      filter(!is.na(Taxname))%>% #Remove NA taxnames (should only correspond to previously summed "all" categories from input datasets)
+      mutate(SalSurf=((0.36966/(((CondSurf*0.001)^(-1.07))-0.00074))*1.28156),
+             SalBott=((0.36966/(((CondBott*0.001)^(-1.07))-0.00074))*1.28156),#Convert conductivity to salinity using formula in FMWT metadata
+             Year=year(Date), #add variables for year and month
+             Month=month(Date))%>%
+      left_join(stations, by=c("Source", "Station"))%>% #Add lat and long
+      select(-Region, -CondBott, -CondSurf) #Remove some extraneous variables to save memory
   
     
     saveRDS(zoop, file=path)

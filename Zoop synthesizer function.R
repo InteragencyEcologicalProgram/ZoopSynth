@@ -57,6 +57,9 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   # include, in decimal degree format. Don't forget Longitudes should be 
   # negative
   
+  # To re-load data from local files, use option ReLoadData=T. To redownload
+  # data from the internet, use option ReDownloadData=T.
+  
   
   # Setup -------------------------------------------------------------------
   
@@ -347,6 +350,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
       lazy_dt()%>%
       group_by_at(vars(-CPUE))%>%
       summarise(CPUE=sum(CPUE, na.rm=T))%>%
+      ungroup()%>%
       as_tibble()%>%
       left_join(crosswalk%>%
                   select(Taxname, Lifestage, Phylum, Class, Order, Family, Genus, Species)%>%
