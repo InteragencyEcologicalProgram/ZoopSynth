@@ -73,6 +73,20 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   
   require(lubridate)
   
+  #Warnings for improper arguments
+  if (!every(Sources, ~.%in%c("EMP", "FRP", "FMWT", "TNS", "20mm"))){
+    stop("Sources must contain one or more of the following options: EMP, FRP, FMWT, TNS, 20mm")
+  }
+  
+  
+  if (!(Data=="Taxa" | Data=="Community")){
+    stop("Data must be either `Taxa` or `Community`")
+  }
+  
+  if(!every(list(Shiny, ReLoadData, ReDownloadData), is.logical)){
+    stop("Shiny, ReLoadData, and ReDownloadData must all have logical arguments.")
+  }
+  
   # Load crosswalk key to convert each dataset's taxonomic codes to a
   # unified set of "Taxname" and "Lifestage" values.
   
