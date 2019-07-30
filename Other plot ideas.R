@@ -8,9 +8,15 @@ require(dtplyr)
 test<-Zooper(Data="Taxa")
 mapDelta<-st_read("Data/DeltaShapeFile")
 
+sumtest<-test%>%
+  filter(Volume>1)%>%
+  lazy_dt()%>%
+  group_by(Taxname, Year, Latitude, Longitude)%>%
+  summarise(CPUE=mean(CPUE))%>%
+  as_tibble()
 ggplot() + 
   geom_sf(data=mapDelta, color = "dodgerblue1", fill = "dodgerblue1") + 
-  geom_point(data=filter(test, Year==2000 & Taxname=="Pseudodiaptomus marinus"), aes(y=Latitude, x=Longitude, size=CPUE))+
+  geom_point(data=filter(sumtest, Year==2003 & Taxname=="Pseudodiaptomus marinus"), aes(y=Latitude, x=Longitude, size=CPUE))+
   coord_sf()+
   theme_bw()+
   theme(panel.grid=element_blank())
