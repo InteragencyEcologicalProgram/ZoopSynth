@@ -89,10 +89,10 @@ ui <- fluidPage(
         
         # Display the plot
         mainPanel(
-            plotlyOutput("distPlot")
+            plotlyOutput("distPlot", height="800px")
         ),
         position = "left",
-        fluid = F
+        fluid = T
     ),
     
     # This is just to display the "data crunching" message. 

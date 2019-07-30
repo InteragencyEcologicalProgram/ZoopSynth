@@ -42,6 +42,21 @@ Unique_valst<-Allt%>% summarise_all(n_distinct)%>%
 nrow(Unique_valst)<1
 
 
+#Test that there is only 1 entry for each combination of sampleID & Taxlifestage
+Allc%>%
+  group_by(SampleID, Taxlifestage)%>%
+  mutate(N=n())%>%
+  ungroup()%>%
+  pull(N)%>%
+  every(~.==1)
+
+Allt%>%
+  group_by(SampleID, Taxlifestage)%>%
+  mutate(N=n())%>%
+  ungroup()%>%
+  pull(N)%>%
+  every(~.==1)
+
 #####################################################################################
 #Some random thoughts
 

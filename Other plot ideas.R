@@ -46,8 +46,18 @@ Locations<-test%>%
 #Get average abundance of each Taxlifestage in each region and year
 test2<-test%>%
   left_join(Locations, by=c("Latitude", "Longitude"))%>%
-  group_by(Region, Year, Taxlifestage)%>%
-  summarise(CPUE=average(CPUE))%>%
+  group_by(Region)%>%
+  mutate(Latitude=mean(range(Latitude)), Longitude=mean(range(Longitude)))%>%
+  group_by(Region, Year, Taxlifestage, Latitude, Longitude)%>%
+  summarise(CPUE=mean(CPUE))%>%
   ungroup()
 
 ##Need to compute centroids for each region for subsequent plot
+
+
+#Taxa by regions
+ggplot(filter(test2, Year==2000 & Taxlifestage=="Pseudodiaptomus marinus Adult"), aes(x=Region, y=CPUE))+
+  geom_bar(stat="identity")+
+  coord_cartesian(expand=0)+
+  theme_bw()+
+  theme(panel.grid=element_blank())
