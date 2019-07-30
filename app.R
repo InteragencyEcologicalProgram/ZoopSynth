@@ -1,7 +1,5 @@
 # This is a Shiny web application designed to allow users to select which zooplankton data they would
-#like to combine and download the resulting data.
-
-#It also currently makes a graph of the data, but it's not super userful.
+# like to combine, visualize the data, and download data.
 
 # This is a Shiny web application. You can run the application by clicking
 # the 'Run App' button above.
@@ -24,18 +22,21 @@ require(plotly)
 #Source Sam's function that gets the data from online
 source("Zoop synthesizer function.R")
 
-
+#Settings for the "data crunching" message. 
 info_loading <- "Data crunching in progress..."
-your_color01 <- "#CD2626"
-your_color02 <- "#D3D3D3"
+progress_color <- "#CD2626"
+progress_background <- "#D3D3D3"
 
-# Define UI for application that draws a scaterplot and allows you to download data
+# Define UI for application that draws graphs and allows you to download data
+
 ui <- fluidPage(
     
     # Application title
+    
     titlePanel("Zooplankton"),
     
     # check boxes where you choose data you want
+    
     sidebarLayout(
         sidebarPanel(
             radioButtons("Datatype", "Data Type", choices = c("Taxa", "Community"), selected = "Community",
@@ -43,6 +44,9 @@ ui <- fluidPage(
             checkboxGroupInput("Sources",
                                "Sources:",
                                choices = c("Environmental monitoring program" = "EMP", "Fish restoration program" = "FRP", "Fall midwater trawl" = "FMWT", "Summer townet survey" = "TNS", "20mm survey" = "20mm")),
+            
+            #Allow users to select which filters they would like to use, then those filter options will appear.
+            
             checkboxGroupInput("Filters",
                                "Filters:",
                                choices = c("Dates", "Months", "Surface_salinity", "Latitude", "Longitude")),
@@ -66,20 +70,32 @@ ui <- fluidPage(
             radioButtons("Plottype", "Plot Type", choices = c("Samples", "CPUE"), selected = "Samples",
                          inline = TRUE),
             actionButton("Run", "Run"),
+            
+            #Allows users to select taxa, but only in Taxa mode, and updates Taxa choices based on 
+            #the data selections the user has made (after hitting Run). This is conditional on an 
+            #output so that it only appears when the app has actually created Taxa data, rather
+            #than when the user has checked the taxa box but not yet clicked run. It prevents the
+            #user from accidentally filtering taxa in the "Community" mode.
+            
             conditionalPanel(condition = "output.Datatype == 'Taxa'", 
-                             uiOutput("select_Taxlifestage")),
+                             uiOutput("select_Taxlifestage")), 
             conditionalPanel(condition = "output.Datatype == 'Taxa'", 
                              actionButton("Update_taxa", "Update taxa")),
+            
+            #Allow users to download data
+            
             downloadButton("download", "Download")
         ),
         
-        # Show a plot of the generated distribution
+        # Display the plot
         mainPanel(
             plotlyOutput("distPlot")
         ),
         position = "left",
         fluid = F
     ),
+    
+    # This is just to display the "data crunching" message. 
     
     tags$head(tags$style(type="text/css",
                          paste0("
@@ -92,8 +108,8 @@ ui <- fluidPage(
                                              text-align: center;
                                              font-weight: bold;
                                              font-size: 100%;
-                                             color: ", your_color01,";
-                                             background-color: ", your_color02,";
+                                             color: ", progress_color,";
+                                             background-color: ", progress_background,";
                                              z-index: 105;
                                              }
                                              "))),
@@ -101,7 +117,7 @@ ui <- fluidPage(
                      tags$div(info_loading,id="loadmessage"))
 )
 
-# Define server logic required to draw a plot
+# Define server logic required to process data, draw plots, and dowload data
 server <- function(input, output, session) {
     
     observeEvent(c(input$Plottype, input$Taxlifestage), {
@@ -125,6 +141,9 @@ server <- function(input, output, session) {
                Shiny=T)
     })
     
+    #Filter data to selected taxa. Doing this plotdata in 2 steps makes it so 
+    #Zooper function isn't re-run every time the user selects new taxa to plot
+    
     plotdata2 <- eventReactive(c(input$Run, input$Update_taxa), {
         if (length(input$Taxlifestage)>0 & input$Datatype=="Taxa"){
             filter(plotdata(), Taxlifestage%in%input$Taxlifestage)
@@ -132,6 +151,8 @@ server <- function(input, output, session) {
             plotdata()
         }
     }, ignoreInit=T)
+    
+    #Update Taxlifestage chocies based on data for the user input choices
     
     output$select_Taxlifestage <- renderUI({
         
@@ -153,10 +174,12 @@ server <- function(input, output, session) {
         
     })
     
+    #Create output so app knows what type of data has actually been created. Used for the select taxa input
     output$Datatype<-reactive( {
         ifelse("Taxatype"%in%colnames(plotdata2()), "Taxa", "Community")
     })
     
+    #Function to create different plots depending on user inputs to data and plot type
     zooplot <- eventReactive(c(input$Run, input$Update_taxa, input$Plottype), {
         
         if(input$Plottype=="CPUE") {
@@ -217,11 +240,13 @@ server <- function(input, output, session) {
         }
     })
     
+    #Create plot (Plotly makes plot interactive/hoverable)
+    
     output$distPlot <- renderPlotly({
         ggplotly(zooplot())
     })
     
-    
+    #Enable downloads
     
     output$download = downloadHandler(
         filename = function() {
@@ -243,6 +268,8 @@ server <- function(input, output, session) {
             }
             write.csv(data, file)
         })
+    
+    #Enable the datatype output to be passsed to input
     outputOptions(output, "Datatype", suspendWhenHidden = FALSE)
 }
 
