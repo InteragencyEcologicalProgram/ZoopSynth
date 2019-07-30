@@ -19,6 +19,7 @@ require(readxl)
 #Requires Github developer version of dtplyr: devtools::install_github("tidyverse/dtplyr")
 require(dtplyr)
 require(lubridate)
+require(plotly)
 
 #Source Sam's function that gets the data from online
 source("Zoop synthesizer function.R")
@@ -74,7 +75,7 @@ ui <- fluidPage(
         
         # Show a plot of the generated distribution
         mainPanel(
-            plotOutput("distPlot")
+            plotlyOutput("distPlot")
         ),
         position = "left",
         fluid = F
@@ -102,15 +103,6 @@ ui <- fluidPage(
 
 # Define server logic required to draw a plot
 server <- function(input, output, session) {
-    
-    #observeEvent(input$Datatype, {
-    #   if(input$Datatype=="Taxa"){
-    #       updateRadioButtons(session, "Plottype", choices = c("Samples", "Taxa"), selected = "Samples")
-    #    }
-    #    if(input$Datatype=="Community"){
-    #        updateRadioButtons(session, "Plottype", choices = c("Samples", "Community"), selected = "Samples")
-    #    }
-    #})
     
     observeEvent(c(input$Plottype, input$Taxlifestage), {
         if(input$Plottype=="CPUE" & length(input$Taxlifestage)>20){
@@ -178,7 +170,7 @@ server <- function(input, output, session) {
                     geom_line(size=1)+
                     geom_point(size=2)+
                     coord_cartesian(expand=0)+
-                    scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount))+
+                    scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage")+
                     ylab("Average CPUE")+
                     theme_bw()+
                     theme(panel.grid=element_blank(), text=element_text(size=16))
@@ -187,12 +179,14 @@ server <- function(input, output, session) {
                 plotdata2()%>%
                     filter(Volume>1)%>% # *****Currently removing data with very low sample volumes, should change this later*****
                     group_by(Year,Phylum, Class, Order, Family, Genus, Species, Lifestage, Taxlifestage)%>%
-                    summarise(CPUE=mean(CPUE))%>%ungroup%>%arrange(Phylum, Class, Order, Family, Genus, Species, Lifestage)%>%
+                    summarise(CPUE=mean(CPUE))%>%
+                    ungroup()%>%
+                    arrange(Phylum, Class, Order, Family, Genus, Species, Lifestage)%>%
                     mutate(Taxlifestage=factor(Taxlifestage, unique(Taxlifestage)))%>%
                     ggplot(aes(x=Year, y=CPUE, fill=Taxlifestage))+
                     geom_bar(stat="identity")+
                     coord_cartesian(expand=0)+
-                    scale_fill_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount))+
+                    scale_fill_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage")+
                     ylab("Average CPUE")+
                     theme_bw()+
                     theme(panel.grid=element_blank())
@@ -223,9 +217,10 @@ server <- function(input, output, session) {
         }
     })
     
-    output$distPlot <- renderPlot({
-        zooplot()
+    output$distPlot <- renderPlotly({
+        ggplotly(zooplot())
     })
+    
     
     
     output$download = downloadHandler(

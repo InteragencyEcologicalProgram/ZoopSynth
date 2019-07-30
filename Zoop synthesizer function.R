@@ -322,13 +322,19 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
                 by="Taxlifestage")%>%
       mutate_at(c("Genus", "Family", "Order", "Class", "Phylum"), list(lifestage=~ifelse(is.na(.), NA, paste(., Lifestage))))%>% #Create taxa x life stage variable for each taxonomic level
       mutate(Taxname_new=case_when( #This will go level by level, look for matches with the Commontaxkey, and assign the taxonomic level that matches. The "TRUE" at end specifies what to do if no conditions are met. 
-        !is.na(Genus_lifestage) & Genus_lifestage%in%Commontaxkey$Genus_lifestage ~ Genus,
-        !is.na(Family_lifestage) & Family_lifestage%in%Commontaxkey$Family_lifestage ~ Family,
-        !is.na(Order_lifestage) & Order_lifestage%in%Commontaxkey$Order_lifestage ~ Order,
-        !is.na(Class_lifestage) & Class_lifestage%in%Commontaxkey$Class_lifestage ~ Class,
-        !is.na(Phylum_lifestage) & Phylum_lifestage%in%Commontaxkey$Phylum_lifestage ~ Phylum,
-        TRUE ~ "REMOVE" #If no match is found, change to the Taxname REMOVE so we know to later remove these data from the final database
-      ))
+        !is.na(Genus_lifestage) & Genus_lifestage%in%Commontaxkey$Genus_lifestage ~ paste0(Genus, "_Genus"),
+        !is.na(Family_lifestage) & Family_lifestage%in%Commontaxkey$Family_lifestage ~ paste0(Family, "_Family"),
+        !is.na(Order_lifestage) & Order_lifestage%in%Commontaxkey$Order_lifestage ~ paste0(Order, "_Order"),
+        !is.na(Class_lifestage) & Class_lifestage%in%Commontaxkey$Class_lifestage ~ paste0(Class, "_Class"),
+        !is.na(Phylum_lifestage) & Phylum_lifestage%in%Commontaxkey$Phylum_lifestage ~ paste0(Phylum, "_Phylum"),
+        TRUE ~ "REMOVE_" #If no match is found, change to the Taxname REMOVE so we know to later remove these data from the final database
+      ))%>%
+      mutate(Genus=if_else(str_detect(Taxname_new, "\\_Genus"), Genus, NA_character_),
+             Family=if_else(str_detect(Taxname_new, "\\_Genus|\\_Family"), Family, NA_character_),
+             Order=if_else(str_detect(Taxname_new, "\\_Genus|\\_Family|\\_Order"), Order, NA_character_),
+             Class=if_else(str_detect(Taxname_new, "\\_Genus|\\_Family|\\_Order|\\_Class"), Class, NA_character_)
+             )%>%
+      mutate(Taxname_new=str_extract(Taxname_new, "^[^_]+(?=_)"))
     
     rm(Lumped)
     rm(Commontaxkey)
