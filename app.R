@@ -289,7 +289,7 @@ server <- function(input, output, session) {
       colorCount <- plotdata2()%>%pull(Taxlifestage)%>%unique()%>%length()
       pmap+
         geom_point(data=filter(mapdata(), Year==input$Year), aes(y=Latitude, x=Longitude, size=CPUE, color=Taxlifestage), alpha=0.8)+
-        scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage")+
+        scale_color_manual(values=colorRampPalette(brewer.pal(7, "Dark2"))(colorCount), name="Taxa and life stage")+
         scale_size_area(limits=maprange())
     }
   })
