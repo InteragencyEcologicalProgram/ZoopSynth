@@ -43,9 +43,8 @@ ui <- fluidPage(
   titlePanel("Zooplankton"),
   
   # check boxes where you choose data you want
-  
-  sidebarLayout(
-    sidebarPanel(
+  fluidRow(
+    column(3,
       radioButtons("Datatype", "Data Type", choices = c("Taxa", "Community"), selected = "Community",
                    inline = TRUE),
       checkboxGroupInput("Sources",
@@ -95,18 +94,17 @@ ui <- fluidPage(
     ),
     
     # Display the plot
-    mainPanel(
+    column(9,
       tabsetPanel(type="tabs",
-                  tabPanel("Samples", plotlyOutput("Sampleplot", height="800px")),
-                  tabPanel("CPUE", plotlyOutput("CPUEplot", height="800px")),
-                  tabPanel("Map", plotOutput("Mapplot", height="600px"), 
+                  tabPanel("Samples", plotlyOutput("Sampleplot")),
+                  tabPanel("CPUE", plotlyOutput("CPUEplot")),
+                  tabPanel("Map", plotOutput("Mapplot"), 
                                             uiOutput("select_Year"))
         
-      )
-    ),
-    position = "left",
-    fluid = T
-  ),
+      )#,
+    #position = "left",
+    #fluid = T
+  )),
   
   # This is just to display the "data crunching" message. 
   
@@ -128,7 +126,10 @@ ui <- fluidPage(
                                              "))),
   conditionalPanel(condition="$('html').hasClass('shiny-busy')",
                    tags$div(info_loading,id="loadmessage")),
-  tags$style(type="text/css", ".recalculating {opacity: 1.0;}")
+  tags$style(type="text/css", ".recalculating {opacity: 1.0;}"),
+  tags$head(tags$style("#Sampleplot{height:80vh !important;}")),
+  tags$head(tags$style("#CPUEplot{height:80vh !important;}")),
+  tags$head(tags$style("#Mapplot{height:80vh !important;}"))
 )
 
 # Define server logic required to process data, draw plots, and dowload data
@@ -245,7 +246,7 @@ server <- function(input, output, session) {
       geom_bar(stat="identity")+
       facet_wrap(~Season)+
       theme_bw()+
-      theme(panel.grid=element_blank(), strip.background=element_blank())+
+      theme(panel.grid=element_blank(), strip.background=element_blank(), text=element_text(size=14), panel.spacing.x = unit(15, "points"))+
       fillScale
   })
   
@@ -263,7 +264,7 @@ server <- function(input, output, session) {
         scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage")+
         ylab("Average CPUE")+
         theme_bw()+
-        theme(panel.grid=element_blank(), text=element_text(size=16))
+        theme(panel.grid=element_blank(), text=element_text(size=14))
     }else{
       plotdata2()%>%
         filter(Volume>1)%>% # *****Currently removing data with very low sample volumes, should change this later*****
@@ -278,7 +279,7 @@ server <- function(input, output, session) {
         scale_fill_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage")+
         ylab("Average CPUE")+
         theme_bw()+
-        theme(panel.grid=element_blank(), text=element_text(size=16))
+        theme(panel.grid=element_blank(), text=element_text(size=14))
     }
   })
   
