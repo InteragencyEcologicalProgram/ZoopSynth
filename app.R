@@ -24,10 +24,10 @@ source("Zoop synthesizer function.R")
 
 mapDelta<-st_read("Data/DeltaShapefile")
 pmap<-ggplot() + 
-  geom_sf(data=mapDelta, color = "dodgerblue1", fill = "dodgerblue1") + 
+  geom_sf(data=mapDelta, color = "gray87", fill = "gray87") + 
   coord_sf()+
   theme_bw()+
-  theme(panel.grid=element_blank())
+  theme(panel.grid=element_blank(), text=element_text(size=14))
 
 #Settings for the "data crunching" message. 
 info_loading <- "Data crunching in progress..."
@@ -129,7 +129,7 @@ ui <- fluidPage(
   tags$style(type="text/css", ".recalculating {opacity: 1.0;}"),
   tags$head(tags$style("#Sampleplot{height:80vh !important;}")),
   tags$head(tags$style("#CPUEplot{height:80vh !important;}")),
-  tags$head(tags$style("#Mapplot{height:80vh !important;}"))
+  tags$head(tags$style("#Mapplot{height:70vh !important;}"))
 )
 
 # Define server logic required to process data, draw plots, and dowload data
@@ -245,6 +245,7 @@ server <- function(input, output, session) {
       ggplot(aes(x=Year, y = N_samples, fill=Source)) +
       geom_bar(stat="identity")+
       facet_wrap(~Season)+
+      coord_cartesian(expand=0)+
       theme_bw()+
       theme(panel.grid=element_blank(), strip.background=element_blank(), text=element_text(size=14), panel.spacing.x = unit(15, "points"))+
       fillScale
@@ -285,8 +286,10 @@ server <- function(input, output, session) {
   
   Mapplot <- reactive({
     if("Taxatype"%in%colnames(plotdata2())){
+      colorCount <- plotdata2()%>%pull(Taxlifestage)%>%unique()%>%length()
       pmap+
         geom_point(data=filter(mapdata(), Year==input$Year), aes(y=Latitude, x=Longitude, size=CPUE, color=Taxlifestage), alpha=0.8)+
+        scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage")+
         scale_size_area(limits=maprange())
     }
   })
