@@ -97,7 +97,8 @@ ui <- fluidPage(
     column(9,
       tabsetPanel(type="tabs",
                   tabPanel("Samples", ggiraphOutput("Sampleplot")),
-                  tabPanel("CPUE", ggiraphOutput("CPUEplot")),
+                  tabPanel("CPUE", ggiraphOutput("CPUEplot"),
+                           sliderInput("Lowsal", "Low salinity zone", min=0, max=30, value=c(0.5,6), step=0.1)),
                   tabPanel("Map", plotOutput("Mapplot"), 
                                             uiOutput("select_Year"))
         
@@ -128,7 +129,7 @@ ui <- fluidPage(
                    tags$div(info_loading,id="loadmessage")),
   tags$style(type="text/css", ".recalculating {opacity: 1.0;}"),
   tags$head(tags$style("#Sampleplot{height:80vh !important;}")),
-  tags$head(tags$style("#CPUEplot{height:80vh !important;}")),
+  tags$head(tags$style("#CPUEplot{height:70vh !important;}")),
   tags$head(tags$style("#Mapplot{height:70vh !important;}"))
 )
 
@@ -261,30 +262,47 @@ server <- function(input, output, session) {
   
   CPUEplot <- reactive({
     colorCount <- plotdata2()%>%pull(Taxlifestage)%>%unique()%>%length()
-    str_model <- paste0("<tr><td>Year &nbsp</td><td>%s</td></tr>",
-                        "<tr><td>Taxa &nbsp</td><td>%s</td></tr>", 
-                        "<tr><td>CPUE &nbsp</td><td>%s</td></tr>")
     if("Taxatype"%in%colnames(plotdata2())){
+      str_model <- paste0("<tr><td>Year &nbsp</td><td>%s</td></tr>",
+                          "<tr><td>Taxa &nbsp</td><td>%s</td></tr>",
+                          "<tr><td>Salinity &nbsp</td><td>%s</td></tr>", 
+                          "<tr><td>CPUE &nbsp</td><td>%s</td></tr>")
       plotdata2()%>%
-        filter(Volume>1)%>% # *****Currently removing data with very low sample volumes, should change this later*****
-        group_by(Taxlifestage, Year)%>%
+        filter(Volume>1 & !is.na(SalSurf))%>% # *****Currently removing data with very low sample volumes and NA salinity, should change this later*****
+        mutate(Salinity_zone=case_when(
+          SalSurf < min(input$Lowsal) ~ "Freshwater",
+          SalSurf > min(input$Lowsal) & SalSurf < max(input$Lowsal) ~ "Low salinity zone",
+          SalSurf > max(input$Lowsal) ~ "High salinity zone"
+        ))%>% 
+        mutate(Salinity_zone=factor(Salinity_zone, levels=c("Freshwater", "Low salinity zone", "High salinity zone")))%>%
+        group_by(Taxlifestage, Year, Salinity_zone)%>%
         summarise(CPUE=mean(CPUE, na.rm = T))%>%
         ungroup()%>%
-        mutate(tooltip=sprintf(str_model, Year, Taxlifestage, round(CPUE)),
+        mutate(tooltip=sprintf(str_model, Year, Taxlifestage, Salinity_zone, round(CPUE)),
                ID=as.character(1:n()))%>%
         mutate(tooltip=paste0( "<table>", tooltip, "</table>" ))%>%
         ggplot(aes(x=Year, y=CPUE))+
-        geom_line(size=1, aes(color=Taxlifestage))+
-        geom_point_interactive(size=2, aes(color=Taxlifestage, tooltip=tooltip, data_id = ID))+
+        geom_line(size=1, aes(color=Taxlifestage, linetype=Salinity_zone))+
+        geom_point_interactive(size=2, aes(color=Taxlifestage, shape=Salinity_zone, tooltip=tooltip, data_id = ID))+
         coord_cartesian(expand=0)+
         scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=1))+
+        scale_linetype_manual(values=c(3,2,1))+
         ylab("Average CPUE")+
         theme_bw()+
         theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=10))
     }else{
+      str_model <- paste0("<tr><td>Year &nbsp</td><td>%s</td></tr>",
+                          "<tr><td>Taxa &nbsp</td><td>%s</td></tr>",
+                          "<tr><td>CPUE &nbsp</td><td>%s</td></tr>")
       plotdata2()%>%
-        filter(Volume>1)%>% # *****Currently removing data with very low sample volumes, should change this later*****
-        group_by(Year,Phylum, Class, Order, Family, Genus, Species, Lifestage, Taxlifestage)%>%
+        filter(Volume>1 & !is.na(SalSurf))%>% # *****Currently removing data with very low sample volumes and NA salinity, should change this later*****
+        mutate(Salinity_zone=case_when(
+          SalSurf < min(input$Lowsal) ~ "Freshwater",
+          SalSurf > min(input$Lowsal) & SalSurf < max(input$Lowsal) ~ "Low salinity zone",
+          SalSurf > max(input$Lowsal) ~ "High salinity zone"
+        ))%>%
+        mutate(Salinity_zone=factor(Salinity_zone, levels=c("Freshwater", "Low salinity zone", "High salinity zone")))%>%
+        group_by(Year,Phylum, Class, Order, Family, Genus, Species, Lifestage, Taxlifestage, Salinity_zone)%>%
         summarise(CPUE=mean(CPUE))%>%
         ungroup()%>%
         mutate(tooltip=sprintf(str_model, Year, Taxlifestage, round(CPUE)),
@@ -295,10 +313,11 @@ server <- function(input, output, session) {
         ggplot(aes(x=Year, y=CPUE))+
         geom_bar_interactive(stat="identity", color="white", size=0.01, aes(fill=Taxlifestage, tooltip=tooltip, data_id = ID))+
         coord_cartesian(expand=0)+
+        facet_wrap(~Salinity_zone, nrow=1)+
         scale_fill_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=2))+
         ylab("Average CPUE")+
         theme_bw()+
-        theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=6), legend.key.size = unit(10, "points"))
+        theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=6), legend.key.size = unit(10, "points"), strip.background=element_blank())
     }
   })
   
@@ -316,12 +335,12 @@ server <- function(input, output, session) {
   #Create plot (girafe makes plot interactive/hoverable)
   
   output$Sampleplot <- renderggiraph({
-    p1<-girafe(code=print(Sampleplot()), width_svg = 8)
+    p1<-girafe(code=print(Sampleplot()), width_svg = 10)
     girafe_options(p1, opts_toolbar(saveaspng = FALSE), opts_selection(type="none"))
   })
   
   output$CPUEplot <- renderggiraph({
-    p2<-girafe(code=print(CPUEplot()), width_svg = 8)
+    p2<-girafe(code=print(CPUEplot()), width_svg = 10)
     girafe_options(p2, opts_toolbar(saveaspng = FALSE), opts_selection(type="none"), opts_tooltip(offx = -100, offy = 40))
   })
   

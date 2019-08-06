@@ -21,14 +21,14 @@ require(brms)
 ##Load data and rename columns
 
 ```{r}
-EMP_CB <- read_excel("1972-2018CBMatrix.xlsx", 
+EMP_CB <- read_excel("Data/1972-2018CBMatrix.xlsx", 
                           sheet = "CB CPUE Matrix 1972-2018", 
                           col_types = c("numeric","numeric", "numeric", "numeric", "date", 
                                         "text", "text", "text", "numeric", "text", "text",
                                         "text", rep("numeric", 62)))%>%
   rename(Volume=CBVolume)
 
-EMP_Pump <- read_excel("1972-2018Pump Matrix.xlsx", 
+EMP_Pump <- read_excel("Old data/1972-2018Pump Matrix.xlsx", 
                       sheet = "Pump CPUE Matrix 1972-2018", 
                       col_types = c("numeric","numeric", "numeric", "numeric", "date", 
                                     "text", "text", "text", "numeric", 
