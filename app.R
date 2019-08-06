@@ -17,7 +17,7 @@ require(readxl)
 #Requires Github developer version of dtplyr: devtools::install_github("tidyverse/dtplyr")
 require(dtplyr)
 require(lubridate)
-require(plotly)
+require(ggiraph)
 
 #Source Sam's function that gets the data from online
 source("Zoop synthesizer function.R")
@@ -96,8 +96,8 @@ ui <- fluidPage(
     # Display the plot
     column(9,
       tabsetPanel(type="tabs",
-                  tabPanel("Samples", plotlyOutput("Sampleplot")),
-                  tabPanel("CPUE", plotlyOutput("CPUEplot")),
+                  tabPanel("Samples", ggiraphOutput("Sampleplot")),
+                  tabPanel("CPUE", ggiraphOutput("CPUEplot")),
                   tabPanel("Map", plotOutput("Mapplot"), 
                                             uiOutput("select_Year"))
         
@@ -230,6 +230,10 @@ server <- function(input, output, session) {
     names(myColors) <- c("EMP", "FMWT", "TNS", "20mm", "FRP")
     fillScale <- scale_fill_manual(name = "Source", values = myColors)
     
+    str_model <- paste0("<tr><td>Year &nbsp</td><td>%s</td></tr>",
+                        "<tr><td>Source &nbsp</td><td>%s</td></tr>", 
+                        "<tr><td>N &nbsp</td><td>%s</td></tr>")
+    
     plotdata2()%>%
       mutate(Season=case_when(
         Month%in%c(1,2,3) ~ "Winter",
@@ -242,8 +246,12 @@ server <- function(input, output, session) {
       distinct()%>%
       group_by(Source, Year, Season)%>%
       summarise(N_samples=n())%>%
+      ungroup()%>%
+      mutate(tooltip=sprintf(str_model, Year, Source, N_samples),
+             ID=as.character(1:n()))%>%
+      mutate(tooltip=paste0( "<table>", tooltip, "</table>" ))%>%
       ggplot(aes(x=Year, y = N_samples, fill=Source)) +
-      geom_bar(stat="identity")+
+      geom_bar_interactive(stat="identity", aes(tooltip=tooltip, data_id = ID))+
       facet_wrap(~Season)+
       coord_cartesian(expand=0)+
       theme_bw()+
@@ -253,34 +261,44 @@ server <- function(input, output, session) {
   
   CPUEplot <- reactive({
     colorCount <- plotdata2()%>%pull(Taxlifestage)%>%unique()%>%length()
+    str_model <- paste0("<tr><td>Year &nbsp</td><td>%s</td></tr>",
+                        "<tr><td>Taxa &nbsp</td><td>%s</td></tr>", 
+                        "<tr><td>CPUE &nbsp</td><td>%s</td></tr>")
     if("Taxatype"%in%colnames(plotdata2())){
       plotdata2()%>%
         filter(Volume>1)%>% # *****Currently removing data with very low sample volumes, should change this later*****
         group_by(Taxlifestage, Year)%>%
         summarise(CPUE=mean(CPUE, na.rm = T))%>%
-        ggplot(aes(x=Year, y=CPUE, color=Taxlifestage))+
-        geom_line(size=1)+
-        geom_point(size=2)+
+        ungroup()%>%
+        mutate(tooltip=sprintf(str_model, Year, Taxlifestage, round(CPUE)),
+               ID=as.character(1:n()))%>%
+        mutate(tooltip=paste0( "<table>", tooltip, "</table>" ))%>%
+        ggplot(aes(x=Year, y=CPUE))+
+        geom_line(size=1, aes(color=Taxlifestage))+
+        geom_point_interactive(size=2, aes(color=Taxlifestage, tooltip=tooltip, data_id = ID))+
         coord_cartesian(expand=0)+
-        scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage")+
+        scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=1))+
         ylab("Average CPUE")+
         theme_bw()+
-        theme(panel.grid=element_blank(), text=element_text(size=14))
+        theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=10))
     }else{
       plotdata2()%>%
         filter(Volume>1)%>% # *****Currently removing data with very low sample volumes, should change this later*****
         group_by(Year,Phylum, Class, Order, Family, Genus, Species, Lifestage, Taxlifestage)%>%
         summarise(CPUE=mean(CPUE))%>%
         ungroup()%>%
+        mutate(tooltip=sprintf(str_model, Year, Taxlifestage, round(CPUE)),
+               ID=as.character(1:n()))%>%
+        mutate(tooltip=paste0( "<table>", tooltip, "</table>" ))%>%
         arrange(Phylum, Class, Order, Family, Genus, Species, Lifestage)%>%
         mutate(Taxlifestage=factor(Taxlifestage, unique(Taxlifestage)))%>%
-        ggplot(aes(x=Year, y=CPUE, fill=Taxlifestage))+
-        geom_bar(stat="identity", color="white", size=0.01)+
+        ggplot(aes(x=Year, y=CPUE))+
+        geom_bar_interactive(stat="identity", color="white", size=0.01, aes(fill=Taxlifestage, tooltip=tooltip, data_id = ID))+
         coord_cartesian(expand=0)+
-        scale_fill_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage")+
+        scale_fill_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=2))+
         ylab("Average CPUE")+
         theme_bw()+
-        theme(panel.grid=element_blank(), text=element_text(size=14))
+        theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=6), legend.key.size = unit(10, "points"))
     }
   })
   
@@ -295,14 +313,16 @@ server <- function(input, output, session) {
   })
   
   
-  #Create plot (Plotly makes plot interactive/hoverable)
+  #Create plot (girafe makes plot interactive/hoverable)
   
-  output$Sampleplot <- renderPlotly({
-    ggplotly(Sampleplot())%>%layout(margin=list(t=50))
+  output$Sampleplot <- renderggiraph({
+    p1<-girafe(code=print(Sampleplot()), width_svg = 8)
+    girafe_options(p1, opts_toolbar(saveaspng = FALSE), opts_selection(type="none"))
   })
   
-  output$CPUEplot <- renderPlotly({
-    ggplotly(CPUEplot())%>%layout(margin=list(t=50))
+  output$CPUEplot <- renderggiraph({
+    p2<-girafe(code=print(CPUEplot()), width_svg = 8)
+    girafe_options(p2, opts_toolbar(saveaspng = FALSE), opts_selection(type="none"), opts_tooltip(offx = -100, offy = 40))
   })
   
   output$Mapplot <- renderPlot({
