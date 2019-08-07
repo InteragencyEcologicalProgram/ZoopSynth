@@ -18,16 +18,10 @@ require(readxl)
 require(dtplyr)
 require(lubridate)
 require(ggiraph)
+require(leaflet)
 
 #Source Sam's function that gets the data from online
 source("Zoop synthesizer function.R")
-
-mapDelta<-st_read("Data/DeltaShapefile")
-pmap<-ggplot() + 
-  geom_sf(data=mapDelta, color = "gray87", fill = "gray87") + 
-  coord_sf()+
-  theme_bw()+
-  theme(panel.grid=element_blank(), text=element_text(size=14))
 
 #Settings for the "data crunching" message. 
 info_loading <- "Data crunching in progress..."
@@ -96,10 +90,11 @@ ui <- fluidPage(
     # Display the plot
     column(9,
       tabsetPanel(type="tabs",
+                  id = "Tab",
                   tabPanel("Samples", ggiraphOutput("Sampleplot")),
                   tabPanel("CPUE", ggiraphOutput("CPUEplot"),
                            sliderInput("Lowsal", "Low salinity zone", min=0, max=30, value=c(0.5,6), step=0.1)),
-                  tabPanel("Map", plotOutput("Mapplot"), 
+                  tabPanel("Map", leafletOutput("Mapplot", width = "100%", height = "100%"), 
                                             uiOutput("select_Year"))
         
       )#,
@@ -136,12 +131,6 @@ ui <- fluidPage(
 # Define server logic required to process data, draw plots, and dowload data
 server <- function(input, output, session) {
   
-  #observeEvent(c(input$Plottype, input$Taxlifestage), {
-  #  if(input$Plottype=="CPUE" & length(input$Taxlifestage)>20){
-  #    showNotification("We recommend you select fewer taxa for this plot (Make sure to click `Update taxa` after making your selection).", type="warning")
-  #  }
-  #})
-  
   #Using eventReactive so app only updates when "Run" button is clicked, letting you check all the boxes you want before running the app
   plotdata <- eventReactive(input$Run, {
     
@@ -170,7 +159,7 @@ server <- function(input, output, session) {
   
   mapdata <- reactive( {
     plotdata2()%>%
-      filter(Volume>1)%>%
+      filter(Volume>1 & !is.na(Latitude) & !is.na(Longitude))%>%
       lazy_dt()%>%
       group_by(Taxlifestage, Year, Latitude, Longitude)%>%
       summarise(CPUE=mean(CPUE))%>%
@@ -178,10 +167,19 @@ server <- function(input, output, session) {
       ungroup()
   })
   
-  maprange<- reactive( {
+  mapmax<- reactive( {
     mapdata()%>%
       pull(CPUE)%>%
-      range()
+      max()
+  })
+  
+  filteredmapdata<-reactive({
+    mapdata()%>%
+      filter(Year==input$Year)
+  })
+  
+  Specpal <- reactive({
+    colorFactor(brewer.pal(7, "Dark2"), mapdata()%>%pull(Taxlifestage))
   })
   
   #Update Taxlifestage chocies based on data for the user input choices
@@ -217,13 +215,13 @@ server <- function(input, output, session) {
     sliderInput("Year",
                 "Select year:",
                 min = min(choice_Year()),  max=max(choice_Year()), value =  min(choice_Year()), step=1, round=T, sep="", 
-                animate=animationOptions(interval=1500), width="100%")
+                animate=animationOptions(interval=1000), width="100%")
     
   })
   
   #Create output so app knows what type of data has actually been created. Used for the select taxa input
   output$Datatype<-reactive( {
-    ifelse("Taxatype"%in%colnames(plotdata2()), "Taxa", "Community")
+    ifelse("Taxatype"%in%colnames(plotdata()), "Taxa", "Community")
   })
   
   Sampleplot <- reactive({
@@ -321,16 +319,6 @@ server <- function(input, output, session) {
     }
   })
   
-  Mapplot <- reactive({
-    if("Taxatype"%in%colnames(plotdata2())){
-      colorCount <- plotdata2()%>%pull(Taxlifestage)%>%unique()%>%length()
-      pmap+
-        geom_point(data=filter(mapdata(), Year==input$Year), aes(y=Latitude, x=Longitude, size=CPUE, color=Taxlifestage), alpha=0.8)+
-        scale_color_manual(values=colorRampPalette(brewer.pal(7, "Dark2"))(colorCount), name="Taxa and life stage")+
-        scale_size_area(limits=maprange())
-    }
-  })
-  
   
   #Create plot (girafe makes plot interactive/hoverable)
   
@@ -344,9 +332,22 @@ server <- function(input, output, session) {
     girafe_options(p2, opts_toolbar(saveaspng = FALSE), opts_selection(type="none"), opts_tooltip(offx = -100, offy = 40))
   })
   
-  output$Mapplot <- renderPlot({
-    Mapplot()
+  output$Mapplot <- renderLeaflet({
+    pal <- Specpal()
+    leaflet(mapdata())%>%
+      addProviderTiles("Esri.WorldGrayCanvas")%>%
+      fitBounds(~min(Longitude, na.rm=T), ~min(Latitude, na.rm=T), ~max(Longitude, na.rm=T), ~max(Latitude, na.rm=T))%>%
+      addLegend("bottomright", pal = pal, values = ~Taxlifestage)
   })
+  
+  observeEvent(c(input$Update_taxa, input$Year), {
+    req(input$Tab=="Map")
+    pal <- Specpal()
+    leafletProxy("Mapplot", session, data = filteredmapdata(), deferUntilFlush=T)%>%
+      clearShapes() %>%
+      addCircles(radius = ~((CPUE)/mapmax())*10000, weight = 1, lng = ~Longitude, lat = ~Latitude,
+                 fillColor = ~pal(Taxlifestage), color="black", fillOpacity = 0.7, label = ~paste0(Taxlifestage, ": ", CPUE))
+  }, ignoreNULL = T)
   
   #Enable downloads
   

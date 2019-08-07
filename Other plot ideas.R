@@ -21,6 +21,18 @@ ggplot() +
   theme_bw()+
   theme(panel.grid=element_blank())
 
+mapDelta<-as(mapDelta, "Spatial")
+test2<-filter(sumtest, Year==2003 & Taxname%in%c("Pseudodiaptomus marinus", "Pseudodiaptomus forbesi"))%>%
+  mutate(Label=paste0(Taxname, ": ", round(CPUE)))
+
+Specpal <- colorFactor(brewer.pal(7, "Dark2"), test2$Taxname)
+
+leaflet(data=test2)%>%
+  addProviderTiles("Esri.WorldGrayCanvas")%>%
+  setMapWidgetStyle(list(background= "white"))%>%
+  addCircles(radius = ~CPUE, weight = 1,
+             fillColor = ~Specpal(Taxname), color=~Specpal(Taxname), fillOpacity = 0.7, label = ~Label)%>%addLegend("bottomright", pal = Specpal, values = ~Taxname)
+
 #Community: Goal is to produce a plot of community composition in key regions across the delta (regions are those Morgan made from EDSM to use in the water conditions report). Need to think more about 1) what type of graph to put over map and 2) how to do it.
 test<-Zooper()
 
