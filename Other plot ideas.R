@@ -3,6 +3,7 @@ require(rgdal)
 require(raster)
 require(tidyverse)
 require(dtplyr)
+require(leafpop)
 
 #Taxa data: Produce map of individual taxa across delta with abundance indicated by point size. Produce one map per year, should add slider for year so users can move through the years and watch the abundance shift/change
 test<-Zooper(Data="Taxa")
@@ -29,9 +30,10 @@ Specpal <- colorFactor(brewer.pal(7, "Dark2"), test2$Taxname)
 
 leaflet(data=test2)%>%
   addProviderTiles("Esri.WorldGrayCanvas")%>%
-  setMapWidgetStyle(list(background= "white"))%>%
   addCircles(radius = ~CPUE, weight = 1,
-             fillColor = ~Specpal(Taxname), color=~Specpal(Taxname), fillOpacity = 0.7, label = ~Label)%>%addLegend("bottomright", pal = Specpal, values = ~Taxname)
+             fillColor = ~Specpal(Taxname), color=~Specpal(Taxname), fillOpacity = 0.7, #label = ~as.character(round(CPUE)),
+             label = sapply(popupTable(test2%>%mutate(CPUE=round(CPUE)), c("Taxname", "CPUE"), row.numbers = F, feature.id = F), HTML))%>%
+  addLegend("bottomright", pal = Specpal, values = ~Taxname)
 
 #Community: Goal is to produce a plot of community composition in key regions across the delta (regions are those Morgan made from EDSM to use in the water conditions report). Need to think more about 1) what type of graph to put over map and 2) how to do it.
 test<-Zooper()

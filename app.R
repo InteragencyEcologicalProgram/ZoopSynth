@@ -8,7 +8,6 @@
 #
 #    http://shiny.rstudio.com/
 #
-require(sf)
 require(RColorBrewer)
 require(shiny)
 require(tidyverse)
@@ -19,6 +18,7 @@ require(dtplyr)
 require(lubridate)
 require(ggiraph)
 require(leaflet)
+require(mapview)
 
 #Source Sam's function that gets the data from online
 source("Zoop synthesizer function.R")
@@ -84,7 +84,8 @@ ui <- fluidPage(
       
       #Allow users to download data
       
-      downloadButton("download", "Download")
+      downloadButton("Downloaddata", "Download data"),
+      actionButton("Saveplot", "Download plot")
     ),
     
     # Display the plot
@@ -123,6 +124,8 @@ ui <- fluidPage(
   conditionalPanel(condition="$('html').hasClass('shiny-busy')",
                    tags$div(info_loading,id="loadmessage")),
   tags$style(type="text/css", ".recalculating {opacity: 1.0;}"),
+  
+  #Specify plot sizes
   tags$head(tags$style("#Sampleplot{height:80vh !important;}")),
   tags$head(tags$style("#CPUEplot{height:70vh !important;}")),
   tags$head(tags$style("#Mapplot{height:70vh !important;}"))
@@ -130,6 +133,21 @@ ui <- fluidPage(
 
 # Define server logic required to process data, draw plots, and dowload data
 server <- function(input, output, session) {
+  
+  #Add function for Modal dialog (popup window) to save plots
+  Modalsave<-function(){
+    modalDialog(
+      conditionalPanel(condition = "input.Tab == 'Samples' || input.Tab == 'CPUE'" , 
+                       radioButtons("Format1", "Plot format", choices=c("png", "jpeg", "tiff", "pdf", "eps", "ps"))),
+      conditionalPanel(condition = "input.Tab == 'Map'", 
+                       radioButtons("Format2", "Plot format", choices=c("png", "jpeg", "pdf"))),
+      conditionalPanel(condition = "input.Tab == 'Samples' || input.Tab == 'CPUE'" , 
+      numericInput("Plotwidth", "Plot width (in)", value=8, min=1, max=15, step = 1),
+      numericInput("Plotheight", "Plot height (in)", value=4, min=1, max=15, step = 1)),
+      footer = tagList(modalButton("Cancel"),
+                       downloadButton("Save", "Save"))
+    )
+  }
   
   #Using eventReactive so app only updates when "Run" button is clicked, letting you check all the boxes you want before running the app
   plotdata <- eventReactive(input$Run, {
@@ -148,7 +166,6 @@ server <- function(input, output, session) {
   
   #Filter data to selected taxa. Doing this plotdata in 2 steps makes it so 
   #Zooper function isn't re-run every time the user selects new taxa to plot
-  
   plotdata2 <- eventReactive(c(input$Run, input$Update_taxa), {
     if (length(input$Taxlifestage)>0 & input$Datatype=="Taxa"){
       filter(plotdata(), Taxlifestage%in%input$Taxlifestage)
@@ -157,6 +174,7 @@ server <- function(input, output, session) {
     }
   }, ignoreInit=T)
   
+  #Create data for map plot
   mapdata <- reactive( {
     plotdata2()%>%
       filter(Volume>1 & !is.na(Latitude) & !is.na(Longitude))%>%
@@ -167,23 +185,25 @@ server <- function(input, output, session) {
       ungroup()
   })
   
+  #Pull out maximum CPUE for map plot scale
   mapmax<- reactive( {
     mapdata()%>%
       pull(CPUE)%>%
       max()
   })
   
+  #Create map data filtered to year
   filteredmapdata<-reactive({
     mapdata()%>%
       filter(Year==input$Year)
   })
   
+  #Create palette for map plot
   Specpal <- reactive({
     colorFactor(brewer.pal(7, "Dark2"), mapdata()%>%pull(Taxlifestage))
   })
   
-  #Update Taxlifestage chocies based on data for the user input choices
-  
+  #Update Taxlifestage choices based on data for the user input choices
   output$select_Taxlifestage <- renderUI({
     
     choice_Taxlifestage <- reactive({
@@ -204,6 +224,7 @@ server <- function(input, output, session) {
     
   })
   
+  #Update year choices based on prior user input choices
   output$select_Year <- renderUI({
     
     choice_Year <- reactive({
@@ -223,6 +244,8 @@ server <- function(input, output, session) {
   output$Datatype<-reactive( {
     ifelse("Taxatype"%in%colnames(plotdata()), "Taxa", "Community")
   })
+  
+  #Make reactive functions for each plot type
   
   Sampleplot <- reactive({
     myColors <- RColorBrewer::brewer.pal(5,"Set2")
@@ -320,8 +343,7 @@ server <- function(input, output, session) {
   })
   
   
-  #Create plot (girafe makes plot interactive/hoverable)
-  
+  #Create plot outputs (girafe makes plot interactive/hoverable)
   output$Sampleplot <- renderggiraph({
     p1<-girafe(code=print(Sampleplot()), width_svg = 10)
     girafe_options(p1, opts_toolbar(saveaspng = FALSE), opts_selection(type="none"))
@@ -337,21 +359,62 @@ server <- function(input, output, session) {
     leaflet(mapdata())%>%
       addProviderTiles("Esri.WorldGrayCanvas")%>%
       fitBounds(~min(Longitude, na.rm=T), ~min(Latitude, na.rm=T), ~max(Longitude, na.rm=T), ~max(Latitude, na.rm=T))%>%
-      addLegend("bottomright", pal = pal, values = ~Taxlifestage)
+      addLegend("bottomright", pal = pal, values = ~Taxlifestage)%>%
+      addLabelOnlyMarkers(lng = ~c(-122.222+0.006325176, -122.222+0.0253007, -122.222+0.05692658), lat = ~c(38.025, 38, 37.935),
+                          label=~as.character(round(c(((((((sqrt(5000))/3))^2)/5000)*sqrt(mapmax()))^2, ((((((sqrt(5000))/3)*2)^2)/5000)*sqrt(mapmax()))^2, mapmax()))),
+                          labelOptions = list(permanent=TRUE, textOnly=T, direction="right"), options = list(title="CPUE"))
   })
   
+  #leafletProxy lets us change layers in the map plot without re-rendering the whole thing
   observeEvent(c(input$Update_taxa, input$Year), {
     req(input$Tab=="Map")
     pal <- Specpal()
-    leafletProxy("Mapplot", session, data = filteredmapdata(), deferUntilFlush=T)%>%
+    map<-leafletProxy("Mapplot", session, data = filteredmapdata(), deferUntilFlush=T)%>%
       clearShapes() %>%
-      addCircles(radius = ~((CPUE)/mapmax())*10000, weight = 1, lng = ~Longitude, lat = ~Latitude,
-                 fillColor = ~pal(Taxlifestage), color="black", fillOpacity = 0.7, label = ~paste0(Taxlifestage, ": ", CPUE))
+      addCircles(radius = ~(sqrt(CPUE)/sqrt(mapmax()))*5000, weight = 1, lng = ~Longitude, lat = ~Latitude,
+                 fillColor = ~pal(Taxlifestage), color="black", fillOpacity = 0.7, label = ~paste0(Taxlifestage, ": ", round(CPUE)))%>%
+      addCircles(radius = ~c(((sqrt(5000))/3)^2, (((sqrt(5000))/3)*2)^2, 5000), weight = 1, lng = ~c(-122.222, -122.222, -122.222), lat = ~c(38.025, 38, 37.935), fillColor = "blue", fillOpacity = 0.5)
   }, ignoreNULL = T)
   
-  #Enable downloads
   
-  output$download = downloadHandler(
+  #Show modal dialog to save plot when Saveplot button is clicked
+  observeEvent(input$Saveplot, {
+    showModal(Modalsave())
+  })
+  
+  #Download handler for plot saving
+  output$Save <- downloadHandler(
+      filename =function() {
+        if (input$Tab=="Map"){
+        paste0(input$Datatype, input$Tab, Sys.Date(), ".", input$Format2)
+        } else {
+          paste0(input$Datatype, input$Tab, Sys.Date(), ".", input$Format1)
+          }
+      },
+      content = function(file) {
+        if(input$Tab=="Samples"){
+          ggsave(filename=file, plot=Sampleplot(), device=input$Format, width=input$Plotwidth, height=input$Plotheight, units="in")
+        } else {
+          if(input$Tab=="CPUE"){
+            ggsave(filename=file, plot=CPUEplot(), device=input$Format, width=input$Plotwidth, height=input$Plotheight, units="in")
+          } else {
+            pal <- Specpal()
+            map<-leaflet(mapdata())%>%
+              addProviderTiles("Esri.WorldGrayCanvas")%>%
+              fitBounds(~min(Longitude, na.rm=T), ~min(Latitude, na.rm=T), ~max(Longitude, na.rm=T), ~max(Latitude, na.rm=T))%>%
+              addLegend("bottomright", pal = pal, values = ~Taxlifestage)%>%
+              addCircles(data=filteredmapdata(), radius = ~((CPUE)/mapmax())*10000, weight = 1, lng = ~Longitude, lat = ~Latitude,
+                         fillColor = ~pal(Taxlifestage), color="black", fillOpacity = 0.7, label = ~paste0(Taxlifestage, ": ", round(CPUE)))
+            mapshot(map, file=file)
+          }
+        }
+        removeModal()
+      }
+    )
+  
+  #Download handler for data downloading
+  
+  output$Downloaddata <- downloadHandler(
     filename = function() {
       paste("data-", Sys.Date(), ".csv", sep="")
     },
