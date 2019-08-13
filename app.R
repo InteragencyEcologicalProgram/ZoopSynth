@@ -19,6 +19,7 @@ require(lubridate)
 require(ggiraph)
 require(leaflet)
 require(mapview)
+require(shinyWidgets)
 
 #Source Sam's function that gets the data from online
 source("Zoop synthesizer function.R")
@@ -39,23 +40,22 @@ ui <- fluidPage(
   # check boxes where you choose data you want
   fluidRow(
     column(3,
-      radioButtons("Datatype", "Data Type", choices = c("Taxa", "Community"), selected = "Community",
-                   inline = TRUE),
-      checkboxGroupInput("Sources",
+      radioGroupButtons("Datatype", "Data Type", choices = c("Taxa", "Community"), selected = "Community", individual = TRUE, checkIcon = list( yes = tags$i(class = "fa fa-circle", style = "color: steelblue"), no = tags$i(class = "fa fa-circle-o", style = "color: steelblue"))),
+      checkboxGroupButtons("Sources",
                          "Sources:",
-                         choices = c("Environmental monitoring program" = "EMP", "Fish restoration program" = "FRP", "Fall midwater trawl" = "FMWT", "Summer townet survey" = "TNS", "20mm survey" = "20mm")),
+                         choices = c("Environmental monitoring program" = "EMP", "Fish restoration program" = "FRP", "Fall midwater trawl" = "FMWT", "Summer townet survey" = "TNS", "20mm survey" = "20mm"), individual = TRUE, size = "sm", checkIcon = list( yes = tags$i(class = "fa fa-check-square", style = "color: steelblue"), no = tags$i(class = "fa fa-square-o", style = "color: steelblue"))),
       
       #Allow users to select which filters they would like to use, then those filter options will appear.
       
-      checkboxGroupInput("Filters",
+      checkboxGroupButtons("Filters",
                          "Filters:",
-                         choices = c("Dates", "Months", "Surface_salinity", "Latitude", "Longitude")),
+                         choices = c("Dates", "Months", "Surface salinity", "Latitude", "Longitude"), direction="vertical", checkIcon = list( yes = tags$i(class = "fa fa-check-square", style = "color: steelblue"), no = tags$i(class = "fa fa-square-o", style = "color: steelblue")), individual = TRUE),
       conditionalPanel(condition = "input.Filters.includes('Dates')",
                        dateRangeInput("Daterange", label = "Date range", 
                                       start = "1972-01-01", end = "2018-12-31", startview = "year")),
       conditionalPanel(condition = "input.Filters.includes('Months')",
-                       selectInput("Months", "Months:", choices=c("January" = 1, "February" = 2, "March" = 3, "April" = 4, "May" = 5, "June" = 6, "July" = 7, "August" = 8, "September" = 9, "October" = 10, "November" = 11, "December" = 12), selected = 1, multiple = T)),
-      conditionalPanel(condition = "input.Filters.includes('Surface_salinity')",
+                       pickerInput("Months", "Months:", choices=c("January" = 1, "February" = 2, "March" = 3, "April" = 4, "May" = 5, "June" = 6, "July" = 7, "August" = 8, "September" = 9, "October" = 10, "November" = 11, "December" = 12), selected = 1, multiple = T, options=list(`actions-box`=TRUE))),
+      conditionalPanel(condition = "input.Filters.includes('Surface salinity')",
                        sliderInput("SalSurfrange",
                                    "Surface salinity:",
                                    min = 0, max = 32, value = c(0,7), step=0.1)),
@@ -69,7 +69,7 @@ ui <- fluidPage(
                                    min = -125, max = -119, value = c(-125, -119), step=0.1)),
       #radioButtons("Plottype", "Plot Type", choices = c("Samples", "CPUE", "Map"), selected = "Samples",
       #             inline = TRUE),
-      actionButton("Run", "Run"),
+      actionBttn("Run", "Run", style="bordered", icon = icon("play"), color="success", size="sm"),
       
       #Allows users to select taxa, but only in Taxa mode, and updates Taxa choices based on 
       #the data selections the user has made (after hitting Run). This is conditional on an 
@@ -80,8 +80,8 @@ ui <- fluidPage(
       conditionalPanel(condition = "output.Datatype == 'Taxa'", 
                        uiOutput("select_Taxlifestage")), 
       conditionalPanel(condition = "output.Datatype == 'Taxa'", 
-                       actionButton("Update_taxa", "Update taxa")),
-      
+                       actionBttn("Update_taxa", "Update taxa", style="bordered", icon = icon("sync"), color="primary"), size="sm"),
+      br(), br(),
       #Allow users to download data
       
       downloadButton("Downloaddata", "Download data"),
@@ -158,7 +158,7 @@ server <- function(input, output, session) {
            Sources = input$Sources, 
            Daterange = ifelse(rep("Dates"%in%input$Filters, 2), input$Daterange, c(NA, NA)),
            Months = ifelse(rep("Months"%in%input$Filters, length(input$Months)), as.integer(input$Months), rep(NA, length(input$Months))),  
-           SalSurfrange = ifelse(rep("Surface_salinity"%in%input$Filters, 2), input$SalSurfrange, c(NA, NA)),
+           SalSurfrange = ifelse(rep("Surface salinity"%in%input$Filters, 2), input$SalSurfrange, c(NA, NA)),
            Latrange = ifelse(rep("Latitude"%in%input$Filters, 2), input$Latrange, c(NA, NA)), 
            Longrange = ifelse(rep("Longitude"%in%input$Filters, 2), input$Longrange, c(NA, NA)), 
            Shiny=T)
@@ -220,7 +220,7 @@ server <- function(input, output, session) {
       
     })
     
-    selectInput('Taxlifestage', 'Select Taxa (Use Ctr / Cmd / shift to select multiple)', choices =choice_Taxlifestage(), multiple =T, selected=choice_Taxlifestage(), selectize = F, size=10) 
+    pickerInput('Taxlifestage', 'Select Taxa (Use Ctr / Cmd / shift to select multiple)', choices =choice_Taxlifestage(), multiple =T, selected=choice_Taxlifestage(), options=list(`live-search`=TRUE, `actions-box`=TRUE, size=10, title = "Select Taxa")) 
     
   })
   
@@ -423,7 +423,7 @@ server <- function(input, output, session) {
                      Sources = input$Sources, 
                      Daterange = ifelse(rep("Dates"%in%input$Filters, 2), input$Daterange, c(NA, NA)),
                      Months = ifelse(rep("Months"%in%input$Filters, length(input$Months)), as.integer(input$Months), rep(NA, length(input$Months))),  
-                     SalSurfrange = ifelse(rep("Surface_salinity"%in%input$Filters, 2), input$SalSurfrange, c(NA, NA)),
+                     SalSurfrange = ifelse(rep("Surface salinity"%in%input$Filters, 2), input$SalSurfrange, c(NA, NA)),
                      Latrange = ifelse(rep("Latitude"%in%input$Filters, 2), input$Latrange, c(NA, NA)), 
                      Longrange = ifelse(rep("Longitude"%in%input$Filters, 2), input$Longrange, c(NA, NA)), 
                      Shiny=T)
