@@ -1,4 +1,4 @@
-Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community", Daterange=c(NA, NA), Months=NA, Years=NA, SalBottrange=NA, SalSurfrange=NA, Temprange=NA, Latrange=NA, Longrange=NA, Shiny=F, ReLoadData=F, ReDownloadData=F){
+Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community", Daterange=c(NA, NA), Months=NA, Years=NA, SalBottrange=NA, SalSurfrange=NA, Temprange=NA, Latrange=NA, Longrange=NA, Shiny=F, ReLoadData=F, ReDownloadData=F, zoop=NA){
   
   
   # Documentation -----------------------------------------------------------
@@ -106,8 +106,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   
   # Read in data if not already loaded
   
-  if(!exists("zoop")){
-  
+  if(!Shiny){
     zoop<-readRDS("Data/zoopforzooper.Rds")
     
   }

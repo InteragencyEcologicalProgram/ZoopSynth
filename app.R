@@ -28,6 +28,7 @@ source("Zoop synthesizer function.R")
 info_loading <- "Data crunching in progress..."
 progress_color <- "#CD2626"
 progress_background <- "#D3D3D3"
+zoop<-readRDS("Data/zoopforzooper.Rds")
 
 # Define UI for application that draws graphs and allows you to download data
 
@@ -41,15 +42,15 @@ ui <- fluidPage(
   fluidRow(
     column(3,
       radioGroupButtons("Datatype", "Data Type", choices = c("Taxa", "Community"), selected = "Community", individual = TRUE, checkIcon = list( yes = tags$i(class = "fa fa-circle", style = "color: steelblue"), no = tags$i(class = "fa fa-circle-o", style = "color: steelblue"))),
-      checkboxGroupButtons("Sources",
+      awesomeCheckboxGroup("Sources",
                          "Sources:",
-                         choices = c("Environmental monitoring program" = "EMP", "Fish restoration program" = "FRP", "Fall midwater trawl" = "FMWT", "Summer townet survey" = "TNS", "20mm survey" = "20mm"), individual = TRUE, size = "sm", checkIcon = list( yes = tags$i(class = "fa fa-check-square", style = "color: steelblue"), no = tags$i(class = "fa fa-square-o", style = "color: steelblue"))),
+                         choices = c("Environmental monitoring program" = "EMP", "Fish restoration program" = "FRP", "Fall midwater trawl" = "FMWT", "Summer townet survey" = "TNS", "20mm survey" = "20mm")),
       
       #Allow users to select which filters they would like to use, then those filter options will appear.
       
-      checkboxGroupButtons("Filters",
+      awesomeCheckboxGroup("Filters",
                          "Filters:",
-                         choices = c("Dates", "Months", "Surface salinity", "Latitude", "Longitude"), direction="vertical", checkIcon = list( yes = tags$i(class = "fa fa-check-square", style = "color: steelblue"), no = tags$i(class = "fa fa-square-o", style = "color: steelblue")), individual = TRUE),
+                         choices = c("Dates", "Months", "Surface salinity", "Latitude", "Longitude")),
       conditionalPanel(condition = "input.Filters.includes('Dates')",
                        dateRangeInput("Daterange", label = "Date range", 
                                       start = "1972-01-01", end = "2018-12-31", startview = "year")),
@@ -69,7 +70,7 @@ ui <- fluidPage(
                                    min = -125, max = -119, value = c(-125, -119), step=0.1)),
       #radioButtons("Plottype", "Plot Type", choices = c("Samples", "CPUE", "Map"), selected = "Samples",
       #             inline = TRUE),
-      actionBttn("Run", "Run", style="bordered", icon = icon("play"), color="success", size="sm"),
+      actionBttn("Run", "Run", style="bordered", icon = icon("play"), color="danger", size="sm"),
       
       #Allows users to select taxa, but only in Taxa mode, and updates Taxa choices based on 
       #the data selections the user has made (after hitting Run). This is conditional on an 
@@ -84,8 +85,9 @@ ui <- fluidPage(
       br(), br(),
       #Allow users to download data
       
-      downloadButton("Downloaddata", "Download data"),
-      actionButton("Saveplot", "Download plot")
+      downloadBttn("Downloaddata", "Download data", style="bordered", color = "primary", size="sm"),
+      br(), br(),
+      actionBttn("Saveplot", "Download plot", icon = icon("chart-bar"), size="sm", style = "bordered", color="royal")
     ),
     
     # Display the plot
@@ -93,10 +95,10 @@ ui <- fluidPage(
       tabsetPanel(type="tabs",
                   id = "Tab",
                   tabPanel("Samples", ggiraphOutput("Sampleplot")),
-                  tabPanel("CPUE", ggiraphOutput("CPUEplot"),
-                           sliderInput("Lowsal", "Low salinity zone", min=0, max=30, value=c(0.5,6), step=0.1)),
-                  tabPanel("Map", leafletOutput("Mapplot", width = "100%", height = "100%"), 
-                                            uiOutput("select_Year"))
+                  tabPanel("CPUE", sliderInput("Lowsal", "Low salinity zone", min=0, max=30, value=c(0.5,6), step=0.1, width="100%"), 
+                           ggiraphOutput("CPUEplot")),
+                  tabPanel("Map", uiOutput("select_Year"), 
+                           leafletOutput("Mapplot", width = "100%", height = "100%"))
         
       )#,
     #position = "left",
@@ -125,10 +127,13 @@ ui <- fluidPage(
                    tags$div(info_loading,id="loadmessage")),
   tags$style(type="text/css", ".recalculating {opacity: 1.0;}"),
   
+  #tags$style(type="text/css", "#Downloaddata {color: white}"),
+  tags$style(type="text/css", "#Save {color: white}"),
+  
   #Specify plot sizes
-  tags$head(tags$style("#Sampleplot{height:80vh !important;}")),
-  tags$head(tags$style("#CPUEplot{height:70vh !important;}")),
-  tags$head(tags$style("#Mapplot{height:70vh !important;}"))
+  tags$head(tags$style("#Sampleplot{height:100vh !important;}")),
+  tags$head(tags$style("#CPUEplot{height:80vh !important;}")),
+  tags$head(tags$style("#Mapplot{height:80vh !important;}"))
 )
 
 # Define server logic required to process data, draw plots, and dowload data
@@ -138,14 +143,14 @@ server <- function(input, output, session) {
   Modalsave<-function(){
     modalDialog(
       conditionalPanel(condition = "input.Tab == 'Samples' || input.Tab == 'CPUE'" , 
-                       radioButtons("Format1", "Plot format", choices=c("png", "jpeg", "tiff", "pdf", "eps", "ps"))),
+                       awesomeRadio("Format1", "Plot format", choices=c("png", "jpeg", "tiff", "pdf", "eps", "ps"))),
       conditionalPanel(condition = "input.Tab == 'Map'", 
-                       radioButtons("Format2", "Plot format", choices=c("png", "jpeg", "pdf"))),
+                       awesomeRadio("Format2", "Plot format", choices=c("png", "jpeg", "pdf"))),
       conditionalPanel(condition = "input.Tab == 'Samples' || input.Tab == 'CPUE'" , 
       numericInput("Plotwidth", "Plot width (in)", value=8, min=1, max=15, step = 1),
       numericInput("Plotheight", "Plot height (in)", value=4, min=1, max=15, step = 1)),
       footer = tagList(modalButton("Cancel"),
-                       downloadButton("Save", "Save"))
+                       downloadBttn("Save", "Save", style="simple", color = "primary", size="sm"))
     )
   }
   
@@ -161,7 +166,7 @@ server <- function(input, output, session) {
            SalSurfrange = ifelse(rep("Surface salinity"%in%input$Filters, 2), input$SalSurfrange, c(NA, NA)),
            Latrange = ifelse(rep("Latitude"%in%input$Filters, 2), input$Latrange, c(NA, NA)), 
            Longrange = ifelse(rep("Longitude"%in%input$Filters, 2), input$Longrange, c(NA, NA)), 
-           Shiny=T)
+           Shiny=T, zoop=zoop)
   })
   
   #Filter data to selected taxa. Doing this plotdata in 2 steps makes it so 
