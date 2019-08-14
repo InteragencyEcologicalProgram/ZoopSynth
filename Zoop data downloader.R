@@ -262,7 +262,8 @@ Zoopdownloader <- function(path="Data/zoopforzooper.Rds", ReDownloadData=F){
              Year=year(Date), #add variables for year and month
              Month=month(Date))%>%
       left_join(stations, by=c("Source", "Station"))%>% #Add lat and long
-      select(-Region, -CondBott, -CondSurf) #Remove some extraneous variables to save memory
+      select(-Region, -CondBott, -CondSurf)%>% #Remove some extraneous variables to save memory
+      mutate(Tide=recode(Tide, "1"="High slack", "2"="Ebb", "3"="Low slack", "4"="Flood", "1=high slack"="High slack", "2=ebb"="Ebb", "3=low slack"="Low slack", "4=flood"="Flood")) #Rename tide codes to be consistent
   
     
     saveRDS(zoop, file=path)
