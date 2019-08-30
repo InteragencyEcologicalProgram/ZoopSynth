@@ -44,7 +44,7 @@ ui <- fluidPage(
       radioGroupButtons("Datatype", "Data Type:", choices = c("Taxa", "Community"), selected = "Community", individual = TRUE, checkIcon = list( yes = tags$i(class = "fa fa-circle", style = "color: steelblue"), no = tags$i(class = "fa fa-circle-o", style = "color: steelblue"))),
       awesomeCheckboxGroup("Sources",
                          "Sources:",
-                         choices = c("Environmental monitoring program" = "EMP", "Fish restoration program" = "FRP", "Fall midwater trawl" = "FMWT", "Summer townet survey" = "TNS", "20mm survey" = "20mm")),
+                         choices = c("Environmental Monitoring Program (EMP)" = "EMP", "Fish Restoration Program (FRP)" = "FRP", "Fall Midwater Trawl (FMWT)" = "FMWT", "Summer Townet Survey (TNS)" = "TNS", "20mm Survey (20mm)" = "20mm")),
       
       #Allow users to select which filters they would like to use, then those filter options will appear.
       
@@ -95,7 +95,15 @@ ui <- fluidPage(
       tabsetPanel(type="tabs",
                   id = "Tab",
                   tabPanel("Samples", ggiraphOutput("Sampleplot")),
-                  tabPanel("CPUE", sliderInput("Lowsal", "Low salinity zone", min=0, max=30, value=c(0.5,6), step=0.1, width="100%"), 
+                  tabPanel("CPUE", br(),
+                           splitLayout(materialSwitch(
+                             inputId = "Salzones",
+                             label = "Salinity zones?", 
+                             value = TRUE, inline=T,
+                             status = "primary"
+                           ), 
+                           conditionalPanel(condition = "input.Salzones", 
+                                            sliderInput("Lowsal", "Low salinity zone", min=0, max=30, value=c(0.5,6), step=0.1, width="100%")), cellWidths = c("25%", "75%"), cellArgs = list(style = "padding: 2px")), 
                            ggiraphOutput("CPUEplot")),
                   tabPanel("Map", uiOutput("select_Year"), 
                            leafletOutput("Mapplot", width = "100%", height = "100%"))
@@ -262,16 +270,17 @@ server <- function(input, output, session) {
                         "<tr><td>N &nbsp</td><td>%s</td></tr>")
     
     plotdata2()%>%
-      mutate(Season=case_when(
-        Month%in%c(1,2,3) ~ "Winter",
-        Month%in%c(4,5,6) ~ "Spring",
-        Month%in%c(7,8,9) ~ "Summer",
-        Month%in%c(10,11,12) ~ "Fall"
-      ))%>%
-      mutate(Season=factor(Season, levels=c("Fall", "Winter", "Spring", "Summer")))%>%
-      select(Source, Year, Season, SampleID)%>%
+      #mutate(Season=case_when(
+      #  Month%in%c(1,2,3) ~ "Winter",
+      #  Month%in%c(4,5,6) ~ "Spring",
+      #  Month%in%c(7,8,9) ~ "Summer",
+      #  Month%in%c(10,11,12) ~ "Fall"
+      #))%>%
+      #mutate(Season=factor(Season, levels=c("Fall", "Winter", "Spring", "Summer")))%>%
+      mutate(Month=recode_factor(Month, "1"="January","2"="February", "3"="March", "4"="April", "5"="May", "6"="June", "7"="July", "8"="August", "9"="September", "10"="October", "11"="November", "12"="December"))%>%
+      select(Source, Year, Month, SampleID)%>%
       distinct()%>%
-      group_by(Source, Year, Season)%>%
+      group_by(Source, Year, Month)%>%
       summarise(N_samples=n())%>%
       ungroup()%>%
       mutate(tooltip=sprintf(str_model, Year, Source, N_samples),
@@ -279,8 +288,9 @@ server <- function(input, output, session) {
       mutate(tooltip=paste0( "<table>", tooltip, "</table>" ))%>%
       ggplot(aes(x=Year, y = N_samples, fill=Source)) +
       geom_bar_interactive(stat="identity", aes(tooltip=tooltip, data_id = ID))+
-      facet_wrap(~Season)+
+      facet_wrap(~Month)+
       coord_cartesian(expand=0)+
+      scale_x_continuous(breaks = function(x) unique(floor(pretty(seq(min(x), max(x)), n=4))), expand=c(0,0))+
       theme_bw()+
       theme(panel.grid=element_blank(), strip.background=element_blank(), text=element_text(size=14), panel.spacing.x = unit(15, "points"))+
       fillScale
@@ -289,46 +299,81 @@ server <- function(input, output, session) {
   CPUEplot <- reactive({
     colorCount <- plotdata2()%>%pull(Taxlifestage)%>%unique()%>%length()
     if("Taxatype"%in%colnames(plotdata2())){
-      str_model <- paste0("<tr><td>Year &nbsp</td><td>%s</td></tr>",
-                          "<tr><td>Taxa &nbsp</td><td>%s</td></tr>",
-                          "<tr><td>Salinity &nbsp</td><td>%s</td></tr>", 
-                          "<tr><td>CPUE &nbsp</td><td>%s</td></tr>")
+      if(input$Salzones){
+        str_model <- paste0("<tr><td>Year &nbsp</td><td>%s</td></tr>",
+                            "<tr><td>Taxa &nbsp</td><td>%s</td></tr>",
+                            "<tr><td>Salinity &nbsp</td><td>%s</td></tr>", 
+                            "<tr><td>CPUE &nbsp</td><td>%s</td></tr>")
+      } else{
+        str_model <- paste0("<tr><td>Year &nbsp</td><td>%s</td></tr>",
+                            "<tr><td>Taxa &nbsp</td><td>%s</td></tr>",
+                            "<tr><td>CPUE &nbsp</td><td>%s</td></tr>")
+      }
+      
       plotdata2()%>%
-        filter(Volume>1 & !is.na(SalSurf))%>% # *****Currently removing data with very low sample volumes and NA salinity, should change this later*****
-        mutate(Salinity_zone=case_when(
-          SalSurf < min(input$Lowsal) ~ "Freshwater",
-          SalSurf > min(input$Lowsal) & SalSurf < max(input$Lowsal) ~ "Low salinity zone",
-          SalSurf > max(input$Lowsal) ~ "High salinity zone"
-        ))%>% 
-        mutate(Salinity_zone=factor(Salinity_zone, levels=c("Freshwater", "Low salinity zone", "High salinity zone")))%>%
-        group_by(Taxlifestage, Year, Salinity_zone)%>%
+        filter(Volume>1)%>% # *****Currently removing data with very low sample volumes, should change this later*****
+        {if(input$Salzones){
+          filter(., !is.na(SalSurf))%>% 
+            mutate(Salinity_zone=case_when(
+              SalSurf < min(input$Lowsal) ~ "Freshwater",
+              SalSurf > min(input$Lowsal) & SalSurf < max(input$Lowsal) ~ "Low salinity zone",
+              SalSurf > max(input$Lowsal) ~ "High salinity zone"
+            ))%>% 
+            mutate(Salinity_zone=factor(Salinity_zone, levels=c("Freshwater", "Low salinity zone", "High salinity zone")))%>%
+            group_by(Taxlifestage, Year, Salinity_zone)
+        } else{
+          group_by(., Taxlifestage, Year)
+        }}%>%
         summarise(CPUE=mean(CPUE, na.rm = T))%>%
         ungroup()%>%
-        mutate(tooltip=sprintf(str_model, Year, Taxlifestage, Salinity_zone, round(CPUE)),
-               ID=as.character(1:n()))%>%
+        {if(input$Salzones){
+          mutate(., tooltip=sprintf(str_model, Year, Taxlifestage, Salinity_zone, round(CPUE)),
+                 ID=as.character(1:n()))
+        } else{
+          mutate(., tooltip=sprintf(str_model, Year, Taxlifestage, round(CPUE)),
+                 ID=as.character(1:n()))
+        }}%>%
         mutate(tooltip=paste0( "<table>", tooltip, "</table>" ))%>%
-        ggplot(aes(x=Year, y=CPUE))+
-        geom_line(size=1, aes(color=Taxlifestage, linetype=Salinity_zone))+
-        geom_point_interactive(size=2, aes(color=Taxlifestage, shape=Salinity_zone, tooltip=tooltip, data_id = ID))+
-        coord_cartesian(expand=0)+
-        scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=1))+
-        scale_linetype_manual(values=c(3,2,1))+
-        ylab("Average CPUE")+
-        theme_bw()+
-        theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=10))
+        {if(input$Salzones){
+          ggplot(., aes(x=Year, y=CPUE))+
+            geom_line(size=1, aes(color=Taxlifestage, linetype=Salinity_zone))+
+            geom_point_interactive(size=2, aes(color=Taxlifestage, shape=Salinity_zone, tooltip=tooltip, data_id = ID))+
+            scale_linetype_manual(values=c(3,2,1))+
+            coord_cartesian(expand=0)+
+            scale_x_continuous(breaks = function(x) unique(floor(pretty(seq(min(x), max(x)), n=4))), expand=c(0,0))+
+            scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=1))+
+            ylab(bquote("Average CPUE (Catch/"*m^3*")"))+
+            theme_bw()+
+            theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=10))
+        } else{
+          ggplot(., aes(x=Year, y=CPUE))+
+            geom_line(size=1, aes(color=Taxlifestage))+
+            geom_point_interactive(size=2, aes(color=Taxlifestage, tooltip=tooltip, data_id = ID))+
+            coord_cartesian(expand=0)+
+            scale_x_continuous(breaks = function(x) unique(floor(pretty(seq(min(x), max(x)), n=4))), expand=c(0,0))+
+            scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=1))+
+            ylab(bquote("Average CPUE (Catch/"*m^3*")"))+
+            theme_bw()+
+            theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=10))
+        }}
     }else{
       str_model <- paste0("<tr><td>Year &nbsp</td><td>%s</td></tr>",
                           "<tr><td>Taxa &nbsp</td><td>%s</td></tr>",
                           "<tr><td>CPUE &nbsp</td><td>%s</td></tr>")
       plotdata2()%>%
-        filter(Volume>1 & !is.na(SalSurf))%>% # *****Currently removing data with very low sample volumes and NA salinity, should change this later*****
+        filter(Volume>1)%>%# *****Currently removing data with very low sample volumes, should change this later*****
+        {if(input$Salzones){
+          filter(., !is.na(SalSurf))%>% 
         mutate(Salinity_zone=case_when(
           SalSurf < min(input$Lowsal) ~ "Freshwater",
           SalSurf > min(input$Lowsal) & SalSurf < max(input$Lowsal) ~ "Low salinity zone",
           SalSurf > max(input$Lowsal) ~ "High salinity zone"
         ))%>%
         mutate(Salinity_zone=factor(Salinity_zone, levels=c("Freshwater", "Low salinity zone", "High salinity zone")))%>%
-        group_by(Year,Phylum, Class, Order, Family, Genus, Species, Lifestage, Taxlifestage, Salinity_zone)%>%
+        group_by(Year,Phylum, Class, Order, Family, Genus, Species, Lifestage, Taxlifestage, Salinity_zone)
+        } else{
+          group_by(., Year,Phylum, Class, Order, Family, Genus, Species, Lifestage, Taxlifestage)
+        }}%>%
         summarise(CPUE=mean(CPUE))%>%
         ungroup()%>%
         mutate(tooltip=sprintf(str_model, Year, Taxlifestage, round(CPUE)),
@@ -339,9 +384,12 @@ server <- function(input, output, session) {
         ggplot(aes(x=Year, y=CPUE))+
         geom_bar_interactive(stat="identity", color="white", size=0.01, aes(fill=Taxlifestage, tooltip=tooltip, data_id = ID))+
         coord_cartesian(expand=0)+
-        facet_wrap(~Salinity_zone, nrow=1)+
+        scale_x_continuous(breaks = function(x) unique(floor(pretty(seq(min(x), max(x)), n=4))), expand=c(0,0))+
+        {if(input$Salzones){
+          facet_wrap(~Salinity_zone, nrow=1)
+        }}+
         scale_fill_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=2))+
-        ylab("Average CPUE")+
+        ylab(bquote("Average CPUE (Catch/"*m^3*")"))+
         theme_bw()+
         theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=6), legend.key.size = unit(10, "points"), strip.background=element_blank())
     }
@@ -378,7 +426,7 @@ server <- function(input, output, session) {
       clearShapes() %>%
       addCircles(radius = ~(sqrt(CPUE)/sqrt(mapmax()))*5000, weight = 1, lng = ~Longitude, lat = ~Latitude,
                  fillColor = ~pal(Taxlifestage), color="black", fillOpacity = 0.7, label = ~paste0(Taxlifestage, ": ", round(CPUE)))%>%
-      addCircles(radius = ~c(((sqrt(5000))/3)^2, (((sqrt(5000))/3)*2)^2, 5000), weight = 1, lng = ~c(-122.222, -122.222, -122.222), lat = ~c(38.025, 38, 37.935), fillColor = "blue", fillOpacity = 0.5)
+      addCircles(radius = ~c(((sqrt(5000))/3)^2, (((sqrt(5000))/3)*2)^2, 5000), weight = 1, lng = ~c(-122.222, -122.222, -122.222), lat = ~c(38.025, 38, 37.935), color="black", fillColor = "white", fillOpacity = 100)
   }, ignoreNULL = T)
   
   
