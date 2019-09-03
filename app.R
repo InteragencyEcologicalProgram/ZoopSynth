@@ -19,7 +19,7 @@ require(lubridate)
 require(ggiraph)
 require(leaflet)
 require(mapview)
-require(shinyWidgets)
+require(shinyWidgets) 
 
 #Source Sam's function that gets the data from online
 source("Zoop synthesizer function.R")
@@ -28,7 +28,6 @@ source("Zoop synthesizer function.R")
 info_loading <- "Data crunching in progress..."
 progress_color <- "#CD2626"
 progress_background <- "#D3D3D3"
-zoop<-readRDS("Data/zoopforzooper.Rds")
 
 # Define UI for application that draws graphs and allows you to download data
 
@@ -55,7 +54,7 @@ ui <- fluidPage(
                        dateRangeInput("Daterange", label = "Date range", 
                                       start = "1972-01-01", end = "2018-12-31", startview = "year")),
       conditionalPanel(condition = "input.Filters.includes('Months')",
-                       pickerInput("Months", "Months:", choices=c("January" = 1, "February" = 2, "March" = 3, "April" = 4, "May" = 5, "June" = 6, "July" = 7, "August" = 8, "September" = 9, "October" = 10, "November" = 11, "December" = 12), selected = 1, multiple = T, options=list(`actions-box`=TRUE))),
+                       pickerInput("Months", "Months:", choices=c("January" = 1, "February" = 2, "March" = 3, "April" = 4, "May" = 5, "June" = 6, "July" = 7, "August" = 8, "September" = 9, "October" = 10, "November" = 11, "December" = 12), selected = 1, multiple = T, options=list(`actions-box`=TRUE, `selected-text-format` = "count > 3"))),
       conditionalPanel(condition = "input.Filters.includes('Surface salinity')",
                        sliderInput("SalSurfrange",
                                    "Surface salinity:",
@@ -222,18 +221,25 @@ server <- function(input, output, session) {
     choice_Taxlifestage <- reactive({
       if (input$Datatype=="Taxa"){
         plotdata()%>%
-          select(Taxatype, Taxname, Lifestage, Taxlifestage)%>%
+          mutate(Group=case_when(
+            Class=="Insecta" ~ "Insecta",
+            Phylum=="Arthropoda" & !is.na(Order) ~ Order,
+            TRUE ~ Phylum
+          ))%>%
+          select(Taxatype, Taxname, Lifestage, Taxlifestage, Group)%>%
           distinct()%>%
-          arrange(Taxatype, Taxname, Lifestage)%>%
-          pull(Taxlifestage)%>%
-          unique()
+          arrange(Group, Taxatype, Taxname, Lifestage)%>%
+          select(Taxlifestage, Group)%>%
+          distinct()%>%
+            split(x=.$Taxlifestage, f=.$Group)%>%
+          lapply(., as.list)
       } else {
         NULL
       }
       
     })
     
-    pickerInput('Taxlifestage', 'Select Taxa:', choices =choice_Taxlifestage(), multiple =T, selected=choice_Taxlifestage(), options=list(`live-search`=TRUE, `actions-box`=TRUE, size=10, title = "Select Taxa")) 
+    pickerInput('Taxlifestage', 'Select Taxa:', choices =choice_Taxlifestage(), multiple =T, selected=choice_Taxlifestage(), options=list(`live-search`=TRUE, `actions-box`=TRUE, size=10, title = "Select Taxa", `selected-text-format` = "count > 3")) 
     
   })
   
@@ -342,7 +348,7 @@ server <- function(input, output, session) {
             coord_cartesian(expand=0)+
             scale_x_continuous(breaks = function(x) unique(floor(pretty(seq(min(x), max(x)), n=4))), expand=c(0,0))+
             scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=1))+
-            ylab(bquote("Average CPUE (Catch/"*m^3*")"))+
+            ylab(bquote(Average~CPUE~"("*Catch*"/"*m^3*")"))+
             theme_bw()+
             theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=10))
         } else{
@@ -352,7 +358,7 @@ server <- function(input, output, session) {
             coord_cartesian(expand=0)+
             scale_x_continuous(breaks = function(x) unique(floor(pretty(seq(min(x), max(x)), n=4))), expand=c(0,0))+
             scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=1))+
-            ylab(bquote("Average CPUE (Catch/"*m^3*")"))+
+            ylab(bquote(Average~CPUE~"("*Catch*"/"*m^3*")"))+
             theme_bw()+
             theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=10))
         }}
@@ -389,7 +395,7 @@ server <- function(input, output, session) {
           facet_wrap(~Salinity_zone, nrow=1)
         }}+
         scale_fill_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=2))+
-        ylab(bquote("Average CPUE (Catch/"*m^3*")"))+
+        ylab(bquote(Average~CPUE~"("*Catch*"/"*m^3*")"))+
         theme_bw()+
         theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=6), legend.key.size = unit(10, "points"), strip.background=element_blank())
     }

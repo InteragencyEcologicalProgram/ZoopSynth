@@ -106,10 +106,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   
   # Read in data if not already loaded
   
-  if(!Shiny){
     zoop<-readRDS("Data/zoopforzooper.Rds")
-    
-  }
   
   # Filter data -------------------------------------------------------------
   
@@ -229,6 +226,10 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
       Taxagroup2<-enquo(Taxagroup2) #capture expression to pass on to functions below
       out<-df%>%
         filter(!is.na(!!Taxagroup2))%>% #filter to include only data belonging to the taxonomic grouping
+        group_by(!!Taxagroup2)%>%
+        mutate(N=length(unique(Taxname)))%>%
+        filter(N>1)%>%
+        ungroup()%>%
         lazy_dt()%>%
         group_by_at(vars(-c("Taxname", "Phylum", "Class", "Order", "Family", "Genus", "Species", "Taxlifestage", "CPUE",Taxcats_g[!Taxcats_g%in%Taxagroup])))%>% #Group data by relavent grouping variables (including taxonomic group) for later data summation
         summarise(CPUE=sum(CPUE, na.rm=T))%>% #Add up all members of each grouping taxon
@@ -236,6 +237,9 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
         as_tibble()%>%
         mutate(Taxname=!!Taxagroup2, #Add summarized group names to Taxname
                Taxatype="Summed group")%>% #Add a label to these summed groups so they can be removed later if users wish
+        left_join(crosswalk%>%
+                   select_at(vars(Taxname, Taxcats))%>%
+                   distinct(), by="Taxname")%>%
         mutate(Taxname=paste0(Taxname, "_all")) #Differentiate grouped Taxnames from others
       return(out)
     }
@@ -246,6 +250,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
     
   zoop<-zoop%>%
     mutate_at(Taxcats, list(g=~ifelse(.%in%unique(Taxname), ., NA)))
+    
   
   #Extract vector of grouping taxa (i.e. all unique taxa retained in the above step)
   
