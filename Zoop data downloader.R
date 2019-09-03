@@ -62,7 +62,7 @@ Zoopdownloader <- function(path="Data/zoopforzooper.Rds", ReDownloadData=F){
              Station, Region, Chl=`Chl-a`, CondBott = ECBottomPreTow, CondSurf = ECSurfacePreTow, Secchi, 
              Temperature, Volume = CBVolume, EMP, CPUE)%>% #Select for columns in common and rename columns to match
       left_join(crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
-                  select(-FMWT, -twentymm, -FRP, -Level, -FMWTstart, -FMWTend, -twentymmstart, -twentymmend, -twentymmstart2)%>% #only retain EMP codes
+                  select(EMP, Lifestage, Taxname, Phylum, Class, Order, Family, Genus, Species, Intro, EMPstart, EMPend)%>% #only retain EMP codes
                   filter(!is.na(EMP))%>% #Only retain Taxnames corresponding to EMP codes
                   distinct(),
                 by="EMP")%>%
@@ -113,9 +113,9 @@ Zoopdownloader <- function(path="Data/zoopforzooper.Rds", ReDownloadData=F){
              -SurfSalinityGroup, -CondBott, -PPTBott, 
              -TempSurf, -Secchi, -Turbidity, -Microcystis, 
              -TotalMeter, -Volume)%>% #transform from wide to long
-      select(Source=Project, Year, Date, Datetime, Station, Region, Tide=TideCode, DepthBottom, CondSurf, CondBott, Temperature = TempSurf, Secchi, Turbidity, Microcystis, Volume, FMWT, CPUE)%>% #Select for columns in common and rename columns to match
+      select(Source=Project, Year, Date, Datetime, Station, Region, Tide=TideCode, BottomDepth=DepthBottom, CondSurf, CondBott, Temperature = TempSurf, Secchi, Turbidity, Microcystis, Volume, FMWT, CPUE)%>% #Select for columns in common and rename columns to match
       left_join(crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
-                  select(-EMP, -twentymm, -FRP, -Level, -EMPstart, -EMPend, -twentymmstart, -twentymmend, -twentymmstart2)%>% #only retain FMWT codes
+                  select(FMWT, Lifestage, Taxname, Phylum, Class, Order, Family, Genus, Species, Intro, FMWTstart, FMWTend)%>% #only retain FMWT codes
                   filter(!is.na(FMWT))%>% #Only retain Taxnames corresponding to FMWT codes
                   distinct(),
                 by = "FMWT")%>%
@@ -138,62 +138,30 @@ Zoopdownloader <- function(path="Data/zoopforzooper.Rds", ReDownloadData=F){
   # twentymm ----------------------------------------------------------------
   
   # Import and modify 20mm data
-  
-    suppressWarnings(zoopquery20mm <- read_excel("Data/zoopquery20mm.xlsx", 
-                                                 col_types = c("date", "numeric", "numeric", 
-                                                               "numeric", "numeric", "numeric", 
-                                                               "numeric", "numeric", "numeric", 
-                                                               "numeric", "text")))
-    zoopquery20mm <- zoopquery20mm%>%
-      mutate(SampleID = paste(Station20mm, SampleDate, TowNum))
     
-    #Rosie's code to calculate CPUE for 20mm, modified to dplyr format by Sam
+    zoo_20mm<-read_excel("Data/CDFW 20-mm Zooplankton Catch Matrix.xlsx", 
+                         sheet="20-mm CB CPUE Data", 
+                         col_types = c("date", "numeric", "numeric", "date", rep("numeric", 80)))
     
-    zoo_20mm<-zoopquery20mm%>%
-      group_by(SampleID)%>% 
-      summarise(totcells = max(CellNumber), totCountall = sum(ZooCount))%>%
-      right_join(zoopquery20mm%>%
-                   group_by(Station20mm, SampleDate, SampleID, Dilution, ZooCode, CommonName,
-                            MeterStart, MeterEnd)%>% 
-                   summarise(totCount = sum(ZooCount)), by="SampleID")%>%
-      ungroup()%>%
-      mutate(atotal = (totCount/totcells)*Dilution, #adjust for subsampling
-             Volume = NA)%>%
-      mutate(Volume=(MeterEnd-MeterStart)*0.026873027*0.0167)%>% #Volume sampled is the difference in flowmeter readings times the flowmeter constant times the mouth area
-      mutate(Volume = ifelse(Volume<0, ((1000000 - MeterStart)+ MeterEnd)*0.026873027*0.0167, Volume))%>% #I've used the factory calibration here
-      mutate(Volume=ifelse(is.na(Volume), mean(Volume, na.rm = T), Volume))%>% #some of the samples didn't have flowmeters, so we'll use the average Volume for those
-      mutate(CPUE=atotal/Volume)%>% #Calculate CPUE (total critters divided by Volume sampled)
-      rename(Station=Station20mm, Date=SampleDate)
-    ###SMB Confirmed creates exact same dataframe as Rosie's code (before I added in TowNum as a grouping term)
-    
-    
-    # merge 20mm CPUE with environmental data
-    # CPUE for 20mm are in zoo20.R file that was created in zoo20mil_w20mil.R
-    
-    #merge environmental data for 20mm w/ CPUE data
-    # import survey and station informationf from excel files (these excel files are from 20mm mdb - requires a lot of different
-    # packages to import directly from mdb so just converted them to excel files for now)
-    
-    enviro20mm<-left_join(suppressWarnings(read_excel("Data/20mm_Survey.xlsx")),
-                          suppressWarnings(read_excel("Data/20mm_Station.xlsx", col_types = c(rep("numeric", 14), "text"))),
-                          by = "SurveyID",
-                          suffix=c("_Survey", "_Station"))%>% #merge based on survey ID - unique for every date (date not in station data)
-      rename(Date=SampleDate)
-    
-    # then merge with CPUE data
-    data.list[["twentymm"]] <-zoo_20mm%>%
-      left_join(enviro20mm, by = c("Station", "Date"))%>%
-      rename(twentymm=CommonName)%>%
+    data.list[["twentymm"]]<-zoo_20mm%>%
+      mutate(SampleID = paste(Station, SampleDate#, TowNum #ADD IN TOWNUM WHEN FLAT FILE IS FIXED
+                              ),
+             Datetime=parse_date_time(paste0(SampleDate, " ", hour(TowTime), ":", minute(TowTime)), "%Y-%m-%d %%H:%M"))%>%
+      gather(key="twentymm", value="CPUE", -SampleDate, -Survey, -Station, -TowTime, -Temp, -TopEC, 
+             -BottomEC, -Secchi, -Turbidity, -Tide, -BottomDepth, -Duration, -MeterCheck, -Volume, 
+             -Dilution, -SampleID, -Datetime)%>% #transform from wide to long
+      select(Date=SampleDate, Station, Temperature=Temp, CondSurf=TopEC, CondBott=BottomEC, Secchi, 
+             Turbidity, Tide, BottomDepth, Volume, SampleID, Datetime, twentymm, CPUE)%>% #Select for columns in common and rename columns to match
       left_join(crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
-                  select(-EMP, -FMWT, -FRP, -Level, -FMWTstart, -FMWTend, -EMPstart, -EMPend)%>% #only retain 20mm codes
-                  filter(!is.na(twentymm))%>% #Only retain Taxnames corresponding to 20mm codes
+                  select(twentymm, Lifestage, Taxname, Phylum, Class, Order, Family, Genus, Species, Intro, twentymmstart, twentymmend, twentymmstart2)%>% #only retain FMWT codes
+                  filter(!is.na(twentymm))%>% #Only retain Taxnames corresponding to FMWT codes
                   distinct(),
-                by="twentymm")%>%
+                by = "twentymm")%>%
       filter(!is.na(Taxname))%>%
-      select(Date, Station, Volume, Temperature = Temp, CondSurf = TopEC, CondBott = BottomEC, Secchi, Turbidity, CPUE, Taxname, Lifestage, Phylum, Class, Order, Family, Genus, Species, SampleID, twentymmend, twentymmstart, twentymmstart2, Intro)%>% #Select for columns in common and rename columns to match
-      mutate(Source="20mm")%>% #add variable for data source
-      mutate(Station=as.character(Station))%>%
-      mutate(Taxlifestage=paste(Taxname, Lifestage))%>% #create variable for combo taxonomy x life stage
+      mutate(Source="20mm",
+             Station=as.character(Station),
+             Tide=as.character(Tide),
+             Taxlifestage=paste(Taxname, Lifestage))%>% #add variable for data source, create variable for combo taxonomy x life stage
       mutate(CPUE=case_when(
         CPUE!=0 ~ CPUE, 
         CPUE==0 & Date < Intro ~ 0,
@@ -209,7 +177,7 @@ Zoopdownloader <- function(path="Data/zoopforzooper.Rds", ReDownloadData=F){
       ungroup()%>%
       mutate(SampleID=paste(Source, SampleID))%>% #Create identifier for each sample
       as_tibble()
-  
+    
   
   # FRP ---------------------------------------------------------------------
   
@@ -238,8 +206,8 @@ Zoopdownloader <- function(path="Data/zoopforzooper.Rds", ReDownloadData=F){
              Station, CondSurf = SC, Secchi, pH, DO, Turbidity, Tide, Microcystis,
              Temperature = Temp, Volume = volume, FRP = CommonName, CPUE, SampleID)%>% #Select for columns in common and rename columns to match
       left_join(crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
-                  select(-EMP, -twentymm, -FMWT, -Level, -FMWTstart, -FMWTend, -twentymmstart, -twentymmend, -twentymmstart2, -EMPstart, -EMPend, -Intro)%>% #only retain FRP codes
-                  filter(!is.na(FRP))%>% #Only retain Taxnames corresponding to 20mm codes
+                  select(FRP, Lifestage, Taxname, Phylum, Class, Order, Family, Genus, Species)%>% #only retain FRP codes
+                  filter(!is.na(FRP))%>% #Only retain Taxnames corresponding to FRP codes
                   distinct(),
                 by = "FRP")%>%
       mutate(Taxlifestage=paste(Taxname, Lifestage))%>% #create variable for combo taxonomy x life stage
