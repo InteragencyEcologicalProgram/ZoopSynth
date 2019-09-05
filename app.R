@@ -20,6 +20,7 @@ require(ggiraph)
 require(leaflet)
 require(mapview)
 require(shinyWidgets) 
+require(leaflet.minicharts)
 
 #Source Sam's function that gets the data from online
 source("Zoop synthesizer function.R")
@@ -104,7 +105,8 @@ ui <- fluidPage(
                            conditionalPanel(condition = "input.Salzones", 
                                             sliderInput("Lowsal", "Low salinity zone", min=0, max=30, value=c(0.5,6), step=0.1, width="100%")), cellWidths = c("25%", "75%"), cellArgs = list(style = "padding: 2px")), 
                            ggiraphOutput("CPUEplot")),
-                  tabPanel("Map", uiOutput("select_Year"), 
+                  tabPanel("Map", conditionalPanel(condition = "output.Datatype == 'Community'", uiOutput("select_Lifestage"), pickerInput('Taxagroups', 'Taxa groups', choices =c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other"), multiple =T, selected=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other"))),
+                           uiOutput("select_Year"),
                            leafletOutput("Mapplot", width = "100%", height = "100%"))
         
       )#,
@@ -187,7 +189,7 @@ server <- function(input, output, session) {
   }, ignoreInit=T)
   
   #Create data for map plot
-  mapdata <- reactive( {
+  mapdatataxa <- reactive( {
     plotdata2()%>%
       filter(Volume>1 & !is.na(Latitude) & !is.na(Longitude))%>%
       lazy_dt()%>%
@@ -197,22 +199,55 @@ server <- function(input, output, session) {
       ungroup()
   })
   
+  #Create data for community map plot
+  mapdatacom <- reactive( {
+    plotdata2()%>%
+      filter(Volume>1 & !is.na(Latitude) & !is.na(Longitude) & Lifestage%in%input$Lifestage
+             )%>%
+      mutate(Taxa=case_when(
+        Order=="Calanoida" ~ "Calanoida",
+        Order=="Cyclopoida" ~ "Cyclopoida",
+        Order=="Harpacticoida" ~ "Harpacticoida",
+        Class=="Copepoda" ~ "UnID copepods",
+        Order=="Cladocera" ~ "Cladocera",
+        Class=="Insecta" ~ "Insecta",
+        Class=="Cirripedia" ~ "Cirripedia",
+        Phylum=="Rotifera" ~ "Rotifera",
+        TRUE ~ "Other"
+      ))%>%
+      mutate(Taxa=ifelse(Taxa%in%input$Taxagroups, Taxa, "Other"))%>%
+      mutate(Taxa=factor(Taxa, levels=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")))%>%
+      lazy_dt()%>%
+      group_by(Taxa, Year, Latitude, Longitude)%>%
+      summarise(CPUE=mean(CPUE))%>%
+      as_tibble()%>%
+      ungroup()%>%
+      arrange(Taxa)%>%
+      mutate(Taxa=as.character(Taxa))
+  })
+  
   #Pull out maximum CPUE for map plot scale
   mapmax<- reactive( {
-    mapdata()%>%
+    mapdatataxa()%>%
       pull(CPUE)%>%
       max()
   })
   
-  #Create map data filtered to year
-  filteredmapdata<-reactive({
-    mapdata()%>%
+  #Create Taxa map data filtered to year
+  filteredmapdatataxa<-reactive({
+    mapdatataxa()%>%
       filter(Year==input$Year)
   })
   
-  #Create palette for map plot
-  Specpal <- reactive({
-    colorFactor(brewer.pal(7, "Dark2"), mapdata()%>%pull(Taxlifestage))
+  #Create Community map data filtered to year
+  filteredmapdatacom<-reactive({
+    mapdatacom()%>%
+      filter(Year==input$Year)
+  })
+  
+  #Create palette for taxa map plot
+  Taxapal <- reactive({
+    colorFactor(brewer.pal(7, "Dark2"), mapdatataxa()%>%pull(Taxlifestage))
   })
   
   #Update Taxlifestage choices based on data for the user input choices
@@ -256,6 +291,20 @@ server <- function(input, output, session) {
                 "Select year:",
                 min = min(choice_Year()),  max=max(choice_Year()), value =  min(choice_Year()), step=1, round=T, sep="", 
                 animate=animationOptions(interval=1000), width="100%")
+    
+  })
+  
+  #Update Lifestage choices for community map based on prior user input choices
+  output$select_Lifestage <- renderUI({
+    
+    choice_Lifestage <- reactive({
+      plotdata()%>%
+        pull(Lifestage)%>%
+        unique()
+    })
+    
+    pickerInput("Lifestage",
+                "Select life stage:", choices=choice_Lifestage(), selected = choice_Lifestage(), multiple = T, options=list(dropupAuto=F))
     
   })
   
@@ -401,6 +450,22 @@ server <- function(input, output, session) {
     }
   })
   
+  Mapplot<-reactive({
+    if("Taxatype"%in%colnames(plotdata2())){
+      pal <- Taxapal()
+      leaflet(mapdatataxa())%>%
+        addProviderTiles("Esri.WorldGrayCanvas")%>%
+        fitBounds(~min(Longitude, na.rm=T), ~min(Latitude, na.rm=T), ~max(Longitude, na.rm=T), ~max(Latitude, na.rm=T))%>%
+        addLegend("bottomright", pal = Taxapal(), values = ~Taxlifestage)%>%
+        addLabelOnlyMarkers(lng = ~c(-122.222+0.006325176, -122.222+0.0253007, -122.222+0.05692658), lat = ~c(38.025, 38, 37.935),
+                            label=~as.character(round(c(((((((sqrt(5000))/3))^2)/5000)*sqrt(mapmax()))^2, ((((((sqrt(5000))/3)*2)^2)/5000)*sqrt(mapmax()))^2, mapmax()))),
+                            labelOptions = list(permanent=TRUE, textOnly=T, direction="right"), options = list(title="CPUE"))
+    } else{
+      leaflet(plotdata2()%>%filter(!is.na(Latitude) & !is.na(Longitude)))%>%
+        addProviderTiles("Esri.WorldGrayCanvas")%>%
+        fitBounds(~min(Longitude, na.rm=T), ~min(Latitude, na.rm=T), ~max(Longitude, na.rm=T), ~max(Latitude, na.rm=T))
+    }
+  })
   
   #Create plot outputs (girafe makes plot interactive/hoverable)
   output$Sampleplot <- renderggiraph({
@@ -414,25 +479,30 @@ server <- function(input, output, session) {
   })
   
   output$Mapplot <- renderLeaflet({
-    pal <- Specpal()
-    leaflet(mapdata())%>%
-      addProviderTiles("Esri.WorldGrayCanvas")%>%
-      fitBounds(~min(Longitude, na.rm=T), ~min(Latitude, na.rm=T), ~max(Longitude, na.rm=T), ~max(Latitude, na.rm=T))%>%
-      addLegend("bottomright", pal = pal, values = ~Taxlifestage)%>%
-      addLabelOnlyMarkers(lng = ~c(-122.222+0.006325176, -122.222+0.0253007, -122.222+0.05692658), lat = ~c(38.025, 38, 37.935),
-                          label=~as.character(round(c(((((((sqrt(5000))/3))^2)/5000)*sqrt(mapmax()))^2, ((((((sqrt(5000))/3)*2)^2)/5000)*sqrt(mapmax()))^2, mapmax()))),
-                          labelOptions = list(permanent=TRUE, textOnly=T, direction="right"), options = list(title="CPUE"))
+    Mapplot()
   })
   
   #leafletProxy lets us change layers in the map plot without re-rendering the whole thing
   observeEvent(c(input$Update_taxa, input$Year), {
-    req(input$Tab=="Map")
-    pal <- Specpal()
-    map<-leafletProxy("Mapplot", session, data = filteredmapdata(), deferUntilFlush=T)%>%
+    req(input$Tab=="Map" & "Taxatype"%in%colnames(plotdata2()))
+    pal <- Taxapal()
+    map<-leafletProxy("Mapplot", session, data = filteredmapdatataxa(), deferUntilFlush=T)%>%
       clearShapes() %>%
       addCircles(radius = ~(sqrt(CPUE)/sqrt(mapmax()))*5000, weight = 1, lng = ~Longitude, lat = ~Latitude,
                  fillColor = ~pal(Taxlifestage), color="black", fillOpacity = 0.7, label = ~paste0(Taxlifestage, ": ", round(CPUE)))%>%
       addCircles(radius = ~c(((sqrt(5000))/3)^2, (((sqrt(5000))/3)*2)^2, 5000), weight = 1, lng = ~c(-122.222, -122.222, -122.222), lat = ~c(38.025, 38, 37.935), color="black", fillColor = "white", fillOpacity = 100)
+  }, ignoreNULL = T)
+  
+  observeEvent(c(input$Lifestage, input$Year, input$Taxagroups), {
+    req(input$Tab=="Map" & !("Taxatype"%in%colnames(plotdata2())))
+    filteredspreadmapdatacom<-filteredmapdatacom()%>%
+      spread(key=Taxa, value = CPUE)
+    map<-leafletProxy("Mapplot", session, data = filteredspreadmapdatacom, deferUntilFlush=T)%>%
+      clearMinicharts() %>%
+      addMinicharts(lng = filteredspreadmapdatacom$Longitude, lat = filteredspreadmapdatacom$Latitude,
+                    type = "pie",
+                    chartdata = filteredspreadmapdatacom%>%select_at(vars(unique(filteredmapdatacom()$Taxa)))%>%as.matrix(), 
+                    colorPalette = brewer.pal(9, "RdYlBu"), transitionTime = 0)
   }, ignoreNULL = T)
   
   
@@ -457,12 +527,12 @@ server <- function(input, output, session) {
           if(input$Tab=="CPUE"){
             ggsave(filename=file, plot=CPUEplot(), device=input$Format, width=input$Plotwidth, height=input$Plotheight, units="in")
           } else {
-            pal <- Specpal()
-            map<-leaflet(mapdata())%>%
+            pal <- Taxapal()
+            map<-leaflet(mapdatataxa())%>%
               addProviderTiles("Esri.WorldGrayCanvas")%>%
               fitBounds(~min(Longitude, na.rm=T), ~min(Latitude, na.rm=T), ~max(Longitude, na.rm=T), ~max(Latitude, na.rm=T))%>%
               addLegend("bottomright", pal = pal, values = ~Taxlifestage)%>%
-              addCircles(data=filteredmapdata(), radius = ~((CPUE)/mapmax())*10000, weight = 1, lng = ~Longitude, lat = ~Latitude,
+              addCircles(data=filteredmapdatataxa(), radius = ~((CPUE)/mapmax())*10000, weight = 1, lng = ~Longitude, lat = ~Latitude,
                          fillColor = ~pal(Taxlifestage), color="black", fillOpacity = 0.7, label = ~paste0(Taxlifestage, ": ", round(CPUE)))
             mapshot(map, file=file)
           }
