@@ -33,11 +33,10 @@ progress_background <- "#D3D3D3"
 # Define UI for application that draws graphs and allows you to download data
 
 ui <- fluidPage(
-  tags$h2("Dropdown Button"),
   
   # Application title
   
-  titlePanel("Zooplankton"),
+  titlePanel("Zooplankton data synthesizer"),
   
   # check boxes where you choose data you want
   fluidRow(
@@ -106,24 +105,22 @@ ui <- fluidPage(
                            conditionalPanel(condition = "input.Salzones", 
                                             sliderInput("Lowsal", "Low salinity zone", min=0, max=30, value=c(0.5,6), step=0.1, width="100%")), cellWidths = c("25%", "75%"), cellArgs = list(style = "padding: 2px")), 
                            ggiraphOutput("CPUEplot")),
-                  tabPanel("Map", conditionalPanel(condition = "output.Datatype == 'Community'", dropdown(
+                  tabPanel("Map", fluidRow(column(1,br(),br(), style='padding-left:40px', conditionalPanel(condition = "output.Datatype == 'Community'", dropdown(
                     
                     tags$h3("Map settings"),
                     
                     uiOutput("select_Lifestage"), 
-                    pickerInput('Taxagroups', 'Taxa groups', choices =c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other"), multiple =T, selected=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")),
+                    pickerInput('Taxagroups', 'Select pie chart groups:', choices =c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other"), multiple =T, selected=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")),
                     
                     circle = TRUE, status = "danger",
                     icon = icon("gear"), width = "300px",
                     
                     tooltip = tooltipOptions(title = "Click to see inputs!")
-                    )),
-                           uiOutput("select_Year"),
-                           leafletOutput("Mapplot", width = "100%", height = "100%"))
+                    ))),
+                           column(11, uiOutput("select_Year"))),
+                    fluidRow(leafletOutput("Mapplot", width = "100%", height = "100%")))
         
-      )#,
-    #position = "left",
-    #fluid = T
+      )
   )),
   
   # This is just to display the "data crunching" message. 
@@ -213,9 +210,21 @@ server <- function(input, output, session) {
   
   #Create data for community map plot
   mapdatacom <- reactive( {
+    
+    if(is.null(input$Lifestage)){
+      Lifestages<-unique(plotdata()$Lifestage)
+    } else{
+      Lifestages<-input$Lifestage
+    }
+    
+    if(is.null(input$Taxagroups)){
+      Taxagroups<-c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")
+    } else{
+      Taxagroups<-input$Taxagroups
+    }
+    
     plotdata2()%>%
-      filter(Volume>1 & !is.na(Latitude) & !is.na(Longitude) & Lifestage%in%input$Lifestage
-             )%>%
+      filter(Volume>1 & !is.na(Latitude) & !is.na(Longitude) & Lifestage%in%Lifestages)%>%
       mutate(Taxa=case_when(
         Order=="Calanoida" ~ "Calanoida",
         Order=="Cyclopoida" ~ "Cyclopoida",
@@ -227,7 +236,7 @@ server <- function(input, output, session) {
         Phylum=="Rotifera" ~ "Rotifera",
         TRUE ~ "Other"
       ))%>%
-      mutate(Taxa=ifelse(Taxa%in%input$Taxagroups, Taxa, "Other"))%>%
+      mutate(Taxa=ifelse(Taxa%in%Taxagroups, Taxa, "Other"))%>%
       mutate(Taxa=factor(Taxa, levels=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")))%>%
       lazy_dt()%>%
       group_by(Taxa, Year, Latitude, Longitude)%>%
@@ -514,7 +523,7 @@ server <- function(input, output, session) {
       addMinicharts(lng = filteredspreadmapdatacom$Longitude, lat = filteredspreadmapdatacom$Latitude,
                     type = "pie",
                     chartdata = filteredspreadmapdatacom%>%select_at(vars(unique(filteredmapdatacom()$Taxa)))%>%as.matrix(), 
-                    colorPalette = brewer.pal(9, "RdYlBu"), transitionTime = 0)
+                    colorPalette = brewer.pal(9, "RdYlBu"), transitionTime = 0, opacity=0.8)
   }, ignoreNULL = T)
   
   
