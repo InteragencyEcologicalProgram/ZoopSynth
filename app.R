@@ -33,6 +33,7 @@ progress_background <- "#D3D3D3"
 # Define UI for application that draws graphs and allows you to download data
 
 ui <- fluidPage(
+  tags$h2("Dropdown Button"),
   
   # Application title
   
@@ -105,7 +106,18 @@ ui <- fluidPage(
                            conditionalPanel(condition = "input.Salzones", 
                                             sliderInput("Lowsal", "Low salinity zone", min=0, max=30, value=c(0.5,6), step=0.1, width="100%")), cellWidths = c("25%", "75%"), cellArgs = list(style = "padding: 2px")), 
                            ggiraphOutput("CPUEplot")),
-                  tabPanel("Map", conditionalPanel(condition = "output.Datatype == 'Community'", uiOutput("select_Lifestage"), pickerInput('Taxagroups', 'Taxa groups', choices =c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other"), multiple =T, selected=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other"))),
+                  tabPanel("Map", conditionalPanel(condition = "output.Datatype == 'Community'", dropdown(
+                    
+                    tags$h3("Map settings"),
+                    
+                    uiOutput("select_Lifestage"), 
+                    pickerInput('Taxagroups', 'Taxa groups', choices =c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other"), multiple =T, selected=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")),
+                    
+                    circle = TRUE, status = "danger",
+                    icon = icon("gear"), width = "300px",
+                    
+                    tooltip = tooltipOptions(title = "Click to see inputs!")
+                    )),
                            uiOutput("select_Year"),
                            leafletOutput("Mapplot", width = "100%", height = "100%"))
         
@@ -494,7 +506,7 @@ server <- function(input, output, session) {
   }, ignoreNULL = T)
   
   observeEvent(c(input$Lifestage, input$Year, input$Taxagroups), {
-    req(input$Tab=="Map" & !("Taxatype"%in%colnames(plotdata2())))
+    req(input$Tab=="Map" & !("Taxatype"%in%colnames(plotdata2())) & nrow(filteredmapdatacom())>1)
     filteredspreadmapdatacom<-filteredmapdatacom()%>%
       spread(key=Taxa, value = CPUE)
     map<-leafletProxy("Mapplot", session, data = filteredspreadmapdatacom, deferUntilFlush=T)%>%
