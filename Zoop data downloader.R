@@ -137,6 +137,12 @@ Zoopdownloader <- function(path="Data/zoopforzooper.Rds", ReDownloadData=F){
   
   # twentymm ----------------------------------------------------------------
   
+  #download the file
+  if (!file.exists("Data/CDFW 20-mm Zooplankton Catch Matrix.xlsx") | ReDownloadData) {
+    download.file("ftp://ftp.dfg.ca.gov/Delta%20Smelt/20mm%20Zooplankton%20Catch%20Matrix_1995-2017.xlsx", 
+                  "Data/CDFW 20-mm Zooplankton Catch Matrix.xlsx", mode="wb")
+  }
+  
   # Import and modify 20mm data
   
   zoo_20mm<-read_excel("Data/CDFW 20-mm Zooplankton Catch Matrix.xlsx", 
