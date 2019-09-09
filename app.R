@@ -63,11 +63,11 @@ ui <- fluidPage(
       conditionalPanel(condition = "input.Filters.includes('Latitude')",
                        sliderInput("Latrange",
                                    "Latitude Range",
-                                   min = 37, max = 39, value = c(37,39), step=0.1)),
+                                   min = 37.8, max = 38.6, value = c(37.8, 38.6), step=0.05)),
       conditionalPanel(condition = "input.Filters.includes('Longitude')",
                        sliderInput("Longrange",
                                    "Longitude Range:",
-                                   min = -125, max = -119, value = c(-125, -119), step=0.1)),
+                                   min = -122.5, max = -121.3, value = c(-122.5, -121.3), step=0.05)),
       #radioButtons("Plottype", "Plot Type", choices = c("Samples", "CPUE", "Map"), selected = "Samples",
       #             inline = TRUE),
       actionBttn("Run", "Run", style="bordered", icon = icon("play"), color="danger", size="sm"),
@@ -353,7 +353,7 @@ server <- function(input, output, session) {
       #  Month%in%c(10,11,12) ~ "Fall"
       #))%>%
       #mutate(Season=factor(Season, levels=c("Fall", "Winter", "Spring", "Summer")))%>%
-      mutate(Month=recode_factor(Month, "1"="January","2"="February", "3"="March", "4"="April", "5"="May", "6"="June", "7"="July", "8"="August", "9"="September", "10"="October", "11"="November", "12"="December"))%>%
+      mutate(Month=recode_factor(month(Date), "1"="January","2"="February", "3"="March", "4"="April", "5"="May", "6"="June", "7"="July", "8"="August", "9"="September", "10"="October", "11"="November", "12"="December"))%>%
       select(Source, Year, Month, SampleID)%>%
       distinct()%>%
       group_by(Source, Year, Month)%>%

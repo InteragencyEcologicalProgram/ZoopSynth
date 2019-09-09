@@ -1,4 +1,4 @@
-Zoopdownloader <- function(path="Data/zoopforzooper.Rds", ReDownloadData=F){
+Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoopenvforzooper.Rds", ReDownloadData=F){
   
   # Setup -------------------------------------------------------------------
   require(tidyverse) 
@@ -182,7 +182,8 @@ Zoopdownloader <- function(path="Data/zoopforzooper.Rds", ReDownloadData=F){
     summarise(CPUE=sum(CPUE, na.rm=T))%>% #this just adds up those duplications
     ungroup()%>%
     mutate(SampleID=paste(Source, SampleID))%>% #Create identifier for each sample
-    as_tibble()
+    as_tibble()%>%
+    select(-twentymm)
   
   
   # FRP ---------------------------------------------------------------------
@@ -261,13 +262,20 @@ Zoopdownloader <- function(path="Data/zoopforzooper.Rds", ReDownloadData=F){
     filter(!is.na(Taxname))%>% #Remove NA taxnames (should only correspond to previously summed "all" categories from input datasets)
     mutate(SalSurf=((0.36966/(((CondSurf*0.001)^(-1.07))-0.00074))*1.28156),
            SalBott=((0.36966/(((CondBott*0.001)^(-1.07))-0.00074))*1.28156),#Convert conductivity to salinity using formula in FMWT metadata
-           Year=year(Date), #add variables for year and month
-           Month=month(Date))%>%
+           Year=year(Date))%>%
     left_join(stations, by=c("Source", "Station"))%>% #Add lat and long
     select(-Region, -CondBott, -CondSurf)%>% #Remove some extraneous variables to save memory
     mutate(Tide=recode(Tide, "1"="High slack", "2"="Ebb", "3"="Low slack", "4"="Flood", "1=high slack"="High slack", "2=ebb"="Ebb", "3=low slack"="Low slack", "4=flood"="Flood")) #Rename tide codes to be consistent
   
+  zoopEnv<-zoop%>%
+    select(Source, Year, Date, Datetime, Tide, Station, Chl, Secchi, Temperature, Volume, BottomDepth, Turbidity, Microcystis, pH, DO, SalSurf, SalBott, Latitude, Longitude, SampleID)%>%
+    distinct()
   
-  saveRDS(zoop, file=path)
+  zoop<-zoop%>%
+    select(-Year, -Date, -Datetime, -Tide, -Station, -Chl, -Secchi, -Temperature, -Volume, -BottomDepth, -Turbidity, -Microcystis, -pH, -DO, -SalSurf, -SalBott, -Latitude, -Longitude)
+  
+  saveRDS(zoop, file=ZoopPath)
+  
+  saveRDS(zoopEnv, file=EnvPath)
   
 }

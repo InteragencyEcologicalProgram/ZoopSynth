@@ -63,13 +63,11 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   
   # Setup -------------------------------------------------------------------
   
-  #devtools::install_github("tidyverse/dplyr")
   require(tidyverse)
   require(readxl)
   
   #Requires Github developer version of dtplyr: devtools::install_github("tidyverse/dtplyr")
   require(dtplyr)
-  
   
   require(lubridate)
   
@@ -91,12 +89,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   # unified set of "Taxname" and "Lifestage" values.
   
   crosswalk <- read_excel("Data/new_crosswalk.xlsx", sheet = "Hierarchy2")%>%
-    mutate_at(vars(c("EMPstart", "EMPend", "Intro", "FMWTstart", "FMWTend", "twentymmstart", "twentymmend", "twentymmstart2")), ~parse_date(as.character(.), format="%Y"))%>%
-    mutate_at(vars(c("EMPstart", "FMWTstart", "twentymmstart", "twentymmstart2", "EMPend", "FMWTend", "twentymmend")), ~replace_na(., as_date(Inf)))%>% #Change any NAs for starts or ends to Infinity (i.e. never started or ended)
-    mutate(EMPend = if_else(is.finite(EMPend), EMPend+years(1), EMPend))%>% #Change end dates to beginning of next year (first day it was not counted)
-    mutate(FMWTend = if_else(is.finite(FMWTend), FMWTend+years(1), FMWTend))%>% #Change end dates to beginning of next year (first day it was not counted)
-    mutate(twentymmend = if_else(is.finite(twentymmend), twentymmend+years(1), twentymmend))%>% #Change end dates to beginning of next year (first day it was not counted)
-    mutate(Intro=replace_na(Intro, as_date(-Inf))) #Change any NAs in Intro date to -Inf (i.e., always been around)
+    select(Lifestage, Taxname, Phylum, Class, Order, Family, Genus, Species)
   
   #Make it possible to re-download data if desired
   if(ReLoadData){
@@ -107,12 +100,13 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   # Read in data if not already loaded
   
     zoop<-readRDS("Data/zoopforzooper.Rds")
+    zoopEnv<-readRDS("Data/zoopenvforzooper.Rds")
   
   # Filter data -------------------------------------------------------------
   
   #Filter to desired data sources
   
-  zoop<-filter(zoop, Source%in%Sources)
+    zoopEnv<-filter(zoopEnv, Source%in%Sources)
   
   #Filter data by specified variables if users provide appropriate ranges
   
@@ -120,48 +114,48 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
     if(some(SalBottrange, is.na)) {
       stop("One element of SalBottrange cannot be NA, use Inf or -Inf to set limitless bounds")
     }
-    zoop<-filter(zoop, between(SalBott, min(SalBottrange), max(SalBottrange)))
+    zoopEnv<-filter(zoopEnv, between(SalBott, min(SalBottrange), max(SalBottrange)))
   }
   
   if(!every(SalSurfrange, is.na)) {
     if(some(SalSurfrange, is.na)) {
       stop("One element of SalSurfrange cannot be NA, use Inf or -Inf to set limitless bounds")
     }
-    zoop<-filter(zoop, between(SalSurf, min(SalSurfrange), max(SalSurfrange)))
+    zoopEnv<-filter(zoopEnv, between(SalSurf, min(SalSurfrange), max(SalSurfrange)))
   }
   
   if(!every(Temprange, is.na)) {
     if(some(Temprange, is.na)) {
       stop("One element of Temprange cannot be NA, use Inf or -Inf to set limitless bounds")
     }
-    zoop<-filter(zoop, between(Temperature, min(Temprange), max(Temprange)))
+    zoopEnv<-filter(zoopEnv, between(Temperature, min(Temprange), max(Temprange)))
   }
   
   if(!is.na(Daterange[1])){
     Datemin<-as_date(Daterange[1])
     if(is.na(Datemin)) {stop("Daterange[1] in incorrect format. Reformat to `yyyy-mm-dd`")}
-    zoop<-filter(zoop, Date>Datemin)
+    zoopEnv<-filter(zoopEnv, Date>Datemin)
   }
   
   if(!is.na(Daterange[2])){
     Datemax<-as_date(Daterange[2])
     if(is.na(Datemax)) {stop("Daterange[2] in incorrect format. Reformat to `yyyy-mm-dd`")}
-    zoop<-filter(zoop, Date<Datemax)
+    zoopEnv<-filter(zoopEnv, Date<Datemax)
   }
   
   if(!every(Months, is.na)) {
-    zoop<-filter(zoop, Month%in%Months)
+    zoopEnv<-filter(zoopEnv, month(Date)%in%Months)
   }
   
   if(!every(Years, is.na)) {
-    zoop<-filter(zoop, Year%in%Years)
+    zoopEnv<-filter(zoopEnv, Year%in%Years)
   }
   
   if(!every(Latrange, is.na)) {
     if(some(Latrange, is.na)) {
       stop("One element of Latrange cannot be NA, use Inf or -Inf to set limitless bounds")
     }
-    zoop<-filter(zoop, between(Latitude, min(Latrange), max(Latrange)))
+    zoopEnv<-filter(zoopEnv, between(Latitude, min(Latrange), max(Latrange)))
   }
   
   if(!every(Longrange, is.na)) {
@@ -169,10 +163,10 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
       stop("One element of Longrange cannot be NA, use Inf or -Inf to set limitless bounds")
     }
     if(some(Longrange>0, isTRUE)) {warning("Longitudes should be negative for the Delta")}    
-    zoop<-filter(zoop, between(Longitude, min(Longrange), max(Longrange)))
+    zoopEnv<-filter(zoopEnv, between(Longitude, min(Longrange), max(Longrange)))
   }
   
-  
+  zoop<-filter(zoop, SampleID%in%unique(zoopEnv$SampleID))
   # Apply LCD approach ------------------------------------------------------
   
   
@@ -287,7 +281,8 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
            Orphan=ifelse(Taxlifestage%in%strsplit(Orphans, ", ")[[1]], T, F), #add an identifier for orphan taxa (species not counted in all data sources)
            Taxname = ifelse(Taxatype=="UnID species", paste0(Taxname, "_UnID"), Taxname),
            Taxlifestage=paste(Taxname, Lifestage))%>%
-    select_at(vars(-Taxcats_g))
+    select_at(vars(-Taxcats_g))%>%
+    left_join(zoopEnv, by=c("SampleID", "Source"))
   
   rm(Groups)
   rm(Orphans)
@@ -387,7 +382,8 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
                               select(-Taxname_new, -Lifestage))%>%
                   distinct(),
                 by="Taxlifestage"
-                  )
+                  )%>%
+      left_join(zoopEnv, by=c("SampleID", "Source"))
   }
   
   
