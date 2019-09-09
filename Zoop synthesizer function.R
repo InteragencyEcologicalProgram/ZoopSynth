@@ -1,4 +1,4 @@
-Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community", Daterange=c(NA, NA), Months=NA, Years=NA, SalBottrange=NA, SalSurfrange=NA, Temprange=NA, Latrange=NA, Longrange=NA, Shiny=F, ReLoadData=F, ReDownloadData=F, zoop=NA){
+Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community", Daterange=c(NA, NA), Months=NA, Years=NA, SalBottrange=NA, SalSurfrange=NA, Temprange=NA, Latrange=NA, Longrange=NA, Shiny=F, ReLoadData=F, ReDownloadData=F, AllEnv=T){
   
   
   # Documentation -----------------------------------------------------------
@@ -282,7 +282,12 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
            Taxname = ifelse(Taxatype=="UnID species", paste0(Taxname, "_UnID"), Taxname),
            Taxlifestage=paste(Taxname, Lifestage))%>%
     select_at(vars(-Taxcats_g))%>%
-    left_join(zoopEnv, by=c("SampleID", "Source"))
+    left_join(zoopEnv%>%
+              {if(!AllEnv){
+                select(., Year, Date, SalSurf, Latitude, Longitude, SampleID)
+                } else{
+                  select(., -Source)
+                }}, by="SampleID")
   
   rm(Groups)
   rm(Orphans)
@@ -383,9 +388,13 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
                   distinct(),
                 by="Taxlifestage"
                   )%>%
-      left_join(zoopEnv, by=c("SampleID", "Source"))
+      left_join(zoopEnv%>%
+                  {if(!AllEnv){
+                    select(., Year, Date, SalSurf, Latitude, Longitude, SampleID)
+                  } else{
+                    select(., -Source)
+                  }}, by="SampleID")
   }
-  
   
   return(zoop)
 }

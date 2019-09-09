@@ -184,7 +184,7 @@ server <- function(input, output, session) {
            SalSurfrange = ifelse(rep("Surface salinity"%in%input$Filters, 2), input$SalSurfrange, c(NA, NA)),
            Latrange = ifelse(rep("Latitude"%in%input$Filters, 2), input$Latrange, c(NA, NA)), 
            Longrange = ifelse(rep("Longitude"%in%input$Filters, 2), input$Longrange, c(NA, NA)), 
-           Shiny=T, zoop=zoop)
+           Shiny=T, AllEnv=F)
   })
   
   #Filter data to selected taxa. Doing this plotdata in 2 steps makes it so 
@@ -200,7 +200,7 @@ server <- function(input, output, session) {
   #Create data for map plot
   mapdatataxa <- reactive( {
     plotdata2()%>%
-      filter(Volume>1 & !is.na(Latitude) & !is.na(Longitude))%>%
+      filter(!is.na(Latitude) & !is.na(Longitude))%>%
       lazy_dt()%>%
       group_by(Taxlifestage, Year, Latitude, Longitude)%>%
       summarise(CPUE=mean(CPUE))%>%
@@ -224,7 +224,7 @@ server <- function(input, output, session) {
     }
     
     plotdata2()%>%
-      filter(Volume>1 & !is.na(Latitude) & !is.na(Longitude) & Lifestage%in%Lifestages)%>%
+      filter(!is.na(Latitude) & !is.na(Longitude) & Lifestage%in%Lifestages)%>%
       mutate(Taxa=case_when(
         Order=="Calanoida" ~ "Calanoida",
         Order=="Cyclopoida" ~ "Cyclopoida",
@@ -387,7 +387,6 @@ server <- function(input, output, session) {
       }
       
       plotdata2()%>%
-        filter(Volume>1)%>% # *****Currently removing data with very low sample volumes, should change this later*****
         {if(input$Salzones){
           filter(., !is.na(SalSurf))%>% 
             mutate(Salinity_zone=case_when(
@@ -437,7 +436,6 @@ server <- function(input, output, session) {
                           "<tr><td>Taxa &nbsp</td><td>%s</td></tr>",
                           "<tr><td>CPUE &nbsp</td><td>%s</td></tr>")
       plotdata2()%>%
-        filter(Volume>1)%>%# *****Currently removing data with very low sample volumes, should change this later*****
         {if(input$Salzones){
           filter(., !is.na(SalSurf))%>% 
         mutate(Salinity_zone=case_when(
@@ -576,13 +574,13 @@ server <- function(input, output, session) {
                      SalSurfrange = ifelse(rep("Surface salinity"%in%input$Filters, 2), input$SalSurfrange, c(NA, NA)),
                      Latrange = ifelse(rep("Latitude"%in%input$Filters, 2), input$Latrange, c(NA, NA)), 
                      Longrange = ifelse(rep("Longitude"%in%input$Filters, 2), input$Longrange, c(NA, NA)), 
-                     Shiny=T)
+                     Shiny=T, AllEnv=T)
       data <-if (length(input$Taxlifestage)>0 & input$Datatype=="Taxa"){
         filter(data, Taxlifestage%in%input$Taxlifestage)
       } else {
         data
       }
-      write.csv(data, file)
+      write_csv(data, file)
     })
   
   #Enable the datatype output to be passsed to input
