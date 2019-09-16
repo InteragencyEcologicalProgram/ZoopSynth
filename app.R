@@ -30,6 +30,14 @@ info_loading <- "Data crunching in progress..."
 progress_color <- "#CD2626"
 progress_background <- "#D3D3D3"
 
+addLegendCustom <- function(map, colors, labels, sizes, position, opacity = 0.5, title){
+  colorAdditions <- paste0(colors, "; width:", sizes, "px; height:", sizes, "px")
+  labelAdditions <- paste0("<div style='display: inline-block;height: ", sizes, "px;margin-top: 4px;line-height: ", sizes, "px;'>", labels, "</div>")
+  
+  return(addLegend(map, colors = colorAdditions, labels = labelAdditions, 
+                   opacity = opacity, position=position, title=title))
+}
+
 # Define UI for application that draws graphs and allows you to download data
 
 ui <- fluidPage(
@@ -148,6 +156,16 @@ ui <- fluidPage(
   #tags$style(type="text/css", "#Downloaddata {color: white}"),
   tags$style(type="text/css", "#Save {color: white}"),
   
+  #Make leaflet legend shapes circles
+  tags$style(type = "text/css", "html, body {width:100%;height:100%}",
+             ".leaflet .legend i{
+                       border-radius: 50%;
+                       width: 10px;
+                       height: 10px;
+                       margin-top: 4px;
+                       }
+                       "),
+  
   #Specify plot sizes
   tags$head(tags$style("#Sampleplot{height:100vh !important;}")),
   tags$head(tags$style("#CPUEplot{height:80vh !important;}")),
@@ -244,7 +262,8 @@ server <- function(input, output, session) {
       as_tibble()%>%
       ungroup()%>%
       arrange(Taxa)%>%
-      mutate(Taxa=as.character(Taxa))
+      mutate(Taxa=as.character(Taxa),
+             CPUE=round(CPUE))
   })
   
   #Pull out maximum CPUE for map plot scale
@@ -252,6 +271,13 @@ server <- function(input, output, session) {
     mapdatataxa()%>%
       pull(CPUE)%>%
       max()
+  })
+  
+  #Create labels for map legend
+  maplabels<-reactive({
+    a<-mapmax()*c(1/3, 2/3, 1)
+    b<-signif(a,2)
+    return(list(Radii=(sqrt(b)/sqrt(mapmax()))*22, Labels=format(b, big.mark = ",")))
   })
   
   #Create Taxa map data filtered to year
@@ -468,17 +494,18 @@ server <- function(input, output, session) {
         theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=6), legend.key.size = unit(10, "points"), strip.background=element_blank())
     }
   })
-  
+
   Mapplot<-reactive({
     if("Taxatype"%in%colnames(plotdata2())){
       pal <- Taxapal()
       leaflet(mapdatataxa())%>%
         addProviderTiles("Esri.WorldGrayCanvas")%>%
         fitBounds(~min(Longitude, na.rm=T), ~min(Latitude, na.rm=T), ~max(Longitude, na.rm=T), ~max(Latitude, na.rm=T))%>%
-        addLegend("bottomright", pal = Taxapal(), values = ~Taxlifestage)%>%
-        addLabelOnlyMarkers(lng = ~c(-122.222+0.006325176, -122.222+0.0253007, -122.222+0.05692658), lat = ~c(38.025, 38, 37.935),
-                            label=~as.character(round(c(((((((sqrt(5000))/3))^2)/5000)*sqrt(mapmax()))^2, ((((((sqrt(5000))/3)*2)^2)/5000)*sqrt(mapmax()))^2, mapmax()))),
-                            labelOptions = list(permanent=TRUE, textOnly=T, direction="right"), options = list(title="CPUE"))
+        addLegendCustom(colors = rep("black",3),
+                        labels = maplabels()$Labels,
+                        sizes = maplabels()$Radii*2, position="topleft",
+                        title="CPUE")%>%
+        addLegend("topleft", pal = Taxapal(), values = ~Taxlifestage)
     } else{
       leaflet(plotdata2()%>%filter(!is.na(Latitude) & !is.na(Longitude)))%>%
         addProviderTiles("Esri.WorldGrayCanvas")%>%
@@ -507,9 +534,8 @@ server <- function(input, output, session) {
     pal <- Taxapal()
     map<-leafletProxy("Mapplot", session, data = filteredmapdatataxa(), deferUntilFlush=T)%>%
       clearShapes() %>%
-      addCircles(radius = ~(sqrt(CPUE)/sqrt(mapmax()))*5000, weight = 1, lng = ~Longitude, lat = ~Latitude,
-                 fillColor = ~pal(Taxlifestage), color="black", fillOpacity = 0.7, label = ~paste0(Taxlifestage, ": ", round(CPUE)))%>%
-      addCircles(radius = ~c(((sqrt(5000))/3)^2, (((sqrt(5000))/3)*2)^2, 5000), weight = 1, lng = ~c(-122.222, -122.222, -122.222), lat = ~c(38.025, 38, 37.935), color="black", fillColor = "white", fillOpacity = 100)
+      addCircleMarkers(radius = ~(sqrt(CPUE)/sqrt(mapmax()))*22, weight = 1, lng = ~Longitude, lat = ~Latitude,
+                       fillColor = ~pal(Taxlifestage), color="black", fillOpacity = 0.7, label = ~paste0(Taxlifestage, ": ", round(CPUE)))
   }, ignoreNULL = T)
   
   observeEvent(c(input$Lifestage, input$Year, input$Taxagroups), {
