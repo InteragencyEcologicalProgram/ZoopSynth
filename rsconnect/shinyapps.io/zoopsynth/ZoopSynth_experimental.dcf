@@ -5,9 +5,9 @@ account: zoopsynth
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1061131
-bundleId: 2372528
+bundleId: 2438057
 url: https://zoopsynth.shinyapps.io/ZoopSynth_experimental/
-when: 1567206715.25643
+when: 1569262706.53762
 asMultiple: FALSE
 asStatic: FALSE
 ignoredFiles: 20mil_emp_fmwt_new.R|app_old.R|combine_and_taxonomy_May30.R|EMP_FMWT_20mm.R|empzoopsR.R|getzoopAll.R|Net size conversion factors.Rmd|Other plot ideas.R|pumpsizefrac.R|README.md|vegzoops.R|wim.Rhistory|zoo20mil_w20mil.R|Zoop data downloader.R|ZooperTests.R|zoops.R|Notes and presentations|Old data

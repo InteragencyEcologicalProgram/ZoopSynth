@@ -30,7 +30,7 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   
   
   
-  # EMP ---------------------------------------------------------------------
+  # EMP Meso ---------------------------------------------------------------------
   
   
   #download the file
@@ -42,7 +42,7 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   
   # Import the EMP data
   
-  zoo_EMP <- read_excel("Data/1972-2018CBMatrix.xlsx", 
+  zoo_EMP_Meso <- read_excel("Data/1972-2018CBMatrix.xlsx", 
                         sheet = "CB CPUE Matrix 1972-2018", 
                         col_types = c("numeric","numeric", "numeric", "numeric", "date", 
                                       "text", "text", "text", "numeric", "text", "text",
@@ -51,13 +51,14 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   # Tranform from "wide" to "long" format, add some variables, 
   # alter data to match other datasets
   
-  data.list[["EMP"]] <- zoo_EMP%>%
+  data.list[["EMP_Meso"]] <- zoo_EMP_Meso%>%
     mutate(Datetime=suppressWarnings(parse_date_time(paste(Date, Time), "%Y-%m-%d %H:%M", tz="America/Los_Angeles")))%>% #create a variable for datetime
     gather(key="EMP", value="CPUE", -SurveyCode, -Year, -Survey, -SurveyRep, 
            -Date, -Station, -EZStation, -DWRStation, 
            -Core, -Region, -Secchi, -`Chl-a`, -Temperature,
            -ECSurfacePreTow, -ECBottomPreTow, -CBVolume, -Datetime, -Time, -TideCode)%>% #transform from wide to long
-    mutate(Source="EMP")%>% #add variable for data source
+    mutate(Source="EMP",
+           SizeClass="Meso")%>% #add variable for data source
     select(Source, Year, Date, Datetime, Tide=TideCode, 
            Station, Region, Chl=`Chl-a`, CondBott = ECBottomPreTow, CondSurf = ECSurfacePreTow, Secchi, 
            Temperature, Volume = CBVolume, EMP, CPUE)%>% #Select for columns in common and rename columns to match
@@ -85,7 +86,7 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
     as_tibble() #required to finish operation after lazy_dt()
   
   
-  # FMWT --------------------------------------------------------------------
+  # FMWT Meso --------------------------------------------------------------------
   
   #download the file
   if (!file.exists("Data/FMWT_TNSZooplanktonDataCPUEOct2017.xls") | ReDownloadData) {
@@ -95,7 +96,7 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   
   # Import the FMWT data
   
-  suppressWarnings(zoo_FMWT <- read_excel("Data/FMWT_TNSZooplanktonDataCPUEOct2017.xls", 
+  suppressWarnings(zoo_FMWT_Meso <- read_excel("Data/FMWT_TNSZooplanktonDataCPUEOct2017.xls", 
                                           sheet = "FMWT&TNS ZP CPUE", 
                                           col_types=c("text", rep("numeric", 3), "date", "text", "text", 
                                                       "text", "numeric", rep("text", 3), rep("numeric", 3), 
@@ -104,7 +105,7 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   # Tranform from "wide" to "long" format, add some variables, 
   # alter data to match other datasets
   
-  data.list[["FMWT"]] <- zoo_FMWT%>%
+  data.list[["FMWT_Meso"]] <- zoo_FMWT_Meso%>%
     mutate(Datetime=suppressWarnings(parse_date_time(paste(Date, Time), "%Y-%m-%d %H:%M", tz="America/Los_Angeles")))%>% #create a variable for datetime
     gather(key="FMWT", value="CPUE", -Project, -Year, -Survey, -Month, -Date, -Datetime,
            -Station, -Index, -Time, -TowDuration, 
@@ -122,7 +123,8 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
     filter(!is.na(Taxname))%>%
     mutate(Taxlifestage=paste(Taxname, Lifestage), #create variable for combo taxonomy x life stage
            Microcystis=if_else(Microcystis=="6", "2", Microcystis), #Microsystis value of 6 only used from 2012-2015 and is equivalent to a 2 in other years, so just converting all 6s to 2s.
-           SampleID=paste(Source, Station, Datetime))%>% #Create identifier for each sample
+           SampleID=paste(Source, Station, Datetime),
+           SizeClass="Meso")%>% #Create identifier for each sample
     ungroup()%>%
     mutate(CPUE=case_when(
       CPUE!=0 ~ CPUE, 
@@ -135,7 +137,7 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
     select(-FMWT, -FMWTstart, -FMWTend, -Intro) #Remove FMWT taxa codes
   
   
-  # twentymm ----------------------------------------------------------------
+  # twentymm Meso ----------------------------------------------------------------
   
   #download the file
   if (!file.exists("Data/CDFW 20-mm Zooplankton Catch Matrix.xlsx") | ReDownloadData) {
@@ -145,11 +147,11 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   
   # Import and modify 20mm data
   
-  zoo_20mm<-read_excel("Data/CDFW 20-mm Zooplankton Catch Matrix.xlsx", 
+  zoo_20mm_Meso<-read_excel("Data/CDFW 20-mm Zooplankton Catch Matrix.xlsx", 
                        sheet="20-mm CB CPUE Data", 
                        col_types = c("date", "numeric", "numeric", "date", rep("numeric", 80)))
   
-  data.list[["twentymm"]]<-zoo_20mm%>%
+  data.list[["twentymm_Meso"]]<-zoo_20mm_Meso%>%
     mutate(SampleID = paste(Station, SampleDate#, TowNum #ADD IN TOWNUM WHEN FLAT FILE IS FIXED
     ),
     Datetime=parse_date_time(paste0(SampleDate, " ", hour(TowTime), ":", minute(TowTime)), "%Y-%m-%d %%H:%M", tz="America/Los_Angeles"))%>%
@@ -165,6 +167,7 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
               by = "twentymm")%>%
     filter(!is.na(Taxname))%>%
     mutate(Source="20mm",
+           SizeClass="Meso",
            Station=as.character(Station),
            Tide=as.character(Tide),
            Taxlifestage=paste(Taxname, Lifestage))%>% #add variable for data source, create variable for combo taxonomy x life stage
@@ -186,7 +189,7 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
     select(-twentymm)
   
   
-  # FRP ---------------------------------------------------------------------
+  # FRP Meso ---------------------------------------------------------------------
   
   # Import the FRP data
   
@@ -196,19 +199,20 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
                   "Data/zoopsFRP2018.csv", mode="wb")
   }
   
-  zoo_FRP <- read_csv("Data/zoopsFRP2018.csv",
+  zoo_FRP_Meso <- read_csv("Data/zoopsFRP2018.csv",
                       col_types = paste0("c","c", "t", "d", "d", "d", "d", "d", "d", "d", "d", 
                                          "c", "c", "c", 
                                          "d", "d","d","d",
                                          "d", "c"), na=c("", "NA"))
   
   #Already in long format
-  data.list[["FRP"]] <- zoo_FRP%>%
+  data.list[["FRP_Meso"]] <- zoo_FRP_Meso%>%
     mutate(Date=parse_date_time(Date, "%m/%d/%Y", tz="America/Los_Angeles"))%>%
     mutate(Station=replace(Station, Station=="Lindsey Tules", "Lindsey tules"),
            Station=replace(Station, Station=="LinBR", "LinBr"))%>% #Rename inconsistent station names to match
     mutate(Datetime=parse_date_time(paste0(Date, " ", hour(time), ":", minute(time)), "%Y-%m-%d %%H:%M", tz="America/Los_Angeles"))%>% #Create a variable for datetime
-    mutate(Source="FRP")%>% #add variable for data source
+    mutate(Source="FRP",
+           SizeClass="Meso")%>% #add variable for data source
     select(Source, Date, Datetime, 
            Station, CondSurf = SC, Secchi, pH, DO, Turbidity, Tide, Microcystis,
            Temperature = Temp, Volume = volume, FRP = CommonName, CPUE, SampleID)%>% #Select for columns in common and rename columns to match
@@ -228,33 +232,87 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   
   
   
-  # YBFMP -------------------------------------------------------------
+  # YBFMP Meso/Micro -------------------------------------------------------------
   
   
   #NO IDEA WHAT TO DO ABOUT INCONSISTENT TAXONOMIC RESOLUTION WITH NO DOCUMENTATION AND LACK OF LIFE STAGE INFORMATION
   
-#   zoo_YBFMP<-read_csv("Data/yolo_zoop_public.csv", col_types = "ctddcccdddddddccccccccccccccccccdd")
+  #   zoo_YBFMP<-read_csv("Data/yolo_zoop_public.csv", col_types = "ctddcccdddddddccccccccccccccccccdd")
   
-#  data.list[["YBFMP"]]<-zoo_YBFMP%>%
-#    mutate(SampleDate=parse_date_time(SampleDate, "%m/%d/%Y", tz="America/Los_Angeles"))%>%
-#    mutate(Datetime=parse_date_time(paste(SampleDate, SampleTime), "%Y-%m-%d %H:%M:%S", tz="America/Los_Angeles"),
-#           Source="YBFMP",
-#           YBFMP=paste(TaxonName, LifeStage),
-#           SampleID=paste(SampleDate, StationCode))%>%
-#    select(SampleID, Date=SampleDate, Station=StationCode, Temperature=WaterTemperature, Secchi, Turbidity, CondSurf=Conductivity, SpCnd, pH, DO, YBFMP, Source, Datetime, NetSize, CPUE)%>%
-#    left_join(crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
-#                select(YBFMP, Lifestage, Taxname, Phylum, Class, Order, Family, Genus, Species)%>% #only retain YBFMP codes
-#                filter(!is.na(YBFMP))%>% #Only retain Taxnames corresponding to YBFMP codes
-#                distinct(),
-#              by = "YBFMP")%>%
-#    mutate(Taxlifestage=paste(Taxname, Lifestage))%>% #create variable for combo taxonomy x life stage
-#    select(-YBFMP)%>% #Remove YBFMP taxa codes
-#    lazy_dt()%>% #Speed up code
-#    group_by_at(vars(-CPUE))%>% #In case some taxa names are repeated as in EMP so 
-#    summarise(CPUE=sum(CPUE, na.rm=T))%>% #this just adds up those duplications
-#    ungroup()%>%
-#    mutate(SampleID=paste(Source, SampleID))%>% #Create identifier for each sample
-#    as_tibble()
+  #  data.list[["YBFMP"]]<-zoo_YBFMP%>%
+  #    mutate(SampleDate=parse_date_time(SampleDate, "%m/%d/%Y", tz="America/Los_Angeles"))%>%
+  #    mutate(Datetime=parse_date_time(paste(SampleDate, SampleTime), "%Y-%m-%d %H:%M:%S", tz="America/Los_Angeles"),
+  #           Source="YBFMP",
+  #           YBFMP=paste(TaxonName, LifeStage),
+  #           SampleID=paste(SampleDate, StationCode))%>%
+  #    select(SampleID, Date=SampleDate, Station=StationCode, Temperature=WaterTemperature, Secchi, Turbidity, CondSurf=Conductivity, SpCnd, pH, DO, YBFMP, Source, Datetime, NetSize, CPUE)%>%
+  #    left_join(crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
+  #                select(YBFMP, Lifestage, Taxname, Phylum, Class, Order, Family, Genus, Species)%>% #only retain YBFMP codes
+  #                filter(!is.na(YBFMP))%>% #Only retain Taxnames corresponding to YBFMP codes
+  #                distinct(),
+  #              by = "YBFMP")%>%
+  #    mutate(Taxlifestage=paste(Taxname, Lifestage))%>% #create variable for combo taxonomy x life stage
+  #    select(-YBFMP)%>% #Remove YBFMP taxa codes
+  #    lazy_dt()%>% #Speed up code
+  #    group_by_at(vars(-CPUE))%>% #In case some taxa names are repeated as in EMP so 
+  #    summarise(CPUE=sum(CPUE, na.rm=T))%>% #this just adds up those duplications
+  #    ungroup()%>%
+  #    mutate(SampleID=paste(Source, SampleID))%>% #Create identifier for each sample
+  #    as_tibble()
+  
+  
+  # EMP Micro ---------------------------------------------------------------
+  
+  #download the file
+  if (!file.exists("Data/1972-2018PumpMatrix.xlsx") | ReDownloadData) {
+    download.file("ftp://ftp.dfg.ca.gov/IEP_Zooplankton/1972-2018Pump%20Matrix.xlsx", 
+                  "Data/1972-2018PumpMatrix.xlsx", mode="wb")
+  }
+  
+  
+  # Import the EMP data
+  
+  zoo_EMP_Micro <- read_excel("Data/1972-2018PumpMatrix.xlsx", 
+                        sheet = " Pump CPUE Matrix 1972-2018", 
+                        col_types = c(rep("numeric", 4), "date", rep("text", 3), "numeric", "text", rep("numeric", 36)))
+  
+  # Tranform from "wide" to "long" format, add some variables, 
+  # alter data to match other datasets
+  
+  data.list[["EMP_Micro"]] <- zoo_EMP_Micro%>%
+    select(-Year, -SurveyCode, -Survey, -SurveyRep, -EZStation, -DWRStationNo, -Core, -Region)%>%
+    gather(key="EMP", value="CPUE", -SampleDate, -Station, -Secchi, -`Chl-a`, -Temperature,
+           -ECSurfacePreTow, -ECBottomPreTow, -PumpVolume)%>% #transform from wide to long
+    mutate(Source="EMP",
+           SizeClass="Micro")%>% #add variable for data source
+    select(Source, Date=SampleDate, Station, Chl=`Chl-a`, CondBott = ECBottomPreTow, CondSurf = ECSurfacePreTow, Secchi, 
+           Temperature, Volume = PumpVolume, EMP, CPUE)%>% #Select for columns in common and rename columns to match
+    
+    
+    
+    left_join(crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
+                select(EMP, Lifestage, Taxname, Phylum, Class, Order, Family, Genus, Species, Intro, EMPstart, EMPend)%>% #only retain EMP codes
+                filter(!is.na(EMP))%>% #Only retain Taxnames corresponding to EMP codes
+                distinct(),
+              by="EMP")%>%
+    filter(!is.na(Taxname))%>% #Should remove all the summed categories in original dataset
+    mutate(Taxlifestage=paste(Taxname, Lifestage), #create variable for combo taxonomy x life stage
+           SampleID=paste(Source, Station, Date))%>% #Create identifier for each sample
+    mutate(CPUE=case_when(
+      CPUE!=0 ~ CPUE, 
+      CPUE==0 & Date < Intro ~ 0,
+      CPUE==0 & Date >= Intro & Date < EMPstart ~ NA_real_,
+      CPUE==0 & Date >= EMPstart & Date < EMPend ~ 0,
+      CPUE==0 & Date >= EMPend ~ NA_real_
+    ))%>% 
+    select(-EMP, -EMPstart, -EMPend, -Intro)%>% #Remove EMP taxa codes 
+    lazy_dt()%>% #Speed up code using dtplyr package that takes advantage of data.table speed
+    group_by_at(vars(-CPUE))%>%
+    summarise(CPUE=sum(CPUE, na.rm=T))%>% #Some taxa now have the same names (e.g., CYCJUV and OTHCYCJUV)
+    #so we now add those categories together.
+    ungroup()%>%
+    as_tibble() #required to finish operation after lazy_dt()
+  
   
   # Combine data ----------------------------------------
   

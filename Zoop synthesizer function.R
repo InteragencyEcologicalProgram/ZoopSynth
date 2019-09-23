@@ -99,14 +99,14 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   
   # Read in data if not already loaded
   
-    zoop<-readRDS("Data/zoopforzooper.Rds")
-    zoopEnv<-readRDS("Data/zoopenvforzooper.Rds")
+  zoop<-readRDS("Data/zoopforzooper.Rds")
+  zoopEnv<-readRDS("Data/zoopenvforzooper.Rds")
   
   # Filter data -------------------------------------------------------------
   
   #Filter to desired data sources
   
-    zoopEnv<-filter(zoopEnv, Source%in%Sources)
+  zoopEnv<-filter(zoopEnv, Source%in%Sources)
   
   #Filter data by specified variables if users provide appropriate ranges
   
@@ -194,7 +194,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   #Find all common Taxname x life stage combinations, turn into vector of Taxlifestages
   Commontax<-Commontaxer("Taxname", zoop)
   Commontax<-paste(Commontax$Taxname, Commontax$Lifestage)
-
+  
   # Make list of taxalifestages that do not appear in all datasets
   
   Lumped<-setdiff(unique(zoop$Taxlifestage), Commontax)
@@ -202,11 +202,11 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   
   #Make vector of taxonomic categories that we will use later
   Taxcats<-c("Genus", "Family", "Order", "Class", "Phylum")
-
   
-
-# Apply LCD approach for taxa-level data user ----------------------
-
+  
+  
+  # Apply LCD approach for taxa-level data user ----------------------
+  
   
   
   if(Data=="Taxa"){
@@ -232,8 +232,8 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
         mutate(Taxname=!!Taxagroup2, #Add summarized group names to Taxname
                Taxatype="Summed group")%>% #Add a label to these summed groups so they can be removed later if users wish
         left_join(crosswalk%>%
-                   select_at(vars(Taxname, Taxcats))%>%
-                   distinct(), by="Taxname")%>%
+                    select_at(vars(Taxname, Taxcats))%>%
+                    distinct(), by="Taxname")%>%
         mutate(Taxname=paste0(Taxname, "_all")) #Differentiate grouped Taxnames from others
       return(out)
     }
@@ -242,74 +242,66 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
     # classification category in one of the original datasets, and rename 
     # them as "Taxonomiclevel_g"
     
-  zoop<-zoop%>%
-    mutate_at(Taxcats, list(g=~ifelse(.%in%unique(Taxname), ., NA)))
+    zoop<-zoop%>%
+      mutate_at(Taxcats, list(g=~ifelse(.%in%unique(Taxname), ., NA)))
     
-  
-  #Extract vector of grouping taxa (i.e. all unique taxa retained in the above step)
-  
-  Groups<-zoop%>%
-    select(Genus_g, Family_g, Order_g, Class_g, Phylum_g)%>%
-    gather("Level", "Species")%>%
-    filter(!is.na(Species))%>%
-    pull(Species)%>%
-    unique()
-  
-  # Output list of taxa that were not measured in all datasets, and are 
-  # not higher taxa that can be calculated by summing lower taxa, i.e. 
-  # "orphan taxa"
-  
-  Orphans<-paste(Lumped[-str_which(paste0("[", paste(Groups, collapse="|"), "]"), word(Lumped, 1, -2))], collapse=", ")
-  
-  rm(Lumped)
-  
-  if(Shiny==F){
-  print(paste("NOTE: These species are not counted in all datasets:", Orphans), quote=F)
+    
+    #Extract vector of grouping taxa (i.e. all unique taxa retained in the above step)
+    
+    Groups<-zoop%>%
+      select(Genus_g, Family_g, Order_g, Class_g, Phylum_g)%>%
+      gather("Level", "Species")%>%
+      filter(!is.na(Species))%>%
+      pull(Species)%>%
+      unique()
+    
+    # Output list of taxa that were not measured in all datasets, and are 
+    # not higher taxa that can be calculated by summing lower taxa, i.e. 
+    # "orphan taxa"
+    
+    Orphans<-paste(Lumped[-str_which(paste0("[", paste(Groups, collapse="|"), "]"), word(Lumped, 1, -2))], collapse=", ")
+    
+    rm(Lumped)
+    
+    # Calculate summed groups and create a final dataset
+    
+    zoop<-map_dfr(Taxcats_g, .f=LCD, df=zoop)%>% #Taxonomic level by level, summarise for each of these grouping categories and bind them all together
+      bind_rows(zoop%>% #Bind these summarized groupings to the original taxonomic categories in the original dataset
+                  mutate(Taxatype=ifelse(Taxname%in%Groups, "UnID species", "Species")))%>% 
+      ungroup()%>%
+      mutate(Taxlifestage=paste(Taxname, Lifestage), #add back in the Taxlifestage variable (removed by the LCD function)
+             Orphan=ifelse(Taxlifestage%in%strsplit(Orphans, ", ")[[1]], T, F), #add an identifier for orphan taxa (species not counted in all data sources)
+             Taxname = ifelse(Taxatype=="UnID species", paste0(Taxname, "_UnID"), Taxname),
+             Taxlifestage=paste(Taxname, Lifestage))%>%
+      select_at(vars(-Taxcats_g))%>%
+      left_join(zoopEnv%>%
+                  {if(!AllEnv){
+                    select(., Year, Date, SalSurf, Latitude, Longitude, SampleID)
+                  } else{
+                    select(., -Source)
+                  }}, by="SampleID")
+    
+    caveats<-paste0("These species are not counted in all datasets: ", Orphans, "\n\n", "NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE. Do not compare UnID categories across data sources.")
+    
+    rm(Groups)
+    rm(Orphans)
+    
   }
   
-  if(Shiny==T) {
-    shiny::showNotification(paste("NOTE: These species are not counted in all datasets:", Orphans), type = "message", duration = NULL)
-  }
   
-  # Calculate summed groups and create a final dataset
+  # Apply LCD approach for community data user ------------------------------
   
-  zoop<-map_dfr(Taxcats_g, .f=LCD, df=zoop)%>% #Taxonomic level by level, summarise for each of these grouping categories and bind them all together
-    bind_rows(zoop%>% #Bind these summarized groupings to the original taxonomic categories in the original dataset
-                mutate(Taxatype=ifelse(Taxname%in%Groups, "UnID species", "Species")))%>% 
-    ungroup()%>%
-    mutate(Taxlifestage=paste(Taxname, Lifestage), #add back in the Taxlifestage variable (removed by the LCD function)
-           Orphan=ifelse(Taxlifestage%in%strsplit(Orphans, ", ")[[1]], T, F), #add an identifier for orphan taxa (species not counted in all data sources)
-           Taxname = ifelse(Taxatype=="UnID species", paste0(Taxname, "_UnID"), Taxname),
-           Taxlifestage=paste(Taxname, Lifestage))%>%
-    select_at(vars(-Taxcats_g))%>%
-    left_join(zoopEnv%>%
-              {if(!AllEnv){
-                select(., Year, Date, SalSurf, Latitude, Longitude, SampleID)
-                } else{
-                  select(., -Source)
-                }}, by="SampleID")
-  
-  rm(Groups)
-  rm(Orphans)
-  
-  if(Shiny==F){
-  print("NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE. Do not compare UnID categories across data sources.", quote=F)
-  }
-  
-  if(Shiny==T) {
-    shiny::showNotification("NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE. Do not compare UnID categories across data sources.", type = "message", duration = NULL)
-  }
-  
-  }
-  
-
-# Apply LCD approach for community data user ------------------------------
-
   
   if(Data=="Community"){
     
     if(!(length(Lumped)>0)){
-      return(zoop)
+      return(list(Data=zoop%>%
+                    left_join(zoopEnv%>%
+                                {if(!AllEnv){
+                                  select(., Year, Date, SalSurf, Latitude, Longitude, SampleID)
+                                } else{
+                                  select(., -Source)
+                                }}, by="SampleID"), Caveats="No disclaimers here! Enjoy the clean data!"))
     }
     
     #Create taxonomy table for all taxonomic levels present in all datasets
@@ -337,7 +329,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
              Family=if_else(str_detect(Taxname_new, "\\_Genus|\\_Family"), Family, NA_character_),
              Order=if_else(str_detect(Taxname_new, "\\_Genus|\\_Family|\\_Order"), Order, NA_character_),
              Class=if_else(str_detect(Taxname_new, "\\_Genus|\\_Family|\\_Order|\\_Class"), Class, NA_character_)
-             )%>%
+      )%>%
       mutate(Taxname_new=str_extract(Taxname_new, "^[^_]+(?=_)"))
     
     rm(Lumped)
@@ -352,13 +344,9 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
       
       Removed<-paste(Removed, collapse=", ")
       
-      if(Shiny==F){
-        print(paste("These species have no relatives common to all datasets and have been removed: ", Removed), quote=F)
-      }
-      
-      if(Shiny==T) {
-        shiny::showNotification(paste("These species have no relatives common to all datasets and have been removed: ", Removed), type = "message", duration = NULL)
-      }
+      caveats<-paste0("These species have no relatives common to all datasets and have been removed: ", Removed)
+    } else{
+      caveats<-"No disclaimers here! Enjoy the clean data!"
     }
     
     
@@ -387,7 +375,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
                               select(-Taxname_new, -Lifestage))%>%
                   distinct(),
                 by="Taxlifestage"
-                  )%>%
+      )%>%
       left_join(zoopEnv%>%
                   {if(!AllEnv){
                     select(., Year, Date, SalSurf, Latitude, Longitude, SampleID)
@@ -396,7 +384,14 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
                   }}, by="SampleID")
   }
   
-  return(zoop)
+  out<-list(Data=zoop, Caveats=caveats)
+  
+  if(Shiny){
+    return(out)
+  } else{
+    print(out$Caveats)
+    return(out$Data)
+  }
 }
 
 # Ideas for testing -------------------------------------------------------
