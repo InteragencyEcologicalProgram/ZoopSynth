@@ -57,7 +57,7 @@ ui <- fluidPage(
            radioGroupButtons("Datatype", "Data Type:", choices = c("Taxa", "Community"), selected = "Community", individual = TRUE, checkIcon = list( yes = tags$i(class = "fa fa-circle", style = "color: steelblue"), no = tags$i(class = "fa fa-circle-o", style = "color: steelblue"))),
            awesomeCheckboxGroup("Sources",
                                 "Sources:",
-                                choices = c(#"Environmental Monitoring Program (EMP)" = "EMP", 
+                                choices = c("Environmental Monitoring Program (EMP)" = "EMP", 
                                   "Fish Restoration Program (FRP)" = "FRP", "Fall Midwater Trawl (FMWT)" = "FMWT", "Summer Townet Survey (TNS)" = "TNS", "20mm Survey (20mm)" = "20mm")),
            
            #Allow users to select which filters they would like to use, then those filter options will appear.
@@ -111,30 +111,38 @@ ui <- fluidPage(
     column(9,
            tabsetPanel(type="tabs",
                        id = "Tab",
-                       tabPanel("Samples", ggiraphOutput("Sampleplot")),
+                       tabPanel("Samples", br(), 
+                                fluidRow(actionBttn("Sample_info", label = NULL, style="material-circle", 
+                                                          color="primary", icon=icon("question"))), 
+                                fluidRow(ggiraphOutput("Sampleplot"))),
                        tabPanel("CPUE", br(),
-                                splitLayout(materialSwitch(
-                                  inputId = "Salzones",
-                                  label = "Salinity zones?", 
-                                  value = TRUE, inline=T,
-                                  status = "primary"
-                                ), 
-                                conditionalPanel(condition = "input.Salzones", 
-                                                 sliderInput("Lowsal", "Low salinity zone", min=0, max=30, value=c(0.5,6), step=0.1, width="100%")), cellWidths = c("25%", "75%"), cellArgs = list(style = "padding: 2px")), 
-                                ggiraphOutput("CPUEplot")),
-                       tabPanel("Map", fluidRow(column(1,br(),br(), style='padding-left:40px', conditionalPanel(condition = "output.Datatype == 'Community'", dropdown(
+                                fluidRow(column(2, fluidRow(actionBttn("CPUE_info", label = NULL, style="material-circle", 
+                                                       color="primary", icon=icon("question"))), br(),
+                                                fluidRow(materialSwitch(
+                                              inputId = "Salzones",
+                                              label = "Salinity zones?", 
+                                              value = TRUE, inline=F,
+                                              status = "primary"
+                                            ))), 
+                                            column(10, conditionalPanel(condition = "input.Salzones", 
+                                                             sliderInput("Lowsal", "Low salinity zone", min=0, max=30, value=c(0.5,6), step=0.1, width="100%")))), 
+                                fluidRow(column(12, ggiraphOutput("CPUEplot")))),
+                       tabPanel("Map", fluidRow(column(1, offset = 0, style='padding:0px;', br() ,
+                                                       actionBttn("Map_info", label = NULL, style="material-circle", 
+                                                                                  color="primary", icon=icon("question"))), 
+                                                       column(1, offset = 0, style='padding:0px;', br(), conditionalPanel(condition = "output.Datatype == 'Community'", dropdown(
                          
                          tags$h3("Map settings"),
                          
                          uiOutput("select_Lifestage"), 
-                         pickerInput('Taxagroups', 'Select pie chart groups:', choices =c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other"), multiple =T, selected=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")),
+                         pickerInput('Taxagroups', 'Select taxa:', choices =c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other"), multiple =T, selected=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")),
                          
                          circle = TRUE, status = "danger",
                          icon = icon("gear"), width = "300px",
                          
                          tooltip = tooltipOptions(title = "Click to see inputs!")
                        ))),
-                       column(11, uiOutput("select_Year"))),
+                       column(10, uiOutput("select_Year"))),
                        fluidRow(leafletOutput("Mapplot", width = "100%", height = "100%")))
                        
            )
@@ -168,13 +176,13 @@ ui <- fluidPage(
   
   #Make leaflet legend shapes circles
   #tags$style(type = "text/css", "html, body {width:100%;height:100%}",
- #            ".leaflet .legend i{
-   #                    border-radius: 50%;
-    #                   width: 10px;
-     #                  height: 10px;
-      #                 margin-top: 4px;
-       #                }
-        #               "),
+  #            ".leaflet .legend i{
+  #                    border-radius: 50%;
+  #                   width: 10px;
+  #                  height: 10px;
+  #                 margin-top: 4px;
+  #                }
+  #               "),
   
   #Specify plot sizes
   tags$head(tags$style("#Sampleplot{height:100vh !important;}")),
@@ -238,13 +246,46 @@ server <- function(input, output, session) {
   observeEvent(input$Instructions, {
     sendSweetAlert(session, title = "Instructions", text = tags$span(tags$p("This app combines any combination of the zoop datasets and calculates least common denominator taxa to facilitate
  comparisons across datasets with differing levels of taxonomic resolution."),  
-                                                                     tags$p("Option 'Data' allows you to choose a final output dataset for either Community or Taxa-specific  analyses. If you want all available data on given Taxa, use 'Taxa' If you want to conduct a community analysis, use 'Community.'"),
-                                                                     tags$p("Briefly, Data='Community' optimizes for community-level analyses by taking all taxa by life stage combinations that are not measured in every input dataset, and summing them up taxonomic levels to the lowest taxonomic level they belong to that is covered by all datasets. Remaining Taxa x life stage combos that are not covered in all datasets up to the phylum level (usually something like Annelida or Nematoda or Insect Pupae) are removed from the final dataset."), 
-                                                                     tags$p("Data='Taxa' optimizes for the Taxa-level user by maintaining all data at the original taxonomic level. To facilitate comparions across datasets, this option also sums data into general categories that are comparable across all datasets and years."), 
-                                                                 "------------------------------------------",
-                                                                 tags$p(tags$b("App created and maintained by Sam Bashevkin with help from the IEP zooplankton synthesis team. Please email sam.bashevkin@deltacouncil.ca.gov with any questions or comments"))),
+                                                                     tags$p("Option 'Data type' allows you to choose a final output dataset for either Community or Taxa-specific  analyses. If you want all available data on given Taxa, use 'Taxa' If you want to conduct a community analysis, use 'Community.'"),
+                                                                     tags$p("Briefly, 'Community' optimizes for community-level analyses by taking all taxa by life stage combinations that are not measured in every input dataset, and summing them up taxonomic levels to the lowest taxonomic level they belong to that is covered by all datasets. Remaining Taxa x life stage combinations that are not covered in all datasets up to the phylum level (usually something like Annelida or Nematoda or Insect Pupae) are removed from the final dataset."), 
+                                                                     tags$p("'Taxa' optimizes for the Taxa-level user by maintaining all data at the original taxonomic level. To facilitate comparions across datasets, this option also sums data into general categories that are comparable across all datasets (e.g., Calanoida_all"), 
+                                                                     "------------------------------------------",
+                                                                     tags$p(tags$b("App created and maintained by Sam Bashevkin with help from the IEP zooplankton synthesis team. Please email sam.bashevkin@deltacouncil.ca.gov with any questions or comments"))),
                    type = "info",
                    btn_labels = "Ok", html = F, closeOnClickOutside = TRUE)
+  })
+  
+  #Sample plot info
+  observeEvent(input$Sample_info, {
+    sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Total number of zooplankton samples collected each month by each survey."), p("Hover over the plot with your mouse to view data values.")),
+                   type = "info",
+                   btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
+  })
+  
+  #CPUE plot info
+  observeEvent(input$CPUE_info, {
+    if("Taxatype"%in%colnames(plotdata2())){
+    sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Average abundance by year of each selected taxa by life stage combination"), h3("It is highly recommended to only select a few taxa for this plot"), tags$p("If desired, data can be subdivided into 3 salinity zones with the 'Salinity zones' switch. The borders of the salinity zones can be adjusted by dragging the bar to encompass your favored definition of the low salinity zone. Hover over the plot with your mouse to view data values.")),
+                   type = "info",
+                   btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
+    } else{
+      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Community composition by year"), tags$p("If desired, data can be subdivided into 3 salinity zones with the 'Salinity zones' switch. The borders of the salinity zones can be adjusted by dragging the bar to encompass your favored definition of the low salinity zone. Hover over the plot with your mouse to view data values.")),
+                     type = "info",
+                     btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
+    }
+  })
+  
+  #Map plot info
+  observeEvent(input$Map_info, {
+    if("Taxatype"%in%colnames(plotdata2())){
+      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Mapped average yearly abundance of each selected taxa by life stage combination"), h3("It is highly recommended to only select a few taxa for this plot"), tags$p("Bubble area is scaled to CPUE. The map can be animated to loop through years by clicking the 'play' button on the right side of the year selector. Hover over the plot with your mouse to view data values. Adjustments to the bounds and zoom of the plot will not be reflected in the downloaded plot, sorry!")),
+                     type = "info",
+                     btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
+    } else{
+      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Mapped yearly community composition of major taxonomic groups"), tags$p("Click the red gear to adjust map options. Life stages of each taxa are summed within each sample, so it is recommended to combine life stages. If the map is too crowded with simialr colors, taxa can be deselected and they will be summed into the 'other' group."), p("The map can be animated to loop through years by clicking the 'play' button on the right side of the year selector. Click pie charts to view data values. Adjustments to the bounds and zoom of the plot will not be reflected in the downloaded plot, sorry!")),
+                     type = "info",
+                     btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
+    }
   })
   
   #Filter data to selected taxa. Doing this plotdata in 2 steps makes it so 
@@ -263,7 +304,7 @@ server <- function(input, output, session) {
       filter(!is.na(Latitude) & !is.na(Longitude))%>%
       lazy_dt()%>%
       group_by(Taxlifestage, Year, Latitude, Longitude)%>%
-      summarise(CPUE=mean(CPUE))%>%
+      summarise(CPUE=mean(CPUE, na.rm=T))%>%
       as_tibble()%>%
       ungroup()
   })
@@ -299,8 +340,11 @@ server <- function(input, output, session) {
       mutate(Taxa=ifelse(Taxa%in%Taxagroups, Taxa, "Other"))%>%
       mutate(Taxa=factor(Taxa, levels=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")))%>%
       lazy_dt()%>%
+      group_by(Taxa, Year, Latitude, Longitude, SampleID)%>%
+      summarise(CPUE=sum(CPUE, na.rm=T))%>%
+      ungroup()%>%
       group_by(Taxa, Year, Latitude, Longitude)%>%
-      summarise(CPUE=mean(CPUE))%>%
+      summarise(CPUE=mean(CPUE, na.rm=T))%>%
       as_tibble()%>%
       ungroup()%>%
       arrange(Taxa)%>%
@@ -485,7 +529,7 @@ server <- function(input, output, session) {
             scale_linetype_manual(values=c(3,2,1))+
             coord_cartesian(expand=0)+
             scale_x_continuous(breaks = function(x) unique(floor(pretty(seq(min(x), max(x)), n=4))), expand=c(0,0))+
-            scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=1))+
+            scale_color_manual(values=rep(brewer.pal(11, "RdYlBu"), ceiling(colorCount/11)), name="Taxa and life stage", guide = guide_legend(ncol=1))+
             ylab(bquote(Average~CPUE~"("*Catch*"/"*m^3*")"))+
             theme_bw()+
             theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=10))
@@ -495,7 +539,7 @@ server <- function(input, output, session) {
             geom_point_interactive(size=2, aes(color=Taxlifestage, tooltip=tooltip, data_id = ID))+
             coord_cartesian(expand=0)+
             scale_x_continuous(breaks = function(x) unique(floor(pretty(seq(min(x), max(x)), n=4))), expand=c(0,0))+
-            scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=1))+
+            scale_color_manual(values=rep(brewer.pal(11, "RdYlBu"), ceiling(colorCount/11)), name="Taxa and life stage", guide = guide_legend(ncol=1))+
             ylab(bquote(Average~CPUE~"("*Catch*"/"*m^3*")"))+
             theme_bw()+
             theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=10))
@@ -517,7 +561,7 @@ server <- function(input, output, session) {
         } else{
           group_by(., Year,Phylum, Class, Order, Family, Genus, Species, Lifestage, Taxlifestage)
         }}%>%
-        summarise(CPUE=mean(CPUE))%>%
+        summarise(CPUE=mean(CPUE, na.rm=T))%>%
         ungroup()%>%
         mutate(tooltip=sprintf(str_model, Year, Taxlifestage, round(CPUE)),
                ID=as.character(1:n()))%>%
@@ -531,7 +575,7 @@ server <- function(input, output, session) {
         {if(input$Salzones){
           facet_wrap(~Salinity_zone, nrow=1)
         }}+
-        scale_fill_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=2))+
+        scale_fill_manual(values=rep(brewer.pal(11, "RdYlBu"), ceiling(colorCount/11)), name="Taxa and life stage", guide = guide_legend(ncol=2))+
         ylab(bquote(Average~CPUE~"("*Catch*"/"*m^3*")"))+
         theme_bw()+
         theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=6), legend.key.size = unit(10, "points"), strip.background=element_blank())
@@ -590,23 +634,23 @@ server <- function(input, output, session) {
       addMinicharts(lng = filteredspreadmapdatacom$Longitude, lat = filteredspreadmapdatacom$Latitude,
                     type = "pie",
                     chartdata = filteredspreadmapdatacom%>%select_at(vars(unique(filteredmapdatacom()$Taxa)))%>%as.matrix(), 
-                    colorPalette = brewer.pal(9, "RdYlBu"), transitionTime = 0, opacity=0.8)
+                    colorPalette = brewer.pal(length(unique(filteredmapdatacom()$Taxa)), "RdYlBu"), transitionTime = 0, opacity=0.8)
   }, ignoreNULL = T)
   
   
   # map that will be downloaded
   mapdown <- reactive({
     if("Taxatype"%in%colnames(plotdata2())){
-    pal <- Taxapal()
-    leaflet(filteredmapdatataxa())%>%
-      addProviderTiles("Esri.WorldGrayCanvas")%>%
-      addLegendCustom(colors = rep("black",3),
-                      labels = maplabels()$Labels,
-                      sizes = maplabels()$Radii*2, position="topleft",
-                      title="CPUE")%>%
-      addLegend("topleft", pal = Taxapal(), values = ~Taxlifestage)%>%
-      addCircleMarkers(radius = ~(sqrt(CPUE)/sqrt(mapmax()))*22, weight = 1, lng = ~Longitude, lat = ~Latitude,
-                       fillColor = ~pal(Taxlifestage), color="black", fillOpacity = 0.7, label = ~paste0(Taxlifestage, ": ", round(CPUE)))#%>% 
+      pal <- Taxapal()
+      leaflet(filteredmapdatataxa())%>%
+        addProviderTiles("Esri.WorldGrayCanvas")%>%
+        addLegendCustom(colors = rep("black",3),
+                        labels = maplabels()$Labels,
+                        sizes = maplabels()$Radii*2, position="topleft",
+                        title="CPUE")%>%
+        addLegend("topleft", pal = Taxapal(), values = ~Taxlifestage)%>%
+        addCircleMarkers(radius = ~(sqrt(CPUE)/sqrt(mapmax()))*22, weight = 1, lng = ~Longitude, lat = ~Latitude,
+                         fillColor = ~pal(Taxlifestage), color="black", fillOpacity = 0.7, label = ~paste0(Taxlifestage, ": ", round(CPUE)))#%>% 
       #setView(lng = input$Mapplot_center$lng,  lat = input$Mapplot_center$lat, zoom = input$Mapplot_zoom) ##Not working, doesn't exactly match the map you see
     } else{
       filteredspreadmapdatacom<-filteredmapdatacom()%>%
@@ -617,8 +661,8 @@ server <- function(input, output, session) {
         addMinicharts(lng = filteredspreadmapdatacom$Longitude, lat = filteredspreadmapdatacom$Latitude,
                       type = "pie",
                       chartdata = filteredspreadmapdatacom%>%select_at(vars(unique(filteredmapdatacom()$Taxa)))%>%as.matrix(), 
-                      colorPalette = brewer.pal(9, "RdYlBu"), transitionTime = 0, opacity=0.8)#%>% 
-        #setView(lng = input$Mapplot_center$lng,  lat = input$Mapplot_center$lat, zoom = input$Mapplot_zoom) ##Not working, doesn't exactly match the map you see
+                      colorPalette = brewer.pal(length(unique(filteredmapdatacom()$Taxa)), "RdYlBu"), transitionTime = 0, opacity=0.8)#%>% 
+      #setView(lng = input$Mapplot_center$lng,  lat = input$Mapplot_center$lat, zoom = input$Mapplot_zoom) ##Not working, doesn't exactly match the map you see
     }
   })
   
