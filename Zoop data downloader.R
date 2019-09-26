@@ -281,15 +281,13 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   
   data.list[["EMP_Micro"]] <- zoo_EMP_Micro%>%
     select(-Year, -SurveyCode, -Survey, -SurveyRep, -EZStation, -DWRStationNo, -Core, -Region)%>%
+    rename(OTHCYCADPUMP=OTHCYCAD)%>%
     gather(key="EMP", value="CPUE", -SampleDate, -Station, -Secchi, -`Chl-a`, -Temperature,
            -ECSurfacePreTow, -ECBottomPreTow, -PumpVolume)%>% #transform from wide to long
     mutate(Source="EMP",
            SizeClass="Micro")%>% #add variable for data source
     select(Source, Date=SampleDate, Station, Chl=`Chl-a`, CondBott = ECBottomPreTow, CondSurf = ECSurfacePreTow, Secchi, 
            Temperature, Volume = PumpVolume, EMP, CPUE)%>% #Select for columns in common and rename columns to match
-    
-    
-    
     left_join(crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
                 select(EMP, Lifestage, Taxname, Phylum, Class, Order, Family, Genus, Species, Intro, EMPstart, EMPend)%>% #only retain EMP codes
                 filter(!is.na(EMP))%>% #Only retain Taxnames corresponding to EMP codes

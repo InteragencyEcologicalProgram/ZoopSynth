@@ -23,6 +23,7 @@ require(mapview)
 require(shinyWidgets) 
 require(leaflet.minicharts)
 
+#required for users to download map plots from shinyapps.io
 if (is.null(suppressMessages(webshot:::find_phantom()))) { webshot::install_phantomjs() }
 
 #Source Sam's function that gets the data from online
@@ -313,7 +314,7 @@ server <- function(input, output, session) {
   mapdatacom <- reactive( {
     
     if(is.null(input$Lifestage)){
-      Lifestages<-unique(plotdata()$Data$Lifestage)
+      Lifestages<-unique(plotdata()$Data$Lifestage)[1]
     } else{
       Lifestages<-input$Lifestage
     }
@@ -437,7 +438,7 @@ server <- function(input, output, session) {
     })
     
     pickerInput("Lifestage",
-                "Select life stage:", choices=choice_Lifestage(), selected = choice_Lifestage(), multiple = T, options=list(dropupAuto=F))
+                "Select life stage:", choices=choice_Lifestage(), selected = choice_Lifestage()[1], multiple = T, options=list(dropupAuto=F))
     
   })
   
@@ -634,7 +635,7 @@ server <- function(input, output, session) {
       addMinicharts(lng = filteredspreadmapdatacom$Longitude, lat = filteredspreadmapdatacom$Latitude,
                     type = "pie",
                     chartdata = filteredspreadmapdatacom%>%select_at(vars(unique(filteredmapdatacom()$Taxa)))%>%as.matrix(), 
-                    colorPalette = brewer.pal(length(unique(filteredmapdatacom()$Taxa)), "RdYlBu"), transitionTime = 0, opacity=0.8)
+                    colorPalette = brewer.pal(length(unique(mapdatacom()$Taxa)), "RdYlBu"), transitionTime = 0, opacity=0.8)
   }, ignoreNULL = T)
   
   
@@ -661,7 +662,7 @@ server <- function(input, output, session) {
         addMinicharts(lng = filteredspreadmapdatacom$Longitude, lat = filteredspreadmapdatacom$Latitude,
                       type = "pie",
                       chartdata = filteredspreadmapdatacom%>%select_at(vars(unique(filteredmapdatacom()$Taxa)))%>%as.matrix(), 
-                      colorPalette = brewer.pal(length(unique(filteredmapdatacom()$Taxa)), "RdYlBu"), transitionTime = 0, opacity=0.8)#%>% 
+                      colorPalette = brewer.pal(length(unique(mapdatacom()$Taxa)), "RdYlBu"), transitionTime = 0, opacity=0.8)#%>% 
       #setView(lng = input$Mapplot_center$lng,  lat = input$Mapplot_center$lat, zoom = input$Mapplot_zoom) ##Not working, doesn't exactly match the map you see
     }
   })
