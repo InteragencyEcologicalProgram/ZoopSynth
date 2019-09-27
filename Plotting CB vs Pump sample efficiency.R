@@ -2,6 +2,7 @@ require(tidyverse)
 require(readxl)
 require(lubridate)
 require(dtplyr)
+require(broom)
 
 EMP_CB <- read_excel("Data/1972-2018CBMatrix.xlsx", 
                      sheet = "CB CPUE Matrix 1972-2018", 
@@ -90,3 +91,54 @@ ggplot(EMP_sum, aes(x=Method, y=CPUE, fill=Method))+
   scale_y_continuous(limits=c(0,NA), expand=expand_scale(mult=c(0,0.05)))+
   theme_bw()+
   theme(panel.grid=element_blank(), strip.background=element_blank())
+
+
+
+EMP_xyplot<-EMP%>%
+  spread(key = Method, value = CPUE)%>%
+  select(-Taxname, -Lifestage, -Year)%>%
+  mutate(CB_l=log(CB+1),
+         Pump_l=log(Pump+1))%>%
+  select(-CB, -Pump)
+
+EMP_model<- function(df) {
+  lm(Pump_l ~ CB_l, data = df)
+}
+
+EMP_xyplot_models<-EMP_xyplot%>%
+  group_by(Taxlifestage)%>%
+  nest()%>% 
+  mutate(model = map(data, EMP_model))%>%
+  select(-data, )%>%
+  mutate(model_sum=map(model, tidy))%>%
+  unnest(model_sum)%>%
+  select(-p.value, -statistic, -std.error)%>%
+  spread(key=term, value=estimate)%>%
+  rename(Intercept=`(Intercept)`, Slope=CB_l)%>%
+  mutate(model_sum=map(model, glance))%>%
+  unnest(model_sum)%>%
+  select(-model, -sigma, -statistic, -df, -logLik, -AIC, -BIC, -deviance, -df.residual)
+
+EMP_xyplot_stats<-EMP_xyplot%>%
+  group_by(Taxlifestage)%>%
+  summarise(CB_l_max=max(CB_l), Pump_l_max=max(Pump_l))%>%
+  left_join(EMP_xyplot_models%>%
+              select(Taxlifestage, r.squared, p.value),
+            by="Taxlifestage")%>%
+  mutate(r.squared=round(r.squared, 2),
+         p.value=round(p.value, 4))
+
+p<-ggplot(EMP_xyplot, aes(x=CB_l, y=Pump_l, group=Taxlifestage))+
+  geom_point(alpha=0.2)+
+  geom_abline(data=EMP_xyplot_models, aes(intercept=Intercept, slope=Slope, group=Taxlifestage), color="blue")+
+  geom_text(data=EMP_xyplot_stats, aes(x=CB_l_max*0.85, y=Pump_l_max*0.1, label=paste0("R2 = ", r.squared)), size=3)+
+  facet_wrap(~Taxlifestage, scales="free")+
+  scale_y_continuous(limits=c(0,NA), expand=expand_scale(mult=c(0.01,0.05)))+
+  scale_x_continuous(limits=c(0,NA), expand=expand_scale(mult=c(0.01,0.05)))+
+  xlab("log(CB CPUE)")+
+  ylab("log(Pump CPUE)")+
+  theme_bw()+
+  theme(panel.grid=element_blank(), strip.background=element_blank())
+
+ggsave(p, file="Pump CB CPUEs.png", device = "png", units="in", height=8, width=10)
+

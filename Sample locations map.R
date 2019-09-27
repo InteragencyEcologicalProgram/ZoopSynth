@@ -15,6 +15,6 @@ p<-leaflet(data=Stations)%>%
   addProviderTiles("Esri.WorldGrayCanvas")%>%
   setView(lng=-121.873, lat=38.190039, zoom=11)%>%
   addCircleMarkers(lat=~Latitude, lng=~Longitude, fillColor = ~pal(Source), color = "Black", radius=5, weight=2, fillOpacity = 0.4)%>%
-  addLegend("topleft", pal = pal, values = ~Source, labels=labformat)
+  addLegend("topleft", pal = pal, values = ~Source)
 
 mapview::mapshot(p, file="Samples map.png", vheight=1333, vwidth=1690)
