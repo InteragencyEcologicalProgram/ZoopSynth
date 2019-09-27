@@ -200,16 +200,12 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   }
   
   zoo_FRP_Meso <- read_csv("Data/zoopsFRP2018.csv",
-                      col_types = paste0("c","c", "t", "d", "d", "d", "d", "d", "d", "d", "d", 
-                                         "c", "c", "c", 
-                                         "d", "d","d","d",
-                                         "d", "c"), na=c("", "NA"))
+                      col_types = "cctddddddddcccdddddc", na=c("", "NA"))
   
   #Already in long format
   data.list[["FRP_Meso"]] <- zoo_FRP_Meso%>%
     mutate(Date=parse_date_time(Date, "%m/%d/%Y", tz="America/Los_Angeles"))%>%
-    mutate(Station=replace(Station, Station=="Lindsey Tules", "Lindsey tules"),
-           Station=replace(Station, Station=="LinBR", "LinBr"))%>% #Rename inconsistent station names to match
+    mutate(Station=recode(Station, `Lindsey Tules`="Lindsey tules", LinBR="LinBr"))%>% #Rename inconsistent station names to match
     mutate(Datetime=parse_date_time(paste0(Date, " ", hour(time), ":", minute(time)), "%Y-%m-%d %%H:%M", tz="America/Los_Angeles"))%>% #Create a variable for datetime
     mutate(Source="FRP",
            SizeClass="Meso")%>% #add variable for data source
@@ -311,6 +307,43 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
     ungroup()%>%
     as_tibble() #required to finish operation after lazy_dt()
   
+
+# FRP Macro ---------------------------------------------------------------
+
+  # Import the FRP data
+  
+  #download the file
+  if (!file.exists("Data/bugsFRP2018.csv") | ReDownloadData) {
+    download.file("https://portal.edirepository.org/nis/dataviewer?packageid=edi.269.2&entityid=630f16b33a9cbf75f1989fc18690a6b3",
+                  "Data/bugsFRP2018.csv.csv", mode="wb")
+  }
+  
+  zoo_FRP_Macro <- read_csv("Data/bugsFRP2018.csv.csv",
+                           col_types = "cctcddddddddccdddcddc", na=c("", "NA"))
+  
+  #Already in long format
+  data.list[["FRP_Macro"]] <- zoo_FRP_Macro%>%
+    mutate(Date=parse_date_time(Date, "%m/%d/%Y", tz="America/Los_Angeles"))%>%
+    mutate(Station=recode(Station, `Lindsey Tules`="Lindsey tules", LinBR="LinBr", MINSLO1="MinSlo1", ProBR="ProBr", WinBR="WinBr"))%>% #Rename inconsistent station names to match
+    mutate(Datetime=parse_date_time(paste0(Date, " ", hour(time), ":", minute(time)), "%Y-%m-%d %%H:%M", tz="America/Los_Angeles"))%>% #Create a variable for datetime
+    mutate(Source="FRP",
+           SizeClass="Meso")%>% #add variable for data source
+    select(Source, Date, Datetime, 
+           Station, CondSurf = SC, Secchi, pH, DO, Turbidity, Tide, Microcystis,
+           Temperature = Temp, Volume = volume, FRP = CommonName, CPUE, SampleID)%>% #Select for columns in common and rename columns to match
+    left_join(crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
+                select(FRP, Lifestage, Taxname, Phylum, Class, Order, Family, Genus, Species)%>% #only retain FRP codes
+                filter(!is.na(FRP))%>% #Only retain Taxnames corresponding to FRP codes
+                distinct(),
+              by = "FRP")%>%
+    mutate(Taxlifestage=paste(Taxname, Lifestage))%>% #create variable for combo taxonomy x life stage
+    select(-FRP)%>% #Remove FRP taxa codes
+    lazy_dt()%>% #Speed up code
+    group_by_at(vars(-CPUE))%>% #Some taxa names are repeated as in EMP so 
+    summarise(CPUE=sum(CPUE, na.rm=T))%>% #this just adds up those duplications
+    ungroup()%>%
+    mutate(SampleID=paste(Source, SampleID))%>% #Create identifier for each sample
+    as_tibble()
   
   # Combine data ----------------------------------------
   
