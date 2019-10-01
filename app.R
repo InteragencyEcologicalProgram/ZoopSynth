@@ -283,7 +283,7 @@ server <- function(input, output, session) {
                      type = "info",
                      btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
     } else{
-      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Mapped yearly community composition of major taxonomic groups"), tags$p("Click the red gear to adjust map options. Life stages of each taxa are summed within each sample, so it is recommended to combine life stages. If the map is too crowded with simialr colors, taxa can be deselected and they will be summed into the 'other' group."), p("The map can be animated to loop through years by clicking the 'play' button on the right side of the year selector. Click pie charts to view data values. Adjustments to the bounds and zoom of the plot will not be reflected in the downloaded plot, sorry!")),
+      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Mapped yearly community composition of major taxonomic groups"), tags$p("Click the red gear to adjust map options. Life stages of each taxa are summed within each sample, so it is not recommended to combine life stages. If the map is too crowded with simialr colors, taxa can be deselected and they will be summed into the 'other' group."), p("The map can be animated to loop through years by clicking the 'play' button on the right side of the year selector. Click pie charts to view data values. Adjustments to the bounds and zoom of the plot will not be reflected in the downloaded plot, sorry!")),
                      type = "info",
                      btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
     }
@@ -530,7 +530,7 @@ server <- function(input, output, session) {
             scale_linetype_manual(values=c(3,2,1))+
             coord_cartesian(expand=0)+
             scale_x_continuous(breaks = function(x) unique(floor(pretty(seq(min(x), max(x)), n=4))), expand=c(0,0))+
-            scale_color_manual(values=rep(brewer.pal(11, "RdYlBu"), ceiling(colorCount/11)), name="Taxa and life stage", guide = guide_legend(ncol=1))+
+            scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=1))+
             ylab(bquote(Average~CPUE~"("*Catch*"/"*m^3*")"))+
             theme_bw()+
             theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=10))
@@ -540,7 +540,7 @@ server <- function(input, output, session) {
             geom_point_interactive(size=2, aes(color=Taxlifestage, tooltip=tooltip, data_id = ID))+
             coord_cartesian(expand=0)+
             scale_x_continuous(breaks = function(x) unique(floor(pretty(seq(min(x), max(x)), n=4))), expand=c(0,0))+
-            scale_color_manual(values=rep(brewer.pal(11, "RdYlBu"), ceiling(colorCount/11)), name="Taxa and life stage", guide = guide_legend(ncol=1))+
+            scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=1))+
             ylab(bquote(Average~CPUE~"("*Catch*"/"*m^3*")"))+
             theme_bw()+
             theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=10))

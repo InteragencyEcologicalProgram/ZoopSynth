@@ -11,10 +11,20 @@ Stations <- read_excel("Data/zoop_stations.xlsx", sheet="lat_long")%>%
 
 pal<-colorFactor(brewer.pal(5, "Dark2"), Stations$Source)
 
+#Zoomed in
 p<-leaflet(data=Stations)%>%
   addProviderTiles("Esri.WorldGrayCanvas")%>%
   setView(lng=-121.873, lat=38.190039, zoom=11)%>%
   addCircleMarkers(lat=~Latitude, lng=~Longitude, fillColor = ~pal(Source), color = "Black", radius=5, weight=2, fillOpacity = 0.4)%>%
   addLegend("topleft", pal = pal, values = ~Source)
 
-mapview::mapshot(p, file="Samples map.png", vheight=1333, vwidth=1690)
+mapview::mapshot(p, file="Samples map in.png", vheight=1333, vwidth=1690)
+
+#Zoomed out
+p<-leaflet(data=Stations)%>%
+  addProviderTiles("Esri.WorldGrayCanvas")%>%
+  setView(lng=-121.873, lat=38.190039, zoom=10)%>%
+  addCircleMarkers(lat=~Latitude, lng=~Longitude, fillColor = ~pal(Source), color = "Black", radius=5, weight=2, fillOpacity = 0.4)%>%
+  addLegend("topleft", pal = pal, values = ~Source)
+
+mapview::mapshot(p, file="Samples map out.png", vheight=800, vwidth=1000)
