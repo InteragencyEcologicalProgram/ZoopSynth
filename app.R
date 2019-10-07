@@ -22,6 +22,7 @@ require(webshot)
 require(mapview)
 require(shinyWidgets) 
 require(leaflet.minicharts)
+require(randomcoloR)
 
 #required for users to download map plots from shinyapps.io
 if (is.null(suppressMessages(webshot:::find_phantom()))) { webshot::install_phantomjs() }
@@ -349,8 +350,7 @@ server <- function(input, output, session) {
       as_tibble()%>%
       ungroup()%>%
       arrange(Taxa)%>%
-      mutate(Taxa=as.character(Taxa),
-             CPUE=round(CPUE))
+      mutate(CPUE=round(CPUE))
   })
   
   #Pull out maximum CPUE for map plot scale
@@ -373,9 +373,14 @@ server <- function(input, output, session) {
       filter(Year==input$Year)
   })
   
+  Compal<-reactive({
+    colorFactor(brewer.pal(length(unique(mapdatacom()$Taxa)), "RdYlBu"), mapdatacom()%>%pull(Taxa))
+  })
+  
   #Create Community map data filtered to year
   filteredmapdatacom<-reactive({
     mapdatacom()%>%
+      mutate(Taxa=as.character(Taxa))%>%
       filter(Year==input$Year)
   })
   
@@ -576,7 +581,7 @@ server <- function(input, output, session) {
         {if(input$Salzones){
           facet_wrap(~Salinity_zone, nrow=1)
         }}+
-        scale_fill_manual(values=rep(brewer.pal(11, "RdYlBu"), ceiling(colorCount/11)), name="Taxa and life stage", guide = guide_legend(ncol=2))+
+        scale_fill_manual(values=distinctColorPalette(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=2))+
         ylab(bquote(Average~CPUE~"("*Catch*"/"*m^3*")"))+
         theme_bw()+
         theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=6), legend.key.size = unit(10, "points"), strip.background=element_blank())
@@ -585,7 +590,6 @@ server <- function(input, output, session) {
   
   Mapplot<-reactive({
     if("Taxatype"%in%colnames(plotdata2())){
-      pal <- Taxapal()
       leaflet(mapdatataxa())%>%
         addProviderTiles("Esri.WorldGrayCanvas")%>%
         fitBounds(~min(Longitude, na.rm=T), ~min(Latitude, na.rm=T), ~max(Longitude, na.rm=T), ~max(Latitude, na.rm=T))%>%
@@ -595,9 +599,10 @@ server <- function(input, output, session) {
                         title="CPUE")%>%
         addLegend("topleft", pal = Taxapal(), values = ~Taxlifestage)
     } else{
-      leaflet(plotdata2()%>%filter(!is.na(Latitude) & !is.na(Longitude)))%>%
+      leaflet(mapdatacom())%>%
         addProviderTiles("Esri.WorldGrayCanvas")%>%
-        fitBounds(~min(Longitude, na.rm=T), ~min(Latitude, na.rm=T), ~max(Longitude, na.rm=T), ~max(Latitude, na.rm=T))
+        fitBounds(~min(Longitude, na.rm=T), ~min(Latitude, na.rm=T), ~max(Longitude, na.rm=T), ~max(Latitude, na.rm=T))%>%
+        addLegend("topright", pal = Compal(), values = ~Taxa, opacity=1)
     }
   })
   
@@ -630,12 +635,13 @@ server <- function(input, output, session) {
     req(input$Tab=="Map" & !("Taxatype"%in%colnames(plotdata2())) & nrow(filteredmapdatacom())>1)
     filteredspreadmapdatacom<-filteredmapdatacom()%>%
       spread(key=Taxa, value = CPUE)
+    filteredspreadmapdatacommat<-filteredspreadmapdatacom%>%select_at(vars(unique(filteredmapdatacom()$Taxa)))%>%as.matrix()
     map<-leafletProxy("Mapplot", session, data = filteredspreadmapdatacom, deferUntilFlush=T)%>%
       clearMinicharts() %>%
       addMinicharts(lng = filteredspreadmapdatacom$Longitude, lat = filteredspreadmapdatacom$Latitude,
                     type = "pie",
-                    chartdata = filteredspreadmapdatacom%>%select_at(vars(unique(filteredmapdatacom()$Taxa)))%>%as.matrix(), 
-                    colorPalette = brewer.pal(length(unique(mapdatacom()$Taxa)), "RdYlBu"), transitionTime = 0, opacity=0.8)
+                    chartdata = filteredspreadmapdatacommat, 
+                    colorPalette = Compal()(colnames(filteredspreadmapdatacommat)), legend=FALSE, transitionTime = 0, opacity=0.8)
   }, ignoreNULL = T)
   
   
@@ -656,13 +662,14 @@ server <- function(input, output, session) {
     } else{
       filteredspreadmapdatacom<-filteredmapdatacom()%>%
         spread(key=Taxa, value = CPUE)
-      
+      filteredspreadmapdatacommat<-filteredspreadmapdatacom%>%select_at(vars(unique(filteredmapdatacom()$Taxa)))%>%as.matrix()
       leaflet(data = filteredspreadmapdatacom)%>%
         addProviderTiles("Esri.WorldGrayCanvas")%>%
+        addLegend("topright", pal = Compal(), values = mapdatacom()$Taxa, opacity=1)%>%
         addMinicharts(lng = filteredspreadmapdatacom$Longitude, lat = filteredspreadmapdatacom$Latitude,
                       type = "pie",
-                      chartdata = filteredspreadmapdatacom%>%select_at(vars(unique(filteredmapdatacom()$Taxa)))%>%as.matrix(), 
-                      colorPalette = brewer.pal(length(unique(mapdatacom()$Taxa)), "RdYlBu"), transitionTime = 0, opacity=0.8)#%>% 
+                      chartdata = filteredspreadmapdatacommat, 
+                      colorPalette = Compal()(colnames(filteredspreadmapdatacommat)), legend=FALSE, transitionTime = 0, opacity=0.8)#%>% 
       #setView(lng = input$Mapplot_center$lng,  lat = input$Mapplot_center$lat, zoom = input$Mapplot_zoom) ##Not working, doesn't exactly match the map you see
     }
   })
@@ -693,7 +700,7 @@ server <- function(input, output, session) {
         if(input$Tab=="CPUE"){
           ggsave(filename=file, plot=CPUEplot(), device=input$Format, width=input$Plotwidth, height=input$Plotheight, units="in")
         } else {
-          mapshot(mapdown(), file=file)
+          mapshot(mapdown(), file=file, zoom=3)
         }
       }
       #removeModal()
