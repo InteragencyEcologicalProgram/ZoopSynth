@@ -60,7 +60,7 @@ ui <- fluidPage(
            awesomeCheckboxGroup("Sources",
                                 "Sources:",
                                 choices = c("Environmental Monitoring Program (EMP)" = "EMP", 
-                                  "Fish Restoration Program (FRP)" = "FRP", "Fall Midwater Trawl (FMWT)" = "FMWT", "Summer Townet Survey (TNS)" = "TNS", "20mm Survey (20mm)" = "20mm")),
+                                  "Fish Restoration Program (FRP)" = "FRP", "Fall Midwater Trawl (FMWT)" = "FMWT", "Summer Townet Survey (TNS)" = "TNS", "20mm Survey (twentymm)" = "twentymm")),
            
            #Allow users to select which filters they would like to use, then those filter options will appear.
            
@@ -68,20 +68,20 @@ ui <- fluidPage(
                                 "Filters:",
                                 choices = c("Dates", "Months", "Surface salinity", "Latitude", "Longitude")),
            conditionalPanel(condition = "input.Filters.includes('Dates')",
-                            dateRangeInput("Daterange", label = "Date range", 
+                            dateRangeInput("Date_range", label = "Date range", 
                                            start = "1972-01-01", end = "2018-12-31", startview = "year")),
            conditionalPanel(condition = "input.Filters.includes('Months')",
                             pickerInput("Months", "Months:", choices=c("January" = 1, "February" = 2, "March" = 3, "April" = 4, "May" = 5, "June" = 6, "July" = 7, "August" = 8, "September" = 9, "October" = 10, "November" = 11, "December" = 12), selected = 1, multiple = T, options=list(`actions-box`=TRUE, `selected-text-format` = "count > 3"))),
            conditionalPanel(condition = "input.Filters.includes('Surface salinity')",
-                            sliderInput("SalSurfrange",
+                            sliderInput("Sal_surf_range",
                                         "Surface salinity:",
                                         min = 0, max = 32, value = c(0,7), step=0.1)),
            conditionalPanel(condition = "input.Filters.includes('Latitude')",
-                            sliderInput("Latrange",
+                            sliderInput("Lat_range",
                                         "Latitude Range",
                                         min = 37.8, max = 38.6, value = c(37.8, 38.6), step=0.05)),
            conditionalPanel(condition = "input.Filters.includes('Longitude')",
-                            sliderInput("Longrange",
+                            sliderInput("Long_range",
                                         "Longitude Range:",
                                         min = -122.5, max = -121.3, value = c(-122.5, -121.3), step=0.05)),
            #radioButtons("Plottype", "Plot Type", choices = c("Samples", "CPUE", "Map"), selected = "Samples",
@@ -229,12 +229,12 @@ server <- function(input, output, session) {
     
     Zooper(Data = input$Datatype, 
            Sources = input$Sources, 
-           Daterange = ifelse(rep("Dates"%in%input$Filters, 2), input$Daterange, c(NA, NA)),
+           Date_range = ifelse(rep("Dates"%in%input$Filters, 2), input$Date_range, c(NA, NA)),
            Months = ifelse(rep("Months"%in%input$Filters, length(input$Months)), as.integer(input$Months), rep(NA, length(input$Months))),  
-           SalSurfrange = ifelse(rep("Surface salinity"%in%input$Filters, 2), input$SalSurfrange, c(NA, NA)),
-           Latrange = ifelse(rep("Latitude"%in%input$Filters, 2), input$Latrange, c(NA, NA)), 
-           Longrange = ifelse(rep("Longitude"%in%input$Filters, 2), input$Longrange, c(NA, NA)), 
-           Shiny=T, AllEnv=F)
+           Sal_surf_range = ifelse(rep("Surface salinity"%in%input$Filters, 2), input$Sal_surf_range, c(NA, NA)),
+           Lat_range = ifelse(rep("Latitude"%in%input$Filters, 2), input$Lat_range, c(NA, NA)), 
+           Long_range = ifelse(rep("Longitude"%in%input$Filters, 2), input$Long_range, c(NA, NA)), 
+           Shiny=T, All_env=F)
   })
   
   #Disclaimer
@@ -456,7 +456,7 @@ server <- function(input, output, session) {
   
   Sampleplot <- reactive({
     myColors <- RColorBrewer::brewer.pal(5,"Set2")
-    names(myColors) <- c("EMP", "FMWT", "TNS", "20mm", "FRP")
+    names(myColors) <- c("EMP", "FMWT", "TNS", "twentymm", "FRP")
     fillScale <- scale_fill_manual(name = "Source", values = myColors)
     
     str_model <- paste0("<tr><td>Year &nbsp</td><td>%s</td></tr>",
@@ -716,12 +716,12 @@ server <- function(input, output, session) {
     content = function(file) {
       data <- Zooper(Data = input$Datatype, 
                      Sources = input$Sources, 
-                     Daterange = ifelse(rep("Dates"%in%input$Filters, 2), input$Daterange, c(NA, NA)),
+                     Date_range = ifelse(rep("Dates"%in%input$Filters, 2), input$Date_range, c(NA, NA)),
                      Months = ifelse(rep("Months"%in%input$Filters, length(input$Months)), as.integer(input$Months), rep(NA, length(input$Months))),  
-                     SalSurfrange = ifelse(rep("Surface salinity"%in%input$Filters, 2), input$SalSurfrange, c(NA, NA)),
-                     Latrange = ifelse(rep("Latitude"%in%input$Filters, 2), input$Latrange, c(NA, NA)), 
-                     Longrange = ifelse(rep("Longitude"%in%input$Filters, 2), input$Longrange, c(NA, NA)), 
-                     Shiny=T, AllEnv=T)
+                     Sal_surf_range = ifelse(rep("Surface salinity"%in%input$Filters, 2), input$Sal_surf_range, c(NA, NA)),
+                     Lat_range = ifelse(rep("Latitude"%in%input$Filters, 2), input$Lat_range, c(NA, NA)), 
+                     Long_range = ifelse(rep("Longitude"%in%input$Filters, 2), input$Long_range, c(NA, NA)), 
+                     Shiny=T, All_env=T)
       data <-if (length(input$Taxlifestage)>0 & input$Datatype=="Taxa"){
         filter(data$Data, Taxlifestage%in%input$Taxlifestage)
       } else {

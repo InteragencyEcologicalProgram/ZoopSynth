@@ -1,4 +1,4 @@
-Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community", Daterange=c(NA, NA), Months=NA, Years=NA, SalBottrange=NA, SalSurfrange=NA, Temprange=NA, Latrange=NA, Longrange=NA, Shiny=F, ReLoadData=F, ReDownloadData=F, AllEnv=T){
+Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=c("Micro", "Meso", "Macro"), Data="Community", Date_range=c(NA, NA), Months=NA, Years=NA, Sal_bott_range=NA, Sal_surf_range=NA, Temp_range=NA, Lat_range=NA, Long_range=NA, Shiny=F, Reload_data=F, Redownload_data=F, All_env=T){
   
   
   # Documentation -----------------------------------------------------------
@@ -57,8 +57,8 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   # include, in decimal degree format. Don't forget Longitudes should be 
   # negative
   
-  # To re-load data from local files, use option ReLoadData=T. To redownload
-  # data from the internet, use option ReDownloadData=T.
+  # To re-load data from local files, use option Reload_data=T. To redownload
+  # data from the internet, use option Redownload_data=T.
   
   
   # Setup -------------------------------------------------------------------
@@ -72,8 +72,8 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   require(lubridate)
   
   #Warnings for improper arguments
-  if (!every(Sources, ~.%in%c("EMP", "FRP", "FMWT", "TNS", "20mm"))){
-    stop("Sources must contain one or more of the following options: EMP, FRP, FMWT, TNS, 20mm")
+  if (!every(Sources, ~.%in%c("EMP", "FRP", "FMWT", "TNS", "twentymm"))){
+    stop("Sources must contain one or more of the following options: EMP, FRP, FMWT, TNS, twentymm")
   }
   
   
@@ -81,20 +81,19 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
     stop("Data must be either `Taxa` or `Community`")
   }
   
-  if(!every(list(Shiny, ReLoadData, ReDownloadData), is.logical)){
-    stop("Shiny, ReLoadData, and ReDownloadData must all have logical arguments.")
+  if(!every(list(Shiny, Reload_data, Redownload_data), is.logical)){
+    stop("Shiny, Reload_data, and Redownload_data must all have logical arguments.")
   }
   
   # Load crosswalk key to convert each dataset's taxonomic codes to a
   # unified set of "Taxname" and "Lifestage" values.
   
-  crosswalk <- read_excel("Data/new_crosswalk.xlsx", sheet = "Hierarchy2")%>%
-    select(Lifestage, Taxname, Phylum, Class, Order, Family, Genus, Species)
+  crosswalk <- read_excel("Data/new_crosswalk.xlsx", sheet = "Hierarchy2")
   
   #Make it possible to re-download data if desired
-  if(ReLoadData){
+  if(Reload_data){
     source("Zoop data downloader.R")
-    Zoopdownloader("Data/zoopforzooper.Rds", ReDownloadData)
+    Zoopdownloader("Data/zoopforzooper.Rds", Redownload_data)
   }
   
   # Read in data if not already loaded
@@ -110,36 +109,36 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   
   #Filter data by specified variables if users provide appropriate ranges
   
-  if(!every(SalBottrange, is.na)) {
-    if(some(SalBottrange, is.na)) {
-      stop("One element of SalBottrange cannot be NA, use Inf or -Inf to set limitless bounds")
+  if(!every(Sal_bott_range, is.na)) {
+    if(some(Sal_bott_range, is.na)) {
+      stop("One element of Sal_bott_range cannot be NA, use Inf or -Inf to set limitless bounds")
     }
-    zoopEnv<-filter(zoopEnv, between(SalBott, min(SalBottrange), max(SalBottrange)))
+    zoopEnv<-filter(zoopEnv, between(SalBott, min(Sal_bott_range), max(Sal_bott_range)))
   }
   
-  if(!every(SalSurfrange, is.na)) {
-    if(some(SalSurfrange, is.na)) {
-      stop("One element of SalSurfrange cannot be NA, use Inf or -Inf to set limitless bounds")
+  if(!every(Sal_surf_range, is.na)) {
+    if(some(Sal_surf_range, is.na)) {
+      stop("One element of Sal_surf_range cannot be NA, use Inf or -Inf to set limitless bounds")
     }
-    zoopEnv<-filter(zoopEnv, between(SalSurf, min(SalSurfrange), max(SalSurfrange)))
+    zoopEnv<-filter(zoopEnv, between(SalSurf, min(Sal_surf_range), max(Sal_surf_range)))
   }
   
-  if(!every(Temprange, is.na)) {
-    if(some(Temprange, is.na)) {
-      stop("One element of Temprange cannot be NA, use Inf or -Inf to set limitless bounds")
+  if(!every(Temp_range, is.na)) {
+    if(some(Temp_range, is.na)) {
+      stop("One element of Temp_range cannot be NA, use Inf or -Inf to set limitless bounds")
     }
-    zoopEnv<-filter(zoopEnv, between(Temperature, min(Temprange), max(Temprange)))
+    zoopEnv<-filter(zoopEnv, between(Temperature, min(Temp_range), max(Temp_range)))
   }
   
-  if(!is.na(Daterange[1])){
-    Datemin<-as_date(Daterange[1])
-    if(is.na(Datemin)) {stop("Daterange[1] in incorrect format. Reformat to `yyyy-mm-dd`")}
+  if(!is.na(Date_range[1])){
+    Datemin<-as_date(Date_range[1])
+    if(is.na(Datemin)) {stop("Date_range[1] in incorrect format. Reformat to `yyyy-mm-dd`")}
     zoopEnv<-filter(zoopEnv, Date>Datemin)
   }
   
-  if(!is.na(Daterange[2])){
-    Datemax<-as_date(Daterange[2])
-    if(is.na(Datemax)) {stop("Daterange[2] in incorrect format. Reformat to `yyyy-mm-dd`")}
+  if(!is.na(Date_range[2])){
+    Datemax<-as_date(Date_range[2])
+    if(is.na(Datemax)) {stop("Date_range[2] in incorrect format. Reformat to `yyyy-mm-dd`")}
     zoopEnv<-filter(zoopEnv, Date<Datemax)
   }
   
@@ -151,36 +150,51 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
     zoopEnv<-filter(zoopEnv, Year%in%Years)
   }
   
-  if(!every(Latrange, is.na)) {
-    if(some(Latrange, is.na)) {
-      stop("One element of Latrange cannot be NA, use Inf or -Inf to set limitless bounds")
+  if(!every(Lat_range, is.na)) {
+    if(some(Lat_range, is.na)) {
+      stop("One element of Lat_range cannot be NA, use Inf or -Inf to set limitless bounds")
     }
-    zoopEnv<-filter(zoopEnv, between(Latitude, min(Latrange), max(Latrange)))
+    zoopEnv<-filter(zoopEnv, between(Latitude, min(Lat_range), max(Lat_range)))
   }
   
-  if(!every(Longrange, is.na)) {
-    if(some(Longrange, is.na)) {
-      stop("One element of Longrange cannot be NA, use Inf or -Inf to set limitless bounds")
+  if(!every(Long_range, is.na)) {
+    if(some(Long_range, is.na)) {
+      stop("One element of Long_range cannot be NA, use Inf or -Inf to set limitless bounds")
     }
-    if(some(Longrange>0, isTRUE)) {warning("Longitudes should be negative for the Delta")}    
-    zoopEnv<-filter(zoopEnv, between(Longitude, min(Longrange), max(Longrange)))
+    if(some(Long_range>0, isTRUE)) {warning("Longitudes should be negative for the Delta")}
+    zoopEnv<-filter(zoopEnv, between(Longitude, min(Long_range), max(Long_range)))
   }
   
-  zoop<-filter(zoop, SampleID%in%unique(zoopEnv$SampleID))
+  zoop<-filter(zoop, SampleID%in%unique(zoopEnv$SampleID) & SizeClass%in%Size_class)
   # Apply LCD approach ------------------------------------------------------
   
+  #Make vector of taxonomic categories that we will use later
+  Taxcats<-c("Genus", "Family", "Order", "Class", "Phylum")
   
   # Make list of taxa x life stage combos present in all original datasets
+  SourceTaxaKeyer<-function(source, crosswalk){
+    source2<-sym(source) #unquote input
+    source2<-enquo(source2) #capture expression to pass on to functions below
+      crosswalk%>%
+        filter(!is.na(!!source2))%>%
+        select_at(c(Taxcats, "Taxname", "Lifestage"))%>%
+        distinct()%>%
+        mutate(Source=source)
+  }
+  
+  SourceTaxaKey<-map_dfr(unique(paste(zoop$Source, zoop$SizeClass, sep="_")), SourceTaxaKeyer, crosswalk)%>%
+    separate(Source, into=c("Source", "SizeClass"), sep="_")
+  
   
   #Function to detect common taxonomic names across all source datasets
-  Commontaxer<-function(Taxagroup, data){
+  Commontaxer<-function(Taxagroup, sourcetaxakey){
     Taxagroup<-sym(Taxagroup) #unquote input
     Taxagroup<-enquo(Taxagroup) #capture expression to pass on to functions below
-    N<-data%>%
+    N<-sourcetaxakey%>%
       pull(Source)%>%
       unique()%>%
       length()
-    data%>%
+    sourcetaxakey%>%
       filter(!is.na(!!Taxagroup))%>%
       select(!!Taxagroup, Lifestage, Source)%>%
       distinct()%>%
@@ -192,17 +206,17 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   }
   
   #Find all common Taxname x life stage combinations, turn into vector of Taxlifestages
-  Commontax<-Commontaxer("Taxname", zoop)
-  Commontax<-paste(Commontax$Taxname, Commontax$Lifestage)
+  Commontax<-sapply(unique(zoop$SizeClass), function(x) 
+    filter(SourceTaxaKey, SizeClass==x)%>%
+      Commontaxer("Taxname", .)%>%
+      mutate(Taxlifestage=paste(Taxname, Lifestage))%>%
+      pull(Taxlifestage), 
+    simplify=F)
   
   # Make list of taxalifestages that do not appear in all datasets
   
-  Lumped<-setdiff(unique(zoop$Taxlifestage), Commontax)
-  
-  
-  #Make vector of taxonomic categories that we will use later
-  Taxcats<-c("Genus", "Family", "Order", "Class", "Phylum")
-  
+  Lumped<-sapply(unique(zoop$SizeClass), function(x) 
+    setdiff(unique(filter(zoop, SizeClass==x)$Taxlifestage), Commontax[[x]]), simplify=F)
   
   
   # Apply LCD approach for taxa-level data user ----------------------
@@ -215,7 +229,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
     Taxcats_g<-paste0(Taxcats, "_g")
     
     # Define function to calculate least common denominator for each taxonomic level
-    LCD<-function(df, Taxagroup){
+    LCD_Taxa<-function(df, Taxagroup){
       Taxagroup2<-sym(Taxagroup) #unquote input
       Taxagroup2<-enquo(Taxagroup2) #capture expression to pass on to functions below
       out<-df%>%
@@ -248,40 +262,50 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
     
     #Extract vector of grouping taxa (i.e. all unique taxa retained in the above step)
     
-    Groups<-zoop%>%
-      select(Genus_g, Family_g, Order_g, Class_g, Phylum_g)%>%
-      gather("Level", "Species")%>%
-      filter(!is.na(Species))%>%
-      pull(Species)%>%
-      unique()
-    
+    Groups<-sapply(unique(zoop$SizeClass), function(x)
+      zoop%>%
+        filter(SizeClass==x)%>%
+        select(Genus_g, Family_g, Order_g, Class_g, Phylum_g)%>%
+        gather("Level", "Species")%>%
+        filter(!is.na(Species))%>%
+        pull(Species)%>%
+        unique(), simplify=F)
+      
     # Output list of taxa that were not measured in all datasets, and are 
     # not higher taxa that can be calculated by summing lower taxa, i.e. 
     # "orphan taxa"
     
-    Orphans<-paste(Lumped[-str_which(paste0("[", paste(Groups, collapse="|"), "]"), word(Lumped, 1, -2))], collapse=", ")
+    Orphans<-sapply(unique(zoop$SizeClass), function(x) 
+      paste(Lumped[[x]][-str_which(paste0("[", paste(Groups[[x]], collapse="|"), "]"), word(Lumped[[x]], 1, -2))], collapse=", "), 
+      simplify=F)
     
     rm(Lumped)
     
+    Orphansdf<-Orphans[which(nchar(Orphans)>0)]
+    Orphansdf<-map_dfr(set_names(names(Orphansdf)), .f=~strsplit(Orphansdf[[.x]], ", ")[[1]])%>%
+      gather(key=SizeClass, value=Taxlifestage)%>%
+      mutate(Orphan=TRUE)
+    
+    
     # Calculate summed groups and create a final dataset
     
-    zoop<-map_dfr(Taxcats_g, .f=LCD, df=zoop)%>% #Taxonomic level by level, summarise for each of these grouping categories and bind them all together
+    zoop<-map_dfr(Taxcats_g, .f=LCD_Taxa, df=zoop)%>% #Taxonomic level by level, summarise for each of these grouping categories and bind them all together
       bind_rows(zoop%>% #Bind these summarized groupings to the original taxonomic categories in the original dataset
-                  mutate(Taxatype=ifelse(Taxname%in%Groups, "UnID species", "Species")))%>% 
+                  mutate(Taxatype=ifelse(Taxname%in%unique(unlist(Groups)), "UnID species", "Species")))%>% 
       ungroup()%>%
-      mutate(Taxlifestage=paste(Taxname, Lifestage), #add back in the Taxlifestage variable (removed by the LCD function)
-             Orphan=ifelse(Taxlifestage%in%strsplit(Orphans, ", ")[[1]], T, F), #add an identifier for orphan taxa (species not counted in all data sources)
-             Taxname = ifelse(Taxatype=="UnID species", paste0(Taxname, "_UnID"), Taxname),
-             Taxlifestage=paste(Taxname, Lifestage))%>%
+      mutate(Taxlifestage=paste(Taxname, Lifestage))%>% #add back in the Taxlifestage variable (removed by the LCD_Taxa function)
+      left_join(Orphansdf, by=c("Taxlifestage", "SizeClass"))%>%
+      mutate(Orphan=replace_na(Orphan, FALSE))%>%#add an identifier for orphan taxa (species not counted in all data sources)
+      mutate(Taxname = ifelse(Taxatype=="UnID species", paste0(Taxname, "_UnID"), Taxname))%>%
       select_at(vars(-Taxcats_g))%>%
       left_join(zoopEnv%>%
-                  {if(!AllEnv){
+                  {if(!All_env){
                     select(., Year, Date, SalSurf, Latitude, Longitude, SampleID)
                   } else{
                     select(., -Source)
                   }}, by="SampleID")
     
-    caveats<-paste0("These species are not counted in all datasets: ", Orphans, "\n\n", "NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE. Do not compare UnID categories across data sources.")
+    caveats<-c(paste0("These species are not counted in all datasets: ", paste(unique(unlist(sapply(names(Orphans), function(x) strsplit(Orphans[[x]], ", ")[[1]]))), collapse=" "), "NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE. Orphan status varies with size class. Do not compare UnID categories across data sources."))
     
     rm(Groups)
     rm(Orphans)
@@ -294,23 +318,34 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
   
   if(Data=="Community"){
     
-    if(!(length(Lumped)>0)){
-      return(list(Data=zoop%>%
-                    left_join(zoopEnv%>%
-                                {if(!AllEnv){
-                                  select(., Year, Date, SalSurf, Latitude, Longitude, SampleID)
-                                } else{
-                                  select(., -Source)
-                                }}, by="SampleID"), Caveats="No disclaimers here! Enjoy the clean data!"))
+    if(!some(sapply(Lumped, length), function(x) x>0)){
+      out<-list(Data=zoop%>%
+                  left_join(zoopEnv%>%
+                              {if(!All_env){
+                                select(., Year, Date, SalSurf, Latitude, Longitude, SampleID)
+                              } else{
+                                select(., -Source)
+                              }}, by="SampleID"), Caveats="No disclaimers here! Enjoy the clean data!")
+      
+      if(Shiny){
+        return(out)
+      } else{
+        print(out$Caveats)
+        return(out$Data)
+      }
     }
     
     #Create taxonomy table for all taxonomic levels present in all datasets
-    Commontaxkey<-map_dfr(Taxcats, Commontaxer, zoop)%>%
+    Commontaxkey<-map2_dfr(set_names(rep(unique(zoop$SizeClass), each=length(Taxcats))),
+                           rep(Taxcats, length(unique(zoop$SizeClass))), 
+                           ~Commontaxer(.y, SourceTaxaKey%>%filter(SizeClass==.x)), 
+                           .id = "SizeClass")%>%
       mutate_at(Taxcats, list(lifestage=~ifelse(is.na(.), NA, paste(., Lifestage))))%>% #Create taxa x life stage variable for each taxonomic level
-      select(Genus_lifestage, Family_lifestage, Order_lifestage, Class_lifestage, Phylum_lifestage) #only retain columns we need
+      select(Genus_lifestage, Family_lifestage, Order_lifestage, Class_lifestage, Phylum_lifestage, SizeClass) #only retain columns we need
     
     #Create taxonomy table for taxa not present in all datasets, then select their new names corresponding to taxa x life stage combinations that are measured in all datasets
-    Lumpedkey<-tibble(Taxlifestage=Lumped)%>%
+    LCD_Com<-function(Lumped, crosswalk, Commontaxkey){
+      tibble(Taxlifestage=Lumped)%>%
       left_join(crosswalk%>%
                   select(Taxname, Lifestage, Phylum, Class, Order, Family, Genus)%>%
                   mutate(Taxlifestage=paste(Taxname, Lifestage))%>%
@@ -331,6 +366,11 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
              Class=if_else(str_detect(Taxname_new, "\\_Genus|\\_Family|\\_Order|\\_Class"), Class, NA_character_)
       )%>%
       mutate(Taxname_new=str_extract(Taxname_new, "^[^_]+(?=_)"))
+    }
+    
+    Lumpedkey<-map_dfr(set_names(unique(zoop$SizeClass)), 
+                       ~LCD_Com(Lumped[[.]], crosswalk, filter(Commontaxkey, SizeClass==.)),
+                       .id = "SizeClass")
     
     rm(Lumped)
     rm(Commontaxkey)
@@ -344,18 +384,18 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
       
       Removed<-paste(Removed, collapse=", ")
       
-      caveats<-paste0("These species have no relatives common to all datasets and have been removed: ", Removed)
+      caveats<-paste0("These species have no relatives in their size class common to all datasets and have been removed from one or mor size classes: ", Removed)
     } else{
       caveats<-"No disclaimers here! Enjoy the clean data!"
     }
     
-    
-    #Create a names vector to expedite renaming Taxnames in the next step
-    LCDnames<-setNames(Lumpedkey$Taxname_new, Lumpedkey$Taxlifestage) 
-    
     #
     zoop<-zoop%>%
-      mutate(Taxname=recode(Taxlifestage, !!!LCDnames, .default=Taxname))%>%
+      left_join(Lumpedkey%>%
+                  select(Taxlifestage, Taxname_new, SizeClass),
+                by=c("Taxlifestage", "SizeClass"))%>%
+      mutate(Taxname=if_else(is.na(Taxname_new), Taxname, Taxname_new))%>%
+      select(-Taxname_new)%>%
       filter(Taxname!="REMOVE")%>%
       mutate(Taxlifestage=paste(Taxname, Lifestage))%>%
       select(-Phylum, -Class, -Order, -Family, -Genus, -Species)%>%
@@ -377,7 +417,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
                 by="Taxlifestage"
       )%>%
       left_join(zoopEnv%>%
-                  {if(!AllEnv){
+                  {if(!All_env){
                     select(., Year, Date, SalSurf, Latitude, Longitude, SampleID)
                   } else{
                     select(., -Source)
@@ -413,8 +453,6 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Data="Community
 
 # 2)  Do we need to make some of these case_when statements for FRP data or 
 #   are 0s and NAs already assigned appropriately?
-
-# 3)  If (or when) possible, add download link for FRP and 20mm data
 
 # 4)  Try speeding up code more. Bottleneck now is probably read_excel()
 
