@@ -61,6 +61,9 @@ ui <- fluidPage(
                                 "Sources:",
                                 choices = c("Environmental Monitoring Program (EMP)" = "EMP", 
                                   "Fish Restoration Program (FRP)" = "FRP", "Fall Midwater Trawl (FMWT)" = "FMWT", "Summer Townet Survey (TNS)" = "TNS", "20mm Survey (twentymm)" = "twentymm")),
+           awesomeCheckboxGroup("Size_class",
+                                "Size classes:",
+                                choices = c("Micro", "Meso", "Macro")),
            
            #Allow users to select which filters they would like to use, then those filter options will appear.
            
@@ -137,7 +140,7 @@ ui <- fluidPage(
                          tags$h3("Map settings"),
                          
                          uiOutput("select_Lifestage"), 
-                         pickerInput('Taxagroups', 'Select taxa:', choices =c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other"), multiple =T, selected=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")),
+                         pickerInput('Taxagroups', 'Select taxa:', choices =c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Mysida", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other"), multiple =T, selected=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")),
                          
                          circle = TRUE, status = "danger",
                          icon = icon("gear"), width = "300px",
@@ -229,6 +232,7 @@ server <- function(input, output, session) {
     
     Zooper(Data = input$Datatype, 
            Sources = input$Sources, 
+           Size_class=input$Size_class,
            Date_range = ifelse(rep("Dates"%in%input$Filters, 2), input$Date_range, c(NA, NA)),
            Months = ifelse(rep("Months"%in%input$Filters, length(input$Months)), as.integer(input$Months), rep(NA, length(input$Months))),  
            Sal_surf_range = ifelse(rep("Surface salinity"%in%input$Filters, 2), input$Sal_surf_range, c(NA, NA)),
@@ -321,7 +325,7 @@ server <- function(input, output, session) {
     }
     
     if(is.null(input$Taxagroups)){
-      Taxagroups<-c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")
+      Taxagroups<-c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Mysida", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")
     } else{
       Taxagroups<-input$Taxagroups
     }
@@ -333,6 +337,7 @@ server <- function(input, output, session) {
         Order=="Cyclopoida" ~ "Cyclopoida",
         Order=="Harpacticoida" ~ "Harpacticoida",
         Class=="Copepoda" ~ "UnID copepods",
+        Order=="Mysida" ~ "Mysida",
         Order=="Cladocera" ~ "Cladocera",
         Class=="Insecta" ~ "Insecta",
         Class=="Cirripedia" ~ "Cirripedia",
@@ -340,7 +345,7 @@ server <- function(input, output, session) {
         TRUE ~ "Other"
       ))%>%
       mutate(Taxa=ifelse(Taxa%in%Taxagroups, Taxa, "Other"))%>%
-      mutate(Taxa=factor(Taxa, levels=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")))%>%
+      mutate(Taxa=factor(Taxa, levels=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Mysida", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")))%>%
       lazy_dt()%>%
       group_by(Taxa, Year, Latitude, Longitude, SampleID)%>%
       summarise(CPUE=sum(CPUE, na.rm=T))%>%
@@ -715,7 +720,8 @@ server <- function(input, output, session) {
     },
     content = function(file) {
       data <- Zooper(Data = input$Datatype, 
-                     Sources = input$Sources, 
+                     Sources = input$Sources,  
+                     Size_class=input$Size_class,
                      Date_range = ifelse(rep("Dates"%in%input$Filters, 2), input$Date_range, c(NA, NA)),
                      Months = ifelse(rep("Months"%in%input$Filters, length(input$Months)), as.integer(input$Months), rep(NA, length(input$Months))),  
                      Sal_surf_range = ifelse(rep("Surface salinity"%in%input$Filters, 2), input$Sal_surf_range, c(NA, NA)),

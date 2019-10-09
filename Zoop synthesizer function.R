@@ -175,11 +175,11 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
   SourceTaxaKeyer<-function(source, crosswalk){
     source2<-sym(source) #unquote input
     source2<-enquo(source2) #capture expression to pass on to functions below
-      crosswalk%>%
-        filter(!is.na(!!source2))%>%
-        select_at(c(Taxcats, "Taxname", "Lifestage"))%>%
-        distinct()%>%
-        mutate(Source=source)
+    crosswalk%>%
+      filter(!is.na(!!source2))%>%
+      select_at(c(Taxcats, "Taxname", "Lifestage"))%>%
+      distinct()%>%
+      mutate(Source=source)
   }
   
   SourceTaxaKey<-map_dfr(unique(paste(zoop$Source, zoop$SizeClass, sep="_")), SourceTaxaKeyer, crosswalk)%>%
@@ -270,7 +270,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
         filter(!is.na(Species))%>%
         pull(Species)%>%
         unique(), simplify=F)
-      
+    
     # Output list of taxa that were not measured in all datasets, and are 
     # not higher taxa that can be calculated by summing lower taxa, i.e. 
     # "orphan taxa"
@@ -282,8 +282,9 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
     rm(Lumped)
     
     Orphansdf<-Orphans[which(nchar(Orphans)>0)]
-    Orphansdf<-map_dfr(set_names(names(Orphansdf)), .f=~strsplit(Orphansdf[[.x]], ", ")[[1]])%>%
-      gather(key=SizeClass, value=Taxlifestage)%>%
+    Orphansdf<-map(set_names(names(Orphansdf)), ~strsplit(Orphansdf[[.x]], ", ")[[1]])%>%
+      enframe(name = "SizeClass", value = "Taxlifestage")%>%
+      unnest(Taxlifestage)%>%
       mutate(Orphan=TRUE)
     
     
@@ -346,26 +347,26 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
     #Create taxonomy table for taxa not present in all datasets, then select their new names corresponding to taxa x life stage combinations that are measured in all datasets
     LCD_Com<-function(Lumped, crosswalk, Commontaxkey){
       tibble(Taxlifestage=Lumped)%>%
-      left_join(crosswalk%>%
-                  select(Taxname, Lifestage, Phylum, Class, Order, Family, Genus)%>%
-                  mutate(Taxlifestage=paste(Taxname, Lifestage))%>%
-                  distinct(),
-                by="Taxlifestage")%>%
-      mutate_at(c("Genus", "Family", "Order", "Class", "Phylum"), list(lifestage=~ifelse(is.na(.), NA, paste(., Lifestage))))%>% #Create taxa x life stage variable for each taxonomic level
-      mutate(Taxname_new=case_when( #This will go level by level, look for matches with the Commontaxkey, and assign the taxonomic level that matches. The "TRUE" at end specifies what to do if no conditions are met. 
-        !is.na(Genus_lifestage) & Genus_lifestage%in%Commontaxkey$Genus_lifestage ~ paste0(Genus, "_Genus"),
-        !is.na(Family_lifestage) & Family_lifestage%in%Commontaxkey$Family_lifestage ~ paste0(Family, "_Family"),
-        !is.na(Order_lifestage) & Order_lifestage%in%Commontaxkey$Order_lifestage ~ paste0(Order, "_Order"),
-        !is.na(Class_lifestage) & Class_lifestage%in%Commontaxkey$Class_lifestage ~ paste0(Class, "_Class"),
-        !is.na(Phylum_lifestage) & Phylum_lifestage%in%Commontaxkey$Phylum_lifestage ~ paste0(Phylum, "_Phylum"),
-        TRUE ~ "REMOVE_" #If no match is found, change to the Taxname REMOVE so we know to later remove these data from the final database
-      ))%>%
-      mutate(Genus=if_else(str_detect(Taxname_new, "\\_Genus"), Genus, NA_character_),
-             Family=if_else(str_detect(Taxname_new, "\\_Genus|\\_Family"), Family, NA_character_),
-             Order=if_else(str_detect(Taxname_new, "\\_Genus|\\_Family|\\_Order"), Order, NA_character_),
-             Class=if_else(str_detect(Taxname_new, "\\_Genus|\\_Family|\\_Order|\\_Class"), Class, NA_character_)
-      )%>%
-      mutate(Taxname_new=str_extract(Taxname_new, "^[^_]+(?=_)"))
+        left_join(crosswalk%>%
+                    select(Taxname, Lifestage, Phylum, Class, Order, Family, Genus)%>%
+                    mutate(Taxlifestage=paste(Taxname, Lifestage))%>%
+                    distinct(),
+                  by="Taxlifestage")%>%
+        mutate_at(c("Genus", "Family", "Order", "Class", "Phylum"), list(lifestage=~ifelse(is.na(.), NA, paste(., Lifestage))))%>% #Create taxa x life stage variable for each taxonomic level
+        mutate(Taxname_new=case_when( #This will go level by level, look for matches with the Commontaxkey, and assign the taxonomic level that matches. The "TRUE" at end specifies what to do if no conditions are met. 
+          !is.na(Genus_lifestage) & Genus_lifestage%in%Commontaxkey$Genus_lifestage ~ paste0(Genus, "_Genus"),
+          !is.na(Family_lifestage) & Family_lifestage%in%Commontaxkey$Family_lifestage ~ paste0(Family, "_Family"),
+          !is.na(Order_lifestage) & Order_lifestage%in%Commontaxkey$Order_lifestage ~ paste0(Order, "_Order"),
+          !is.na(Class_lifestage) & Class_lifestage%in%Commontaxkey$Class_lifestage ~ paste0(Class, "_Class"),
+          !is.na(Phylum_lifestage) & Phylum_lifestage%in%Commontaxkey$Phylum_lifestage ~ paste0(Phylum, "_Phylum"),
+          TRUE ~ "REMOVE_" #If no match is found, change to the Taxname REMOVE so we know to later remove these data from the final database
+        ))%>%
+        mutate(Genus=if_else(str_detect(Taxname_new, "\\_Genus"), Genus, NA_character_),
+               Family=if_else(str_detect(Taxname_new, "\\_Genus|\\_Family"), Family, NA_character_),
+               Order=if_else(str_detect(Taxname_new, "\\_Genus|\\_Family|\\_Order"), Order, NA_character_),
+               Class=if_else(str_detect(Taxname_new, "\\_Genus|\\_Family|\\_Order|\\_Class"), Class, NA_character_)
+        )%>%
+        mutate(Taxname_new=str_extract(Taxname_new, "^[^_]+(?=_)"))
     }
     
     Lumpedkey<-map_dfr(set_names(unique(zoop$SizeClass)), 
@@ -384,7 +385,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
       
       Removed<-paste(Removed, collapse=", ")
       
-      caveats<-paste0("These species have no relatives in their size class common to all datasets and have been removed from one or mor size classes: ", Removed)
+      caveats<-paste0("These species have no relatives in their size class common to all datasets and have been removed from one or more size classes: ", Removed)
     } else{
       caveats<-"No disclaimers here! Enjoy the clean data!"
     }
