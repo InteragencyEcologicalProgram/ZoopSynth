@@ -145,13 +145,17 @@ crosswalk <- read_excel("Data/new_crosswalk.xlsx", sheet = "Hierarchy2")
 
 WID<-get_wormsid_edit(unique(crosswalk$Taxname), ask=FALSE)
 
+WID_data<-tibble(WID=WID, Status=attr(WID, "status"), Taxname=unique(crosswalk$Taxname))
+
 unique(crosswalk$Taxname)[which(is.na(WID))]
 
 CLASS<-classification(WID)
+
+WID_data<-tibble(WID=WID, Status=attr(WID, "status"), Taxname=unique(crosswalk$Taxname))
 
 Taxonomy<-rbind(CLASS)%>%
   select(-id)%>%
   filter(name!="Gnathostomata")%>%
   spread(key="rank", value="name")%>%
-  select(query, Phylum, Class, Order, Family, Genus, Species)%?%
+  select(query, Phylum, Class, Order, Family, Genus, Species)%>%
   left_join
