@@ -49,7 +49,7 @@ ui <- fluidPage(
   
   # Application title
   
-  titlePanel("Zooplankton data synthesizer"),
+  titlePanel(title=div(h1("Zooplankton data synthesizer: TEST VERSION", style="display: inline-block"), img(src="Logo.png", height = 132, width = 100, align="right", style="display: inline-block")), windowTitle = "Zooplankton data synthesizer"),
   
   # check boxes where you choose data you want
   fluidRow(
@@ -60,10 +60,10 @@ ui <- fluidPage(
            awesomeCheckboxGroup("Sources",
                                 "Sources:",
                                 choices = c("Environmental Monitoring Program (EMP)" = "EMP", 
-                                  "Fish Restoration Program (FRP)" = "FRP", "Fall Midwater Trawl (FMWT)" = "FMWT", "Summer Townet Survey (TNS)" = "TNS", "20mm Survey (twentymm)" = "twentymm")),
+                                            "Fish Restoration Program (FRP)" = "FRP", "Fall Midwater Trawl (FMWT)" = "FMWT", "Summer Townet Survey (TNS)" = "TNS", "20mm Survey (twentymm)" = "twentymm")),
            awesomeCheckboxGroup("Size_class",
                                 "Size classes:",
-                                choices = c("Micro", "Meso", "Macro")),
+                                choices = c("Micro", "Meso", "Macro"), selected = "Meso"),
            
            #Allow users to select which filters they would like to use, then those filter options will appear.
            
@@ -118,37 +118,37 @@ ui <- fluidPage(
                        id = "Tab",
                        tabPanel("Samples", br(), 
                                 fluidRow(actionBttn("Sample_info", label = NULL, style="material-circle", 
-                                                          color="primary", icon=icon("question"))), 
+                                                    color="primary", icon=icon("question"))), 
                                 fluidRow(ggiraphOutput("Sampleplot"))),
                        tabPanel("CPUE", br(),
-                                fluidRow(column(2, fluidRow(actionBttn("CPUE_info", label = NULL, style="material-circle", 
-                                                       color="primary", icon=icon("question"))), br(),
-                                                fluidRow(materialSwitch(
-                                              inputId = "Salzones",
-                                              label = "Salinity zones?", 
-                                              value = TRUE, inline=F,
-                                              status = "primary"
-                                            ))), 
-                                            column(10, conditionalPanel(condition = "input.Salzones", 
-                                                             sliderInput("Lowsal", "Low salinity zone", min=0, max=30, value=c(0.5,6), step=0.1, width="100%")))), 
+                                fluidRow(column(1, actionBttn("CPUE_info", label = NULL, style="material-circle", 
+                                                              color="primary", icon=icon("question"))), column(2, uiOutput("select_SizeClass")),
+                                         column(1, materialSwitch(
+                                           inputId = "Salzones",
+                                           label = "Salinity zones?", 
+                                           value = TRUE, inline=F,
+                                           status = "primary"
+                                         )), 
+                                         column(8, conditionalPanel(condition = "input.Salzones", 
+                                                                    sliderInput("Lowsal", "Low salinity zone", min=0, max=30, value=c(0.5,6), step=0.1, width="100%")))), 
                                 fluidRow(column(12, ggiraphOutput("CPUEplot")))),
                        tabPanel("Map", fluidRow(column(1, offset = 0, style='padding:0px;', br() ,
                                                        actionBttn("Map_info", label = NULL, style="material-circle", 
-                                                                                  color="primary", icon=icon("question"))), 
-                                                       column(1, offset = 0, style='padding:0px;', br(), conditionalPanel(condition = "output.Datatype == 'Community'", dropdown(
-                         
-                         tags$h3("Map settings"),
-                         
-                         uiOutput("select_Lifestage"), 
-                         pickerInput('Taxagroups', 'Select taxa:', choices =c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Mysida", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other"), multiple =T, selected=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")),
-                         
-                         circle = TRUE, status = "danger",
-                         icon = icon("gear"), width = "300px",
-                         
-                         tooltip = tooltipOptions(title = "Click to see inputs!")
-                       ))),
-                       column(10, uiOutput("select_Year"))),
-                       fluidRow(leafletOutput("Mapplot", width = "100%", height = "100%")))
+                                                                  color="primary", icon=icon("question"))), 
+                                                column(1, offset = 0, style='padding:0px;', br(), conditionalPanel(condition = "output.Datatype == 'Community'", dropdown(
+                                                  
+                                                  tags$h3("Map settings"),
+                                                  
+                                                  uiOutput("select_Lifestage"), 
+                                                  pickerInput('Taxagroups', 'Select taxa:', choices =c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Mysida", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other"), multiple =T, selected=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Mysida", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")),
+                                                  uiOutput("select_SizeClass_map"),
+                                                  circle = TRUE, status = "danger",
+                                                  icon = icon("gear"), width = "300px",
+                                                  
+                                                  tooltip = tooltipOptions(title = "Click to see inputs!")
+                                                )), conditionalPanel(condition = "output.Datatype == 'Taxa'", uiOutput("select_SizeClass_maptaxa"))),
+                                                column(10, uiOutput("select_Year"))),
+                                fluidRow(leafletOutput("Mapplot", width = "100%", height = "100%")))
                        
            )
     )),
@@ -271,9 +271,9 @@ server <- function(input, output, session) {
   #CPUE plot info
   observeEvent(input$CPUE_info, {
     if("Taxatype"%in%colnames(plotdata2())){
-    sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Average abundance by year of each selected taxa by life stage combination"), h3("It is highly recommended to only select a few taxa for this plot"), tags$p("If desired, data can be subdivided into 3 salinity zones with the 'Salinity zones' switch. The borders of the salinity zones can be adjusted by dragging the bar to encompass your favored definition of the low salinity zone. Hover over the plot with your mouse to view data values.")),
-                   type = "info",
-                   btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
+      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Average abundance by year of each selected taxa by life stage combination"), h3("It is highly recommended to only select a few taxa for this plot"), tags$p("If desired, data can be subdivided into 3 salinity zones with the 'Salinity zones' switch. The borders of the salinity zones can be adjusted by dragging the bar to encompass your favored definition of the low salinity zone. Hover over the plot with your mouse to view data values.")),
+                     type = "info",
+                     btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
     } else{
       sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Community composition by year"), tags$p("If desired, data can be subdivided into 3 salinity zones with the 'Salinity zones' switch. The borders of the salinity zones can be adjusted by dragging the bar to encompass your favored definition of the low salinity zone. Hover over the plot with your mouse to view data values.")),
                      type = "info",
@@ -306,8 +306,9 @@ server <- function(input, output, session) {
   
   #Create data for map plot
   mapdatataxa <- reactive( {
+    req(length(input$Map_taxa_size_class)>0)
     plotdata2()%>%
-      filter(!is.na(Latitude) & !is.na(Longitude))%>%
+      filter(!is.na(Latitude) & !is.na(Longitude) & SizeClass%in%input$Map_taxa_size_class)%>%
       lazy_dt()%>%
       group_by(Taxlifestage, Year, Latitude, Longitude)%>%
       summarise(CPUE=mean(CPUE, na.rm=T))%>%
@@ -330,8 +331,14 @@ server <- function(input, output, session) {
       Taxagroups<-input$Taxagroups
     }
     
+    if(is.null(input$Map_size_class)){
+      Map_size_class<-c("Micro", "Meso", "Macro")
+    } else{
+      Map_size_class<-input$Map_size_class
+    }
+    
     plotdata2()%>%
-      filter(!is.na(Latitude) & !is.na(Longitude) & Lifestage%in%Lifestages)%>%
+      filter(!is.na(Latitude) & !is.na(Longitude) & Lifestage%in%Lifestages & SizeClass%in%Map_size_class)%>%
       mutate(Taxa=case_when(
         Order=="Calanoida" ~ "Calanoida",
         Order=="Cyclopoida" ~ "Cyclopoida",
@@ -346,6 +353,11 @@ server <- function(input, output, session) {
       ))%>%
       mutate(Taxa=ifelse(Taxa%in%Taxagroups, Taxa, "Other"))%>%
       mutate(Taxa=factor(Taxa, levels=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Mysida", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")))%>%
+      {if(length(unique(.$Taxa))<3){
+        mutate(., Taxa=Taxname)
+      } else{
+        .
+      }}%>%
       lazy_dt()%>%
       group_by(Taxa, Year, Latitude, Longitude, SampleID)%>%
       summarise(CPUE=sum(CPUE, na.rm=T))%>%
@@ -356,6 +368,7 @@ server <- function(input, output, session) {
       ungroup()%>%
       arrange(Taxa)%>%
       mutate(CPUE=round(CPUE))
+    
   })
   
   #Pull out maximum CPUE for map plot scale
@@ -419,6 +432,55 @@ server <- function(input, output, session) {
     })
     
     pickerInput('Taxlifestage', 'Select Taxa:', choices =choice_Taxlifestage(), multiple =T, selected=choice_Taxlifestage(), options=list(`live-search`=TRUE, `actions-box`=TRUE, size=10, title = "Select Taxa", `selected-text-format` = "count > 3")) 
+    
+  })
+  
+  choice_SizeClass <- reactive({
+    plotdata2()%>%
+      pull(SizeClass)%>%
+      unique()
+  })
+  
+  #Update SizeClass choices for community map based on prior user input choices
+  output$select_SizeClass <- renderUI({
+    
+    checkboxGroupButtons(
+      inputId = "Plot_size_class",
+      label = "Size classes",
+      choices = choice_SizeClass(),
+      direction="horizontal",
+      size = "sm",
+      justified = TRUE,
+      selected=choice_SizeClass()
+    )
+    
+  })
+  
+  output$select_SizeClass_map <- renderUI({
+    
+    checkboxGroupButtons(
+      inputId = "Map_size_class",
+      label = "Size classes",
+      choices = choice_SizeClass(),
+      direction="horizontal",
+      size = "sm",
+      justified = TRUE,
+      selected=choice_SizeClass()
+    )
+    
+  })
+  
+  output$select_SizeClass_maptaxa <- renderUI({
+    
+    checkboxGroupButtons(
+      inputId = "Map_taxa_size_class",
+      label = "Size classes",
+      choices = choice_SizeClass(),
+      direction="horizontal",
+      size = "sm",
+      justified = TRUE,
+      selected=choice_SizeClass()
+    )
     
   })
   
@@ -497,6 +559,7 @@ server <- function(input, output, session) {
   })
   
   CPUEplot <- reactive({
+    req(length(input$Plot_size_class)>0)
     colorCount <- plotdata2()%>%pull(Taxlifestage)%>%unique()%>%length()
     if("Taxatype"%in%colnames(plotdata2())){
       if(input$Salzones){
@@ -511,6 +574,7 @@ server <- function(input, output, session) {
       }
       
       plotdata2()%>%
+        filter(SizeClass%in%input$Plot_size_class)%>%
         {if(input$Salzones){
           filter(., !is.na(SalSurf))%>% 
             mutate(Salinity_zone=case_when(
@@ -560,6 +624,7 @@ server <- function(input, output, session) {
                           "<tr><td>Taxa &nbsp</td><td>%s</td></tr>",
                           "<tr><td>CPUE &nbsp</td><td>%s</td></tr>")
       plotdata2()%>%
+        filter(SizeClass%in%input$Plot_size_class)%>%
         {if(input$Salzones){
           filter(., !is.na(SalSurf))%>% 
             mutate(Salinity_zone=case_when(
@@ -627,7 +692,7 @@ server <- function(input, output, session) {
   })
   
   #leafletProxy lets us change layers in the map plot without re-rendering the whole thing
-  observeEvent(c(input$Update_taxa, input$Year), {
+  observeEvent(c(input$Update_taxa, input$Year, input$Map_taxa_size_class), {
     req(input$Tab=="Map" & "Taxatype"%in%colnames(plotdata2()))
     pal <- Taxapal()
     map<-leafletProxy("Mapplot", session, data = filteredmapdatataxa(), deferUntilFlush=T)%>%
@@ -636,7 +701,7 @@ server <- function(input, output, session) {
                        fillColor = ~pal(Taxlifestage), color="black", fillOpacity = 0.7, label = ~paste0(Taxlifestage, ": ", round(CPUE)))
   }, ignoreNULL = T)
   
-  observeEvent(c(input$Lifestage, input$Year, input$Taxagroups), {
+  observeEvent(c(input$Lifestage, input$Year, input$Taxagroups, input$Map_size_class), {
     req(input$Tab=="Map" & !("Taxatype"%in%colnames(plotdata2())) & nrow(filteredmapdatacom())>1)
     filteredspreadmapdatacom<-filteredmapdatacom()%>%
       spread(key=Taxa, value = CPUE)

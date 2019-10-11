@@ -211,6 +211,13 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
     select(Source, Date, Datetime, 
            Station, CondSurf = SC, Secchi, pH, DO, Turbidity, Tide, Microcystis, SizeClass,
            Temperature = Temp, Volume = volume, FRP_Meso = CommonName, CPUE, SampleID)%>% #Select for columns in common and rename columns to match
+    group_by_at(vars(-CPUE))%>% #Some taxa names are repeated as in EMP so 
+    summarise(CPUE=sum(CPUE, na.rm=T))%>% #this just adds up those duplications
+    ungroup()%>%
+    spread(key=FRP_Meso, value=CPUE, fill=0)%>%
+    gather(-Source, -Date, -Datetime, 
+           -Station, -CondSurf, -Secchi, -pH, -DO, -Turbidity, -Tide, -Microcystis, -SizeClass,
+           -Temperature, -Volume, -SampleID, key="FRP_Meso", value="CPUE")%>%
     left_join(crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
                 select(FRP_Meso, Lifestage, Taxname, Phylum, Class, Order, Family, Genus, Species)%>% #only retain FRP codes
                 filter(!is.na(FRP_Meso))%>% #Only retain Taxnames corresponding to FRP codes
@@ -333,6 +340,13 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
     select(Source, Date, Datetime, 
            Station, CondSurf = SC, Secchi, pH, DO, Turbidity, Tide, Microcystis, SizeClass,
            Temperature = Temp, Volume = volume, FRP_Macro = CommonName, CPUE, SampleID)%>% #Select for columns in common and rename columns to match
+    group_by_at(vars(-CPUE))%>% #Some taxa names are repeated as in EMP so 
+    summarise(CPUE=sum(CPUE, na.rm=T))%>% #this just adds up those duplications
+    ungroup()%>%
+    spread(key=FRP_Macro, value=CPUE, fill=0)%>%
+    gather(-Source, -Date, -Datetime, 
+           -Station, -CondSurf, -Secchi, -pH, -DO, -Turbidity, -Tide, -Microcystis, -SizeClass,
+           -Temperature, -Volume, -SampleID, key="FRP_Macro", value="CPUE")%>%
     left_join(crosswalk%>% #Add in Taxnames, Lifestage, and taxonomic info
                 select(FRP_Macro, Lifestage, Taxname, Phylum, Class, Order, Family, Genus, Species)%>% #only retain FRP codes
                 filter(!is.na(FRP_Macro))%>% #Only retain Taxnames corresponding to FRP codes
@@ -465,7 +479,11 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
            Year=year(Date))%>%
     left_join(stations, by=c("Source", "Station"))%>% #Add lat and long
     select(-Region, -CondBott, -CondSurf)%>% #Remove some extraneous variables to save memory
-    mutate(Tide=recode(Tide, "1"="High slack", "2"="Ebb", "3"="Low slack", "4"="Flood", "1=high slack"="High slack", "2=ebb"="Ebb", "3=low slack"="Low slack", "4=flood"="Flood")) #Rename tide codes to be consistent
+    mutate(Tide=recode(Tide, "1"="High slack", "2"="Ebb", "3"="Low slack", "4"="Flood", "1=high slack"="High slack", "2=ebb"="Ebb", "3=low slack"="Low slack", "4=flood"="Flood"),#Rename tide codes to be consistent
+           Undersampled=case_when(SizeClass=="Meso" & Taxlifestage%in%c("Asplanchna Adult", "Copepoda Larvae", "Eurytemora affinis Larvae", "Harpacticoida Mixed", "Keratella Adult", "Limnoithona Adult", "Limnoithona Juvenile", "Limnoithona sinensis Adult", "Limnoithona tetraspina Adult", "Oithona Adult", "Oithona davisae Adult", "Oithona Juvenile", "Polyarthra Adult", "Pseudodiaptomus Larvae", "Rotifera Adult", "Sinocalanus doerrii Larvae", "Synchaeta Adult", "Synchaeta bicornis Adult", "Trichocerca Adult") ~ TRUE,
+                                  SizeClass=="Micro" & Taxlifestage%in%c("Cirripedia Larvae", "Cyclopoida Adult", "Oithona similis Adult") ~ TRUE,
+                                  TRUE ~ FALSE)
+           )
   
   zoopEnv<-zoop%>%
     select(Source, Year, Date, Datetime, Tide, Station, Chl, Secchi, Temperature, BottomDepth, Turbidity, Microcystis, pH, DO, SalSurf, SalBott, Latitude, Longitude, SampleID)%>%

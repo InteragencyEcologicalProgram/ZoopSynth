@@ -19,7 +19,7 @@ EMP_Pump <- read_excel("Old data/1972-2018Pump Matrix.xlsx",
   rename(Date=SampleDate, Volume=PumpVolume)
 
 crosswalk <- read_excel("Data/new_crosswalk.xlsx", sheet = "Hierarchy2")%>%
-  select(EMP, Taxname, Lifestage, EMPstart, EMPend, Intro)%>%
+  select(EMP=EMP_Meso, Taxname, Lifestage, EMPstart, EMPend, Intro)%>%
   mutate_at(vars(c("EMPstart", "EMPend", "Intro")), ~parse_date(as.character(.), format="%Y"))%>%
   mutate_at(vars(c("EMPstart", "EMPend")), ~replace_na(., as_date(Inf)))%>% #Change any NAs for starts or ends to Infinity (i.e. never started or ended)
   mutate(EMPend = if_else(is.finite(EMPend), EMPend+years(1), EMPend))%>% #Change end dates to beginning of next year (first day it was not counted)
@@ -85,13 +85,13 @@ EMP_sum<-EMP%>%
   summarise(CPUE=mean(CPUE, na.rm=T))%>%
   ungroup()
 
-ggplot(EMP_sum, aes(x=Method, y=CPUE, fill=Method))+
+p<-ggplot(EMP_sum, aes(x=Method, y=CPUE, fill=Method))+
   geom_bar(stat="identity")+
   facet_wrap(~Taxlifestage, scales="free_y")+
   scale_y_continuous(limits=c(0,NA), expand=expand_scale(mult=c(0,0.05)))+
   theme_bw()+
   theme(panel.grid=element_blank(), strip.background=element_blank())
-
+ggsave(p, file="Pump CB CPUEs bar.png", device = "png", units="in", height=8, width=10)
 
 
 EMP_xyplot<-EMP%>%
