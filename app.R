@@ -530,7 +530,7 @@ server <- function(input, output, session) {
                         "<tr><td>Source &nbsp</td><td>%s</td></tr>", 
                         "<tr><td>N &nbsp</td><td>%s</td></tr>")
     
-    plotdata2()%>%
+    data<-plotdata2()%>%
       #mutate(Season=case_when(
       #  Month%in%c(1,2,3) ~ "Winter",
       #  Month%in%c(4,5,6) ~ "Spring",
@@ -540,14 +540,18 @@ server <- function(input, output, session) {
       #mutate(Season=factor(Season, levels=c("Fall", "Winter", "Spring", "Summer")))%>%
       mutate(Month=recode_factor(month(Date), "1"="January","2"="February", "3"="March", "4"="April", "5"="May", "6"="June", "7"="July", "8"="August", "9"="September", "10"="October", "11"="November", "12"="December"))%>%
       select(Source, Year, Month, SampleID)%>%
-      distinct()%>%
+      distinct()
+      
+      
+      data<-data%>%
       group_by(Source, Year, Month)%>%
       summarise(N_samples=n())%>%
       ungroup()%>%
       mutate(tooltip=sprintf(str_model, Year, Source, N_samples),
              ID=as.character(1:n()))%>%
-      mutate(tooltip=paste0( "<table>", tooltip, "</table>" ))%>%
-      ggplot(aes(x=Year, y = N_samples, fill=Source)) +
+      mutate(tooltip=paste0( "<table>", tooltip, "</table>" ))
+    
+      p<-ggplot(data, aes(x=Year, y = N_samples, fill=Source)) +
       geom_bar_interactive(stat="identity", aes(tooltip=tooltip, data_id = ID))+
       facet_wrap(~Month)+
       coord_cartesian(expand=0)+
@@ -556,6 +560,7 @@ server <- function(input, output, session) {
       theme_bw()+
       theme(panel.grid=element_blank(), strip.background=element_blank(), text=element_text(size=14), panel.spacing.x = unit(15, "points"))+
       fillScale
+      return(p)
   })
   
   CPUEplot <- reactive({
