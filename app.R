@@ -135,7 +135,7 @@ ui <- fluidPage(
                        tabPanel("Map", fluidRow(column(1, offset = 0, style='padding:0px;', br() ,
                                                        actionBttn("Map_info", label = NULL, style="material-circle", 
                                                                   color="primary", icon=icon("question"))), 
-                                                column(1, offset = 0, style='padding:0px;', br(), conditionalPanel(condition = "output.Datatype == 'Community'", dropdown(
+                                                column(2, offset = 0, style='padding:0px;', br(), conditionalPanel(condition = "output.Datatype == 'Community'", dropdown(
                                                   
                                                   tags$h3("Map settings"),
                                                   
@@ -147,7 +147,7 @@ ui <- fluidPage(
                                                   
                                                   tooltip = tooltipOptions(title = "Click to see inputs!")
                                                 )), conditionalPanel(condition = "output.Datatype == 'Taxa'", uiOutput("select_SizeClass_maptaxa"))),
-                                                column(10, uiOutput("select_Year"))),
+                                                column(9, uiOutput("select_Year"))),
                                 fluidRow(leafletOutput("Mapplot", width = "100%", height = "100%")))
                        
            )
@@ -338,7 +338,7 @@ server <- function(input, output, session) {
     }
     
     plotdata2()%>%
-      filter(!is.na(Latitude) & !is.na(Longitude) & Lifestage%in%Lifestages & SizeClass%in%Map_size_class)%>%
+      filter(!is.na(Latitude) & !is.na(Longitude) & Lifestage%in%Lifestages & SizeClass%in%Map_size_class & !Undersampled)%>%
       mutate(Taxa=case_when(
         Order=="Calanoida" ~ "Calanoida",
         Order=="Cyclopoida" ~ "Cyclopoida",
@@ -560,8 +560,8 @@ server <- function(input, output, session) {
   
   CPUEplot <- reactive({
     req(length(input$Plot_size_class)>0)
-    colorCount <- plotdata2()%>%pull(Taxlifestage)%>%unique()%>%length()
     if("Taxatype"%in%colnames(plotdata2())){
+      colorCount <- plotdata2()%>%pull(Taxlifestage)%>%unique()%>%length()
       if(input$Salzones){
         str_model <- paste0("<tr><td>Year &nbsp</td><td>%s</td></tr>",
                             "<tr><td>Taxa &nbsp</td><td>%s</td></tr>",
@@ -620,11 +620,12 @@ server <- function(input, output, session) {
             theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=10))
         }}
     }else{
+      colorCount <- plotdata2()%>%filter(!Undersampled)%>%pull(Taxlifestage)%>%unique()%>%length()
       str_model <- paste0("<tr><td>Year &nbsp</td><td>%s</td></tr>",
                           "<tr><td>Taxa &nbsp</td><td>%s</td></tr>",
                           "<tr><td>CPUE &nbsp</td><td>%s</td></tr>")
       plotdata2()%>%
-        filter(SizeClass%in%input$Plot_size_class)%>%
+        filter(SizeClass%in%input$Plot_size_class & !Undersampled)%>%
         {if(input$Salzones){
           filter(., !is.na(SalSurf))%>% 
             mutate(Salinity_zone=case_when(
@@ -784,20 +785,14 @@ server <- function(input, output, session) {
       paste("data-", Sys.Date(), ".csv", sep="")
     },
     content = function(file) {
-      data <- Zooper(Data = input$Datatype, 
-                     Sources = input$Sources,  
-                     Size_class=input$Size_class,
-                     Date_range = ifelse(rep("Dates"%in%input$Filters, 2), input$Date_range, c(NA, NA)),
-                     Months = ifelse(rep("Months"%in%input$Filters, length(input$Months)), as.integer(input$Months), rep(NA, length(input$Months))),  
-                     Sal_surf_range = ifelse(rep("Surface salinity"%in%input$Filters, 2), input$Sal_surf_range, c(NA, NA)),
-                     Lat_range = ifelse(rep("Latitude"%in%input$Filters, 2), input$Lat_range, c(NA, NA)), 
-                     Long_range = ifelse(rep("Longitude"%in%input$Filters, 2), input$Long_range, c(NA, NA)), 
-                     Shiny=T, All_env=T)
-      data <-if (length(input$Taxlifestage)>0 & input$Datatype=="Taxa"){
-        filter(data$Data, Taxlifestage%in%input$Taxlifestage)
-      } else {
-        data$Data
-      }
+      
+      #Load extra environmental data
+      zoopEnv<-readRDS("Data/zoopenvforzooper.Rds")%>%
+        select(-Year, -Date, -SalSurf, -Latitude, -Longitude, -Source)
+      
+      data <- plotdata2()%>%
+        left_join(zoopEnv,
+                  by="SampleID")
       write_csv(data, file)
     })
   

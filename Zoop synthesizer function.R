@@ -62,7 +62,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
   
   
   # Setup -------------------------------------------------------------------
-  require(data.table)
+
   require(tidyverse)
   require(readxl)
   
@@ -100,20 +100,6 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
   
   zoop<-readRDS("Data/zoopforzooper.Rds")
   zoopEnv<-readRDS("Data/zoopenvforzooper.Rds")
-  
-  if(Data=="Taxa"){
-    zoop<-zoop%>%
-      select(-Undersampled)
-  } else{
-    if(Shiny & !All_env){
-      zoop<-zoop%>%
-        filter(!Undersampled)%>%
-        select(-Undersampled)
-    } else{
-      zoop<-zoop%>%
-        select(-Undersampled)
-    }
-  }
   
   # Filter data -------------------------------------------------------------
   
@@ -249,6 +235,8 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
   
   Lumped<-sapply(Size_classes, Lumper, simplify=F)
   
+  
+  #Create reduced versions of crosswalk
   Crosswalk_reduced_stage<-crosswalk%>%
     select_at(vars(Taxname, Taxcats, Lifestage))%>%
     mutate(Taxlifestage=paste(Taxname, Lifestage))%>%
@@ -258,7 +246,15 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
     select(-Lifestage, -Taxlifestage)%>%
     distinct()
   
-  
+  #Create dataframe of undersampled taxa
+  Undersampled<-read_excel("Data/Undersampled taxa.xlsx")%>%
+    left_join(Crosswalk_reduced, by="Taxname")%>%
+    pivot_longer(cols=c(Phylum, Class, Order, Family, Genus, Taxname), names_to = "Level", values_to = "Taxa")%>%
+    drop_na()%>%
+    mutate(Taxlifestage=paste(Taxa, Lifestage),
+           Undersampled=TRUE)%>%
+    select(SizeClass, Taxlifestage, Undersampled)%>%
+    distinct()
   
   # Apply LCD approach for taxa-level data user ----------------------
   
@@ -350,9 +346,10 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
       mutate(Taxname=paste(Taxname, "all", SizeClass, sep="_"), #Differentiate grouped Taxnames from others
              Taxatype="Summed group")%>% #Add a label to these summed groups so they can be removed later if users wish)
       bind_rows(zoop%>% #Bind these summarized groupings to the original taxonomic categories in the original dataset
-                  mutate(Taxatype=ifelse(Taxname%in%unique(unlist(Groups, use.names = FALSE)), "UnID species", "Species")))%>%
+                  mutate(Taxatype=if_else(Taxname%in%unique(unlist(Groups, use.names = FALSE)), "UnID species", "Species")))%>%
       ungroup()
     
+    rm(Groups)
     gc()
     
     zoop<-zoop%>%
@@ -370,7 +367,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
     
     caveats<-c(paste0("These species are not counted in all datasets: ", paste(unique(unlist(sapply(names(Orphans), function(x) strsplit(Orphans[[x]], ", ")[[1]]), use.names = FALSE)), collapse=" "), "NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE. Orphan status varies with size class. Do not compare UnID categories across data sources."))
     
-    rm(Groups)
+    
     rm(Orphans)
     
   }
@@ -490,6 +487,10 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
                     select(., -Source)
                   }}, by="SampleID")
   }
+  
+    zoop<-zoop%>%
+      left_join(Undersampled, by=c("Taxlifestage", "SizeClass"))%>%
+      mutate(Undersampled=replace_na(Undersampled, FALSE))
   
   out<-list(Data=zoop, Caveats=caveats)
   

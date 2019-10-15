@@ -479,11 +479,7 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
            Year=year(Date))%>%
     left_join(stations, by=c("Source", "Station"))%>% #Add lat and long
     select(-Region, -CondBott, -CondSurf)%>% #Remove some extraneous variables to save memory
-    mutate(Tide=recode(Tide, "1"="High slack", "2"="Ebb", "3"="Low slack", "4"="Flood", "1=high slack"="High slack", "2=ebb"="Ebb", "3=low slack"="Low slack", "4=flood"="Flood"),#Rename tide codes to be consistent
-           Undersampled=case_when(SizeClass=="Meso" & Taxlifestage%in%c("Asplanchna Adult", "Copepoda Larvae", "Eurytemora affinis Larvae", "Harpacticoida Mixed", "Keratella Adult", "Limnoithona Adult", "Limnoithona Juvenile", "Limnoithona sinensis Adult", "Limnoithona tetraspina Adult", "Oithona Adult", "Oithona davisae Adult", "Oithona Juvenile", "Polyarthra Adult", "Pseudodiaptomus Larvae", "Rotifera Adult", "Sinocalanus doerrii Larvae", "Synchaeta Adult", "Synchaeta bicornis Adult", "Trichocerca Adult") ~ TRUE,
-                                  SizeClass=="Micro" & Taxlifestage%in%c("Cirripedia Larvae", "Cyclopoida Adult", "Oithona similis Adult") ~ TRUE,
-                                  TRUE ~ FALSE)
-           )
+    mutate(Tide=recode(Tide, "1"="High slack", "2"="Ebb", "3"="Low slack", "4"="Flood", "1=high slack"="High slack", "2=ebb"="Ebb", "3=low slack"="Low slack", "4=flood"="Flood"))#Rename tide codes to be consistent
   
   zoopEnv<-zoop%>%
     select(Source, Year, Date, Datetime, Tide, Station, Chl, Secchi, Temperature, BottomDepth, Turbidity, Microcystis, pH, DO, SalSurf, SalBott, Latitude, Longitude, SampleID)%>%
