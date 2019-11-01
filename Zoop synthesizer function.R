@@ -81,13 +81,11 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
     stop("Data must be either `Taxa` or `Community`")
   }
   
-  if(!every(list(Shiny, Reload_data, Redownload_data), is.logical)){
-    stop("Shiny, Reload_data, and Redownload_data must all have logical arguments.")
+  if(!every(list(Shiny, Reload_data, Redownload_data, All_env), is.logical)){
+    stop("Shiny, All_env, Reload_data, and Redownload_data must all have logical arguments.")
   }
   
-  # Load crosswalk key to convert each dataset's taxonomic codes to a
-  # unified set of "Taxname" and "Lifestage" values.
-  
+  # Load crosswalk key to add taxonomic info
   crosswalk <- read_excel("Data/new_crosswalk.xlsx", sheet = "Hierarchy2")
   
   #Make it possible to re-download data if desired
@@ -96,14 +94,14 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
     Zoopdownloader("Data/zoopforzooper.Rds", Redownload_data)
   }
   
-  # Read in data if not already loaded
-  
+  # Read in data
   zoop<-readRDS("Data/zoopforzooper.Rds")
   zoopEnv<-readRDS("Data/zoopenvforzooper.Rds")
   
   # Filter data -------------------------------------------------------------
   
-  #Filter to desired data sources
+  #Filter to desired data sources. To save memory, environmental data is filtered 
+  #then at the end the remaining samples are selected from the zooplankton dataset
   
   zoopEnv<-filter(zoopEnv, Source%in%Sources)
   
@@ -165,17 +163,20 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
     zoopEnv<-filter(zoopEnv, between(Longitude, min(Long_range), max(Long_range)))
   }
   
+  #Find remaining samples to retain
   Samples<-zoopEnv%>%
     pull(SampleID)%>%
     unique()
   
+  #Retain remaining samples and filter to preferred size classes
   zoop<-filter(zoop, SampleID%in%Samples & SizeClass%in%Size_class)
+  
   # Apply LCD approach ------------------------------------------------------
   
   #Make vector of taxonomic categories that we will use later
   Taxcats<-c("Genus", "Family", "Order", "Class", "Phylum")
   
-  # Make list of taxa x life stage combos present in all original datasets
+  # Make list of taxa x life stage combinations present in all source datasets
   SourceTaxaKeyer<-function(source, crosswalk){
     source2<-sym(source) #unquote input
     source2<-enquo(source2) #capture expression to pass on to functions below
@@ -212,15 +213,15 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
   #Create variable for size classes present in dataset
   Size_classes<-zoop%>%
     pull(SizeClass)%>%
-    unique()
+    unique()%>%
+    set_names()
   
   #Find all common Taxname x life stage combinations, turn into vector of Taxlifestages
-  Commontax<-sapply(Size_classes, function(x) 
+  Commontax<-map(Size_classes, function(x) 
     filter(SourceTaxaKey, SizeClass==x)%>%
       Commontaxer("Taxname", .)%>%
       mutate(Taxlifestage=paste(Taxname, Lifestage))%>%
-      pull(Taxlifestage), 
-    simplify=F)
+      pull(Taxlifestage))
   
   # Make list of taxalifestages that do not appear in all datasets
   Lumper<-function(Sizeclass){
@@ -232,9 +233,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
     
   }
   
-  
-  Lumped<-sapply(Size_classes, Lumper, simplify=F)
-  
+  Lumped<-map(Size_classes, Lumper)
   
   #Create reduced versions of crosswalk
   Crosswalk_reduced_stage<-crosswalk%>%
@@ -258,14 +257,12 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
   
   # Apply LCD approach for taxa-level data user ----------------------
   
-  
-  
   if(Data=="Taxa"){
     
     #Make vector of _g Taxonomic variables
     Taxcats_g<-paste0(Taxcats, "_g")
     
-    # Define function to calculate least common denominator for each taxonomic level
+    # Define function to sum to least common denominator taxa, one taxonomic level at a time
     LCD_Taxa<-function(df, Taxagroup){
       Taxagroup2<-sym(Taxagroup) #unquote input
       Taxagroup2<-enquo(Taxagroup2) #capture expression to pass on to functions below
@@ -286,13 +283,19 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
       return(out)
     }
     
+    #Create vector of all unique taxa in dataset
+    UniqueTaxa<-zoop%>%
+      select(Taxname)%>%
+      distinct()%>%
+      left_join(select(crosswalk, Taxname, Level)%>%
+                  distinct(),
+                by="Taxname")%>%
+      filter(Level!="Species")%>%
+      pull(Taxname)
+    
     # Select higher level groupings that correspond to Taxnames, i.e., are a 
     # classification category in one of the original datasets, and rename 
     # them as "Taxonomiclevel_g"
-    
-    UniqueTaxa<-zoop%>%
-      pull(Taxname)%>%
-      unique()
     
     zoop<-zoop%>%
       mutate_at(Taxcats, list(g=~if_else(.%in%UniqueTaxa, ., NA_character_)))
@@ -311,8 +314,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
       return(out)
     }
     
-    
-    Groups<-sapply(Size_classes, Grouper, simplify=F)
+    Groups<-map(Size_classes, Grouper)
     
     # Output list of taxa that were not measured in all datasets, and are 
     # not higher taxa that can be calculated by summing lower taxa, i.e. 
@@ -327,10 +329,11 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
       return(out)
     }
     
-    Orphans<-sapply(Size_classes, Orphaner, simplify=F)
+    Orphans<-map(Size_classes, Orphaner)
     
     rm(Lumped)
     
+    #Turn Orphans into dataframe so it can be added to zoop data
     Orphansdf<-Orphans[which(nchar(Orphans)>0)]
     Orphansdf<-map(set_names(names(Orphansdf)), ~strsplit(Orphansdf[[.x]], ", ")[[1]])%>%
       enframe(name = "SizeClass", value = "Taxlifestage")%>%
@@ -339,7 +342,6 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
     
     
     # Calculate summed groups and create a final dataset
-    
     zoop<-map_dfr(Taxcats_g, .f=LCD_Taxa, df=zoop%>%
                     select(-Phylum, -Class, -Order, -Family, -Genus, -Species, -Taxlifestage))%>% #Taxonomic level by level, summarise for each of these grouping categories and bind them all together
       left_join(Crosswalk_reduced, by="Taxname")%>%
@@ -365,6 +367,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
                     select(., -Source)
                   }}, by="SampleID")
     
+    #Output caveats specific to these data
     caveats<-c(paste0("These species are not counted in all datasets: ", paste(unique(unlist(sapply(names(Orphans), function(x) strsplit(Orphans[[x]], ", ")[[1]]), use.names = FALSE)), collapse=" "), "NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE. Orphan status varies with size class. Do not compare UnID categories across data sources."))
     
     
@@ -372,15 +375,12 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
     
   }
   
-  
   # Apply LCD approach for community data user ------------------------------
-  
   
   if(Data=="Community"){
     
-    
-    
-    if(!some(sapply(Lumped, length), function(x) x>0)){
+    #Exit this process early if all studies are taxonomically consistent
+    if(!some(map_dbl(Lumped, length), function(x) x>0)){
       out<-list(Data=zoop%>%
                   left_join(zoopEnv%>%
                               {if(!All_env){
@@ -397,13 +397,14 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
       }
     }
     
+    #Create vector of all unique taxlifestages
     UniqueTaxlifesize<-zoop%>%
       mutate(Taxlifesize=paste(Taxlifestage, SizeClass))%>%
       pull(Taxlifesize)%>%
       unique()
     
     #Create taxonomy table for all taxonomic levels present (and measured) in all datasets. If the taxonomic level is not present as a taxname (i.e. there is no spp. category for that taxonomic level) it will be removed. 
-    Commontaxkey<-map2_dfr(set_names(rep(Size_classes, each=length(Taxcats))),
+    Commontaxkey<-map2_dfr(rep(Size_classes, each=length(Taxcats)),
                            rep(Taxcats, length(Size_classes)), 
                            ~Commontaxer(.y, SourceTaxaKey%>%filter(SizeClass==.x)), 
                            .id = "SizeClass")%>%
@@ -432,13 +433,14 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
         mutate(Taxname_new=str_extract(Taxname_new, "^[^_]+(?=_)"))
     }
     
-    Lumpedkey<-map_dfr(set_names(Size_classes), 
+    Lumpedkey<-map_dfr(Size_classes, 
                        ~LCD_Com(Lumped[[.]], crosswalk, filter(Commontaxkey, SizeClass==.)),
                        .id = "SizeClass")
     
     rm(Lumped)
     rm(Commontaxkey)
     
+    #Remove taxa with no relatives across datasets
     if("REMOVE"%in%Lumpedkey$Taxname_new){
       
       Removed<-Lumpedkey%>%
@@ -453,7 +455,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
       caveats<-"No disclaimers here! Enjoy the clean data!"
     }
     
-    #
+    #Rename and sum taxa that are not measured in all datasets, add taxonomic info back to data
     zoop<-zoop%>%
       left_join(Lumpedkey%>%
                   select(Taxlifestage, Taxname_new, SizeClass),
@@ -488,6 +490,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
                   }}, by="SampleID")
   }
   
+  #Add warnings for taxa undersampled by different methods
     zoop<-zoop%>%
       left_join(Undersampled, by=c("Taxlifestage", "SizeClass"))%>%
       mutate(Undersampled=replace_na(Undersampled, FALSE))

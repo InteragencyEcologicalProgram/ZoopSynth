@@ -1,13 +1,6 @@
-# This is a Shiny web application designed to allow users to select which zooplankton data they would
-# like to combine, visualize the data, and download data.
 
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
+# Setup -------------------------------------------------------------------
+
 require(RColorBrewer)
 require(shiny)
 require(tidyverse)
@@ -15,6 +8,7 @@ require(readxl)
 
 #Requires Github developer version of dtplyr: devtools::install_github("tidyverse/dtplyr")
 require(dtplyr)
+
 require(lubridate)
 require(ggiraph)
 require(leaflet)
@@ -27,7 +21,7 @@ require(randomcoloR)
 #required for users to download map plots from shinyapps.io
 if (is.null(suppressMessages(webshot:::find_phantom()))) { webshot::install_phantomjs() }
 
-#Source Sam's function that gets the data from online
+#Source zooplankton synthesizer function
 source("Zoop synthesizer function.R")
 
 #Settings for the "data crunching" message. 
@@ -35,6 +29,7 @@ info_loading <- "Data crunching in progress..."
 progress_color <- "#CD2626"
 progress_background <- "#D3D3D3"
 
+#Function to create a custom legend (used for bubble size legend in taxa map)
 addLegendCustom <- function(map, colors, labels, sizes, position, opacity = 0.5, title){
   colorAdditions <- paste0(colors, "; width:", sizes, "px; height:", sizes, "px", "; border-radius: 50%")
   labelAdditions <- paste0("<div style='display: inline-block;height: ", sizes, "px;margin-top: 4px;line-height: ", sizes, "px;'>", labels, "</div>")
@@ -43,19 +38,26 @@ addLegendCustom <- function(map, colors, labels, sizes, position, opacity = 0.5,
                    opacity = opacity, position=position, title=title))
 }
 
-# Define UI for application that draws graphs and allows you to download data
+
+# Define user interface for app -------------------------------------------
+
 
 ui <- fluidPage(
   
-  # Application title
-  
+  # Application title and IEP logo
   titlePanel(title=div(h1("Zooplankton data synthesizer: TEST VERSION", style="display: inline-block"), img(src="Logo.png", height = 132, width = 100, align="right", style="display: inline-block")), windowTitle = "Zooplankton data synthesizer"),
   
-  # check boxes where you choose data you want
+  
+  # Sidebar with user instructions, input, and downloading options ----------
+  
   fluidRow(
     column(3,
+           
+           #Instructions
            actionBttn("Instructions", "Instructions", style="simple", color="primary", icon=icon("question-circle")),
            br(), br(),
+           
+           #Select data type and sources
            radioGroupButtons("Datatype", "Data Type:", choices = c("Taxa", "Community"), selected = "Community", individual = TRUE, checkIcon = list( yes = tags$i(class = "fa fa-circle", style = "color: steelblue"), no = tags$i(class = "fa fa-circle-o", style = "color: steelblue"))),
            awesomeCheckboxGroup("Sources",
                                 "Sources:",
@@ -66,7 +68,6 @@ ui <- fluidPage(
                                 choices = c("Micro", "Meso", "Macro"), selected = "Meso"),
            
            #Allow users to select which filters they would like to use, then those filter options will appear.
-           
            awesomeCheckboxGroup("Filters",
                                 "Filters:",
                                 choices = c("Dates", "Months", "Surface salinity", "Latitude", "Longitude")),
@@ -87,8 +88,8 @@ ui <- fluidPage(
                             sliderInput("Long_range",
                                         "Longitude Range:",
                                         min = -122.5, max = -121.3, value = c(-122.5, -121.3), step=0.05)),
-           #radioButtons("Plottype", "Plot Type", choices = c("Samples", "CPUE", "Map"), selected = "Samples",
-           #             inline = TRUE),
+           
+           #Button to run synthesizer function
            actionBttn("Run", "Run", style="bordered", icon = icon("play"), color="danger", size="sm"),
            
            #Allows users to select taxa, but only in Taxa mode, and updates Taxa choices based on 
@@ -96,14 +97,13 @@ ui <- fluidPage(
            #output so that it only appears when the app has actually created Taxa data, rather
            #than when the user has checked the taxa box but not yet clicked run. It prevents the
            #user from accidentally filtering taxa in the "Community" mode.
-           
            conditionalPanel(condition = "output.Datatype == 'Taxa'", 
                             uiOutput("select_Taxlifestage")), 
            conditionalPanel(condition = "output.Datatype == 'Taxa'", 
                             actionBttn("Update_taxa", "Update taxa", style="bordered", icon = icon("sync"), color="primary"), size="sm"),
            br(), br(),
-           #Allow users to download data
            
+           #Buttons to download data and plots
            actionBttn("Download", "Download data", style="bordered", color = "primary", size="sm", icon=icon("file-download")),
            br(), br(),
            actionBttn("Saveplot", "Download plot", icon = icon("chart-bar"), size="sm", style = "bordered", color="royal"),
@@ -112,17 +112,34 @@ ui <- fluidPage(
                             actionBttn('Disclaimer',"Data disclaimer", style="jelly", color = "danger", icon = icon("exclamation-triangle")))
     ),
     
-    # Display the plot
+    
+    # Display plots and plot options ------------------------------------------
+    
     column(9,
            tabsetPanel(type="tabs",
                        id = "Tab",
+                       
+                       #Sample plot
                        tabPanel("Samples", br(), 
+                                
+                                #Info
                                 fluidRow(actionBttn("Sample_info", label = NULL, style="material-circle", 
                                                     color="primary", icon=icon("question"))), 
+                                
+                                #Plot
                                 fluidRow(ggiraphOutput("Sampleplot"))),
+                       
+                       #CPUE plot
                        tabPanel("CPUE", br(),
+                                
+                                #Info
                                 fluidRow(column(1, actionBttn("CPUE_info", label = NULL, style="material-circle", 
-                                                              color="primary", icon=icon("question"))), column(2, uiOutput("select_SizeClass")),
+                                                              color="primary", icon=icon("question"))), 
+                                         
+                                         #Select size classes
+                                         column(2, uiOutput("select_SizeClass_CPUE")),
+                                         
+                                         #Group by salinity zones
                                          column(1, materialSwitch(
                                            inputId = "Salzones",
                                            label = "Salinity zones?", 
@@ -130,31 +147,52 @@ ui <- fluidPage(
                                            status = "primary"
                                          )), 
                                          column(8, conditionalPanel(condition = "input.Salzones", 
-                                                                    sliderInput("Lowsal", "Low salinity zone", min=0, max=30, value=c(0.5,6), step=0.1, width="100%")))), 
+                                                                    sliderInput("Lowsal", "Low salinity zone", 
+                                                                                min=0, max=30, value=c(0.5,6), 
+                                                                                step=0.1, width="100%")))), 
+                                #Plot
                                 fluidRow(column(12, ggiraphOutput("CPUEplot")))),
+                       
+                       #Map plot
                        tabPanel("Map", fluidRow(column(1, offset = 0, style='padding:0px;', br() ,
+                                                       
+                                                       #Info
                                                        actionBttn("Map_info", label = NULL, style="material-circle", 
                                                                   color="primary", icon=icon("question"))), 
-                                                column(2, offset = 0, style='padding:0px;', br(), conditionalPanel(condition = "output.Datatype == 'Community'", dropdown(
-                                                  
-                                                  tags$h3("Map settings"),
-                                                  
-                                                  uiOutput("select_Lifestage"), 
-                                                  pickerInput('Taxagroups', 'Select taxa:', choices =c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Mysida", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other"), multiple =T, selected=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Mysida", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")),
-                                                  uiOutput("select_SizeClass_map"),
-                                                  circle = TRUE, status = "danger",
-                                                  icon = icon("gear"), width = "300px",
-                                                  
-                                                  tooltip = tooltipOptions(title = "Click to see inputs!")
-                                                )), conditionalPanel(condition = "output.Datatype == 'Taxa'", uiOutput("select_SizeClass_maptaxa"))),
+                                                
+                                                column(2, offset = 0, style='padding:0px;', br(), 
+                                                       
+                                                       #Community map options
+                                                       conditionalPanel(condition = "output.Datatype == 'Community'", dropdown(
+                                                         tags$h3("Map settings"),
+                                                         uiOutput("select_Lifestage"), 
+                                                         pickerInput('Taxagroups', 'Select taxa:', choices =c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Mysida", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other"), multiple =T, selected=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Mysida", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")),
+                                                         uiOutput("select_SizeClass_mapcom"),
+                                                         circle = TRUE, status = "danger",
+                                                         icon = icon("gear"), width = "300px",
+                                                         
+                                                         tooltip = tooltipOptions(title = "Click to see inputs!")
+                                                       )), 
+                                                       
+                                                       #Select size classess for taxa plot
+                                                       conditionalPanel(condition = "output.Datatype == 'Taxa'", 
+                                                                        uiOutput("select_SizeClass_maptaxa"))),
+                                                
+                                                #Year slider
                                                 column(9, uiOutput("select_Year"))),
+                                
+                                #Plot
                                 fluidRow(leafletOutput("Mapplot", width = "100%", height = "100%")))
                        
            )
     )),
   
-  # This is just to display the "data crunching" message. 
   
+  
+  # Misc UI settings --------------------------------------------------------
+  
+  
+  # Display the "data crunching" message. 
   tags$head(tags$style(type="text/css",
                        paste0("
                                              #loadmessage {
@@ -175,19 +213,8 @@ ui <- fluidPage(
                    tags$div(info_loading,id="loadmessage")),
   tags$style(type="text/css", ".recalculating {opacity: 1.0;}"),
   
-  #tags$style(type="text/css", "#Downloaddata {color: white}"),
-  #tags$style(type="text/css", "#Save {color: white}"),
+  #Change disclaimer button text color to white
   tags$style(type="text/css", "#Disclaimer {color: white}"),
-  
-  #Make leaflet legend shapes circles
-  #tags$style(type = "text/css", "html, body {width:100%;height:100%}",
-  #            ".leaflet .legend i{
-  #                    border-radius: 50%;
-  #                   width: 10px;
-  #                  height: 10px;
-  #                 margin-top: 4px;
-  #                }
-  #               "),
   
   #Specify plot sizes
   tags$head(tags$style("#Sampleplot{height:100vh !important;}")),
@@ -195,10 +222,14 @@ ui <- fluidPage(
   tags$head(tags$style("#Mapplot{height:80vh !important;}"))
 )
 
-# Define server logic required to process data, draw plots, and dowload data
+# Define server logic to process data, draw plots, and dowload data -------
+
+
 server <- function(input, output, session) {
   
-  #Add function for Modal dialog (popup window) to save plots
+  # Data and plot download options ------------------------------------------
+  
+  #Modal dialog (popup window) to save plots
   Modalsave<-function(){
     modalDialog(
       conditionalPanel(condition = "input.Tab == 'Samples' || input.Tab == 'CPUE'" , 
@@ -214,6 +245,7 @@ server <- function(input, output, session) {
     )
   }
   
+  #Modal dialog (popup window) to download data
   ModalDownloadData<-function(){
     modalDialog(
       h1("Data disclaimer"),
@@ -225,10 +257,11 @@ server <- function(input, output, session) {
     )
   }
   
+  
+  # Run zooper --------------------------------------------------------------
+  
   #Using eventReactive so app only updates when "Run" button is clicked, letting you check all the boxes you want before running the app
   plotdata <- eventReactive(input$Run, {
-    
-    #select the data the user wants
     
     Zooper(Data = input$Datatype, 
            Sources = input$Sources, 
@@ -241,22 +274,25 @@ server <- function(input, output, session) {
            Shiny=T, All_env=F)
   })
   
-  #Disclaimer
+  
+  # Informational popups ----------------------------------------------------
+  
+  #Popup for data disclaimer
   observeEvent(input$Disclaimer, {
     sendSweetAlert(session, title = "Data disclaimer", text = paste0("Data are subject to the following caveats:\n\n", plotdata()$Caveats),
                    type = "info",
                    btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
   })
   
-  #Instructions
+  #Popup for app instructions
   observeEvent(input$Instructions, {
-    sendSweetAlert(session, title = "Instructions", text = tags$span(tags$p("This app combines any combination of the zoop datasets and calculates least common denominator taxa to facilitate
- comparisons across datasets with differing levels of taxonomic resolution."),  
-                                                                     tags$p("Option 'Data type' allows you to choose a final output dataset for either Community or Taxa-specific  analyses. If you want all available data on given Taxa, use 'Taxa' If you want to conduct a community analysis, use 'Community.'"),
-                                                                     tags$p("Briefly, 'Community' optimizes for community-level analyses by taking all taxa by life stage combinations that are not measured in every input dataset, and summing them up taxonomic levels to the lowest taxonomic level they belong to that is covered by all datasets. Remaining Taxa x life stage combinations that are not covered in all datasets up to the phylum level (usually something like Annelida or Nematoda or Insect Pupae) are removed from the final dataset."), 
-                                                                     tags$p("'Taxa' optimizes for the Taxa-level user by maintaining all data at the original taxonomic level. To facilitate comparions across datasets, this option also sums data into general categories that are comparable across all datasets (e.g., Calanoida_all"), 
-                                                                     "------------------------------------------",
-                                                                     tags$p(tags$b("App created and maintained by Sam Bashevkin with help from the IEP zooplankton synthesis team. Please email sam.bashevkin@deltacouncil.ca.gov with any questions or comments"))),
+    sendSweetAlert(session, title = "Instructions", 
+                   text = tags$span(tags$p("This app combines any combination of the zoop datasets and calculates least common denominator taxa to facilitate comparisons across datasets with differing levels of taxonomic resolution."),
+                                    tags$p("Option 'Data type' allows you to choose a final output dataset for either Community or Taxa-specific  analyses. If you want all available data on given Taxa, use 'Taxa' If you want to conduct a community analysis, use 'Community.'"),
+                                    tags$p("Briefly, 'Community' optimizes for community-level analyses by taking all taxa by life stage combinations that are not measured in every input dataset, and summing them up taxonomic levels to the lowest taxonomic level they belong to that is covered by all datasets. Remaining Taxa x life stage combinations that are not covered in all datasets up to the phylum level (usually something like Annelida or Nematoda or Insect Pupae) are removed from the final dataset."), 
+                                    tags$p("'Taxa' optimizes for the Taxa-level user by maintaining all data at the original taxonomic level. To facilitate comparions across datasets, this option also sums data into general categories that are comparable across all datasets (e.g., Calanoida_all"), 
+                                    "------------------------------------------",
+                                    tags$p(tags$b("App created and maintained by Sam Bashevkin with help from the IEP zooplankton synthesis team. Please email sam.bashevkin@deltacouncil.ca.gov with any questions or comments"))),
                    type = "info",
                    btn_labels = "Ok", html = F, closeOnClickOutside = TRUE)
   })
@@ -294,8 +330,10 @@ server <- function(input, output, session) {
     }
   })
   
-  #Filter data to selected taxa. Doing this plotdata in 2 steps makes it so 
-  #Zooper function isn't re-run every time the user selects new taxa to plot
+  
+  # Filter and process data -------------------------------------------------
+  
+  #Filter data to selected taxa.
   plotdata2 <- eventReactive(c(input$Run, input$Update_taxa), {
     if (length(input$Taxlifestage)>0 & input$Datatype=="Taxa"){
       filter(plotdata()$Data, Taxlifestage%in%input$Taxlifestage)
@@ -304,11 +342,11 @@ server <- function(input, output, session) {
     }
   }, ignoreInit=T)
   
-  #Create data for map plot
+  #Create data for tax map plot
   mapdatataxa <- reactive( {
-    req(length(input$Map_taxa_size_class)>0)
+    req(length(input$Maptax_size_class)>0)
     plotdata2()%>%
-      filter(!is.na(Latitude) & !is.na(Longitude) & SizeClass%in%input$Map_taxa_size_class)%>%
+      filter(!is.na(Latitude) & !is.na(Longitude) & SizeClass%in%input$Maptax_size_class)%>%
       lazy_dt()%>%
       group_by(Taxlifestage, Year, Latitude, Longitude)%>%
       summarise(CPUE=mean(CPUE, na.rm=T))%>%
@@ -331,14 +369,14 @@ server <- function(input, output, session) {
       Taxagroups<-input$Taxagroups
     }
     
-    if(is.null(input$Map_size_class)){
-      Map_size_class<-c("Micro", "Meso", "Macro")
+    if(is.null(input$Mapcom_size_class)){
+      Mapcom_size_class<-c("Micro", "Meso", "Macro")
     } else{
-      Map_size_class<-input$Map_size_class
+      Mapcom_size_class<-input$Mapcom_size_class
     }
     
     plotdata2()%>%
-      filter(!is.na(Latitude) & !is.na(Longitude) & Lifestage%in%Lifestages & SizeClass%in%Map_size_class & !Undersampled)%>%
+      filter(!is.na(Latitude) & !is.na(Longitude) & Lifestage%in%Lifestages & SizeClass%in%Mapcom_size_class & !Undersampled)%>%
       mutate(Taxa=case_when(
         Order=="Calanoida" ~ "Calanoida",
         Order=="Cyclopoida" ~ "Cyclopoida",
@@ -371,31 +409,32 @@ server <- function(input, output, session) {
     
   })
   
-  #Pull out maximum CPUE for map plot scale
+  #Pull out maximum CPUE for taxa map plot scale
   mapmax<- reactive( {
     mapdatataxa()%>%
       pull(CPUE)%>%
       max()
   })
   
-  #Create labels for map legend
+  #Create labels for taxa map legend
   maplabels<-reactive({
     a<-mapmax()*c(1/3, 2/3, 1)
     b<-signif(a,2)
     return(list(Radii=(sqrt(b)/sqrt(mapmax()))*22, Labels=format(b, big.mark = ",")))
   })
   
-  #Create Taxa map data filtered to year
+  #Filter taxa map data to year using year slider
   filteredmapdatataxa<-reactive({
     mapdatataxa()%>%
       filter(Year==input$Year)
   })
   
+  #Color palette for community map
   Compal<-reactive({
     colorFactor(brewer.pal(length(unique(mapdatacom()$Taxa)), "RdYlBu"), mapdatacom()%>%pull(Taxa))
   })
   
-  #Create Community map data filtered to year
+  #Filtered community map data to year
   filteredmapdatacom<-reactive({
     mapdatacom()%>%
       mutate(Taxa=as.character(Taxa))%>%
@@ -407,7 +446,10 @@ server <- function(input, output, session) {
     colorFactor(brewer.pal(7, "Dark2"), mapdatataxa()%>%pull(Taxlifestage))
   })
   
-  #Update Taxlifestage choices based on data for the user input choices
+  
+  # Calculate available choices for various UI inputs -----------------------
+  
+  #Calculate available taxlifestages for choosing taxlifestages
   output$select_Taxlifestage <- renderUI({
     
     choice_Taxlifestage <- reactive({
@@ -435,17 +477,19 @@ server <- function(input, output, session) {
     
   })
   
+  
+  #Calculate available size classes
   choice_SizeClass <- reactive({
     plotdata2()%>%
       pull(SizeClass)%>%
       unique()
   })
   
-  #Update SizeClass choices for community map based on prior user input choices
-  output$select_SizeClass <- renderUI({
+  #Size class input for CPUE plot
+  output$select_SizeClass_CPUE <- renderUI({
     
     checkboxGroupButtons(
-      inputId = "Plot_size_class",
+      inputId = "CPUE_size_class",
       label = "Size classes",
       choices = choice_SizeClass(),
       direction="horizontal",
@@ -456,10 +500,11 @@ server <- function(input, output, session) {
     
   })
   
-  output$select_SizeClass_map <- renderUI({
+  #Size class input for community map
+  output$select_SizeClass_mapcom <- renderUI({
     
     checkboxGroupButtons(
-      inputId = "Map_size_class",
+      inputId = "Mapcom_size_class",
       label = "Size classes",
       choices = choice_SizeClass(),
       direction="horizontal",
@@ -470,10 +515,11 @@ server <- function(input, output, session) {
     
   })
   
+  #Size class input for taxa map
   output$select_SizeClass_maptaxa <- renderUI({
     
     checkboxGroupButtons(
-      inputId = "Map_taxa_size_class",
+      inputId = "Maptax_size_class",
       label = "Size classes",
       choices = choice_SizeClass(),
       direction="horizontal",
@@ -484,7 +530,7 @@ server <- function(input, output, session) {
     
   })
   
-  #Update year choices based on prior user input choices
+  #Year choices and input for slider on map plots
   output$select_Year <- renderUI({
     
     choice_Year <- reactive({
@@ -500,7 +546,7 @@ server <- function(input, output, session) {
     
   })
   
-  #Update Lifestage choices for community map based on prior user input choices
+  #Lifestage choices for community map
   output$select_Lifestage <- renderUI({
     
     choice_Lifestage <- reactive({
@@ -514,36 +560,34 @@ server <- function(input, output, session) {
     
   })
   
-  #Create output so app knows what type of data has actually been created. Used for the select taxa input
+  #Create variable for data type that can be passed back to UI
   output$Datatype<-reactive( {
     ifelse("Taxatype"%in%colnames(plotdata()$Data), "Taxa", "Community")
   })
   
-  #Make reactive functions for each plot type
   
+  # Create plots ------------------------------------------------------------
+  
+  #Sample plot
   Sampleplot <- reactive({
+    
+    #Set color palette
     myColors <- RColorBrewer::brewer.pal(5,"Set2")
     names(myColors) <- c("EMP", "FMWT", "TNS", "twentymm", "FRP")
     fillScale <- scale_fill_manual(name = "Source", values = myColors)
     
+    #Create tooltip text template for mouse hovers
     str_model <- paste0("<tr><td>Year &nbsp</td><td>%s</td></tr>",
                         "<tr><td>Source &nbsp</td><td>%s</td></tr>", 
                         "<tr><td>N &nbsp</td><td>%s</td></tr>")
     
+    #Filter and process data
     data<-plotdata2()%>%
-      #mutate(Season=case_when(
-      #  Month%in%c(1,2,3) ~ "Winter",
-      #  Month%in%c(4,5,6) ~ "Spring",
-      #  Month%in%c(7,8,9) ~ "Summer",
-      #  Month%in%c(10,11,12) ~ "Fall"
-      #))%>%
-      #mutate(Season=factor(Season, levels=c("Fall", "Winter", "Spring", "Summer")))%>%
       mutate(Month=recode_factor(month(Date), "1"="January","2"="February", "3"="March", "4"="April", "5"="May", "6"="June", "7"="July", "8"="August", "9"="September", "10"="October", "11"="November", "12"="December"))%>%
       select(Source, Year, Month, SampleID)%>%
       distinct()
-      
-      
-      data<-data%>%
+    
+    data<-data%>%
       group_by(Source, Year, Month)%>%
       summarise(N_samples=n())%>%
       ungroup()%>%
@@ -551,7 +595,8 @@ server <- function(input, output, session) {
              ID=as.character(1:n()))%>%
       mutate(tooltip=paste0( "<table>", tooltip, "</table>" ))
     
-      p<-ggplot(data, aes(x=Year, y = N_samples, fill=Source)) +
+    #Plot
+    p<-ggplot(data, aes(x=Year, y = N_samples, fill=Source)) +
       geom_bar_interactive(stat="identity", aes(tooltip=tooltip, data_id = ID))+
       facet_wrap(~Month)+
       coord_cartesian(expand=0)+
@@ -560,13 +605,23 @@ server <- function(input, output, session) {
       theme_bw()+
       theme(panel.grid=element_blank(), strip.background=element_blank(), text=element_text(size=14), panel.spacing.x = unit(15, "points"))+
       fillScale
-      return(p)
+    return(p)
   })
   
+  #CPUE plot
   CPUEplot <- reactive({
-    req(length(input$Plot_size_class)>0)
+    
+    #Only run after it has processed the plot size class selection
+    req(length(input$CPUE_size_class)>0)
+    
     if("Taxatype"%in%colnames(plotdata2())){
+      
+      #Taxa plot
+      
+      #Number of colors needed
       colorCount <- plotdata2()%>%pull(Taxlifestage)%>%unique()%>%length()
+      
+      #Create text template for mouse hover tooltip
       if(input$Salzones){
         str_model <- paste0("<tr><td>Year &nbsp</td><td>%s</td></tr>",
                             "<tr><td>Taxa &nbsp</td><td>%s</td></tr>",
@@ -578,8 +633,9 @@ server <- function(input, output, session) {
                             "<tr><td>CPUE &nbsp</td><td>%s</td></tr>")
       }
       
+      #Process data
       plotdata2()%>%
-        filter(SizeClass%in%input$Plot_size_class)%>%
+        filter(SizeClass%in%input$CPUE_size_class)%>%
         {if(input$Salzones){
           filter(., !is.na(SalSurf))%>% 
             mutate(Salinity_zone=case_when(
@@ -602,6 +658,8 @@ server <- function(input, output, session) {
                  ID=as.character(1:n()))
         }}%>%
         mutate(tooltip=paste0( "<table>", tooltip, "</table>" ))%>%
+        
+        #Plot
         {if(input$Salzones){
           ggplot(., aes(x=Year, y=CPUE))+
             geom_line(size=1, aes(color=Taxlifestage, linetype=Salinity_zone))+
@@ -625,12 +683,20 @@ server <- function(input, output, session) {
             theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=10))
         }}
     }else{
+      
+      #CPUE plot
+      
+      #Number of colors needed
       colorCount <- plotdata2()%>%filter(!Undersampled)%>%pull(Taxlifestage)%>%unique()%>%length()
+      
+      #Create text template for mouse hover tooltip
       str_model <- paste0("<tr><td>Year &nbsp</td><td>%s</td></tr>",
                           "<tr><td>Taxa &nbsp</td><td>%s</td></tr>",
                           "<tr><td>CPUE &nbsp</td><td>%s</td></tr>")
+      
+      #Process data
       plotdata2()%>%
-        filter(SizeClass%in%input$Plot_size_class & !Undersampled)%>%
+        filter(SizeClass%in%input$CPUE_size_class & !Undersampled)%>%
         {if(input$Salzones){
           filter(., !is.na(SalSurf))%>% 
             mutate(Salinity_zone=case_when(
@@ -650,6 +716,8 @@ server <- function(input, output, session) {
         mutate(tooltip=paste0( "<table>", tooltip, "</table>" ))%>%
         arrange(Phylum, Class, Order, Family, Genus, Species, Lifestage)%>%
         mutate(Taxlifestage=factor(Taxlifestage, unique(Taxlifestage)))%>%
+        
+        #Plot
         ggplot(aes(x=Year, y=CPUE))+
         geom_bar_interactive(stat="identity", color="white", size=0.01, aes(fill=Taxlifestage, tooltip=tooltip, data_id = ID))+
         coord_cartesian(expand=0)+
@@ -664,8 +732,11 @@ server <- function(input, output, session) {
     }
   })
   
+  #Map plot bases
   Mapplot<-reactive({
     if("Taxatype"%in%colnames(plotdata2())){
+      
+      #Taxa map plot
       leaflet(mapdatataxa())%>%
         addProviderTiles("Esri.WorldGrayCanvas")%>%
         fitBounds(~min(Longitude, na.rm=T), ~min(Latitude, na.rm=T), ~max(Longitude, na.rm=T), ~max(Latitude, na.rm=T))%>%
@@ -675,6 +746,8 @@ server <- function(input, output, session) {
                         title="CPUE")%>%
         addLegend("topleft", pal = Taxapal(), values = ~Taxlifestage)
     } else{
+      
+      #Community map plot
       leaflet(mapdatacom())%>%
         addProviderTiles("Esri.WorldGrayCanvas")%>%
         fitBounds(~min(Longitude, na.rm=T), ~min(Latitude, na.rm=T), ~max(Longitude, na.rm=T), ~max(Latitude, na.rm=T))%>%
@@ -682,7 +755,7 @@ server <- function(input, output, session) {
     }
   })
   
-  #Create plot outputs (girafe makes plot interactive/hoverable)
+  #Output plots (girafe makes plot interactive/hoverable)
   output$Sampleplot <- renderggiraph({
     p1<-girafe(code=print(Sampleplot()), width_svg = 10)
     girafe_options(p1, opts_toolbar(saveaspng = FALSE), opts_selection(type="none"))
@@ -697,8 +770,11 @@ server <- function(input, output, session) {
     Mapplot()
   })
   
+  #Add data to map plots
   #leafletProxy lets us change layers in the map plot without re-rendering the whole thing
-  observeEvent(c(input$Update_taxa, input$Year, input$Map_taxa_size_class), {
+  
+  #Taxa map plot
+  observeEvent(c(input$Update_taxa, input$Year, input$Maptax_size_class), {
     req(input$Tab=="Map" & "Taxatype"%in%colnames(plotdata2()))
     pal <- Taxapal()
     map<-leafletProxy("Mapplot", session, data = filteredmapdatataxa(), deferUntilFlush=T)%>%
@@ -707,7 +783,8 @@ server <- function(input, output, session) {
                        fillColor = ~pal(Taxlifestage), color="black", fillOpacity = 0.7, label = ~paste0(Taxlifestage, ": ", round(CPUE)))
   }, ignoreNULL = T)
   
-  observeEvent(c(input$Lifestage, input$Year, input$Taxagroups, input$Map_size_class), {
+  #Community map plot
+  observeEvent(c(input$Lifestage, input$Year, input$Taxagroups, input$Mapcom_size_class), {
     req(input$Tab=="Map" & !("Taxatype"%in%colnames(plotdata2())) & nrow(filteredmapdatacom())>1)
     filteredspreadmapdatacom<-filteredmapdatacom()%>%
       spread(key=Taxa, value = CPUE)
@@ -720,8 +797,7 @@ server <- function(input, output, session) {
                     colorPalette = Compal()(colnames(filteredspreadmapdatacommat)), legend=FALSE, transitionTime = 0, opacity=0.8)
   }, ignoreNULL = T)
   
-  
-  # map that will be downloaded
+  # Create map plots for download
   mapdown <- reactive({
     if("Taxatype"%in%colnames(plotdata2())){
       pal <- Taxapal()
@@ -733,8 +809,7 @@ server <- function(input, output, session) {
                         title="CPUE")%>%
         addLegend("topleft", pal = Taxapal(), values = ~Taxlifestage)%>%
         addCircleMarkers(radius = ~(sqrt(CPUE)/sqrt(mapmax()))*22, weight = 1, lng = ~Longitude, lat = ~Latitude,
-                         fillColor = ~pal(Taxlifestage), color="black", fillOpacity = 0.7, label = ~paste0(Taxlifestage, ": ", round(CPUE)))#%>% 
-      #setView(lng = input$Mapplot_center$lng,  lat = input$Mapplot_center$lat, zoom = input$Mapplot_zoom) ##Not working, doesn't exactly match the map you see
+                         fillColor = ~pal(Taxlifestage), color="black", fillOpacity = 0.7, label = ~paste0(Taxlifestage, ": ", round(CPUE)))
     } else{
       filteredspreadmapdatacom<-filteredmapdatacom()%>%
         spread(key=Taxa, value = CPUE)
@@ -745,10 +820,14 @@ server <- function(input, output, session) {
         addMinicharts(lng = filteredspreadmapdatacom$Longitude, lat = filteredspreadmapdatacom$Latitude,
                       type = "pie",
                       chartdata = filteredspreadmapdatacommat, 
-                      colorPalette = Compal()(colnames(filteredspreadmapdatacommat)), legend=FALSE, transitionTime = 0, opacity=0.8)#%>% 
-      #setView(lng = input$Mapplot_center$lng,  lat = input$Mapplot_center$lat, zoom = input$Mapplot_zoom) ##Not working, doesn't exactly match the map you see
+                      colorPalette = Compal()(colnames(filteredspreadmapdatacommat)), legend=FALSE, transitionTime = 0, opacity=0.8)
     }
   })
+  
+  
+  # Download data and plots -------------------------------------------------
+  
+  
   
   #Show modal dialog to save plot when Saveplot button is clicked
   observeEvent(input$Saveplot, {
@@ -784,7 +863,6 @@ server <- function(input, output, session) {
   )
   
   #Download handler for data downloading
-  
   output$Downloaddata <- downloadHandler(
     filename = function() {
       paste("data-", Sys.Date(), ".csv", sep="")
