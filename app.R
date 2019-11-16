@@ -1,6 +1,10 @@
 
 # Setup -------------------------------------------------------------------
 
+#options(shiny.reactlog = TRUE)
+#options(shiny.jquery.version = 1)
+#require(reactlog)
+
 require(RColorBrewer)
 require(shiny)
 require(tidyverse)
@@ -10,7 +14,7 @@ require(readxl)
 require(dtplyr)
 
 require(lubridate)
-require(ggiraph)
+require(ggiraph) # NEW VERSION MAKES APP SUPER SLOW, STICK WITH 0.6.1
 require(leaflet)
 require(webshot)
 require(mapview)
@@ -143,7 +147,7 @@ ui <- fluidPage(
                                          column(1, materialSwitch(
                                            inputId = "Salzones",
                                            label = "Salinity zones?", 
-                                           value = TRUE, inline=F,
+                                           value = FALSE, inline=F,
                                            status = "primary"
                                          )), 
                                          column(8, conditionalPanel(condition = "input.Salzones", 
@@ -347,10 +351,8 @@ server <- function(input, output, session) {
     req(length(input$Maptax_size_class)>0)
     plotdata2()%>%
       filter(!is.na(Latitude) & !is.na(Longitude) & SizeClass%in%input$Maptax_size_class)%>%
-      lazy_dt()%>%
       group_by(Taxlifestage, Year, Latitude, Longitude)%>%
       summarise(CPUE=mean(CPUE, na.rm=T))%>%
-      as_tibble()%>%
       ungroup()
   })
   
@@ -396,13 +398,11 @@ server <- function(input, output, session) {
       } else{
         .
       }}%>%
-      lazy_dt()%>%
       group_by(Taxa, Year, Latitude, Longitude, SampleID)%>%
       summarise(CPUE=sum(CPUE, na.rm=T))%>%
       ungroup()%>%
       group_by(Taxa, Year, Latitude, Longitude)%>%
       summarise(CPUE=mean(CPUE, na.rm=T))%>%
-      as_tibble()%>%
       ungroup()%>%
       arrange(Taxa)%>%
       mutate(CPUE=round(CPUE))
@@ -881,6 +881,14 @@ server <- function(input, output, session) {
   
   #Enable the datatype output to be passsed to input
   outputOptions(output, "Datatype", suspendWhenHidden = FALSE)
+  
+  # Close the app when the session completes
+  if(!interactive()) {
+    session$onSessionEnded(function() {
+      stopApp()
+      q("no")
+    })
+  }
 }
 
 # Run the application 
