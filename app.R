@@ -20,7 +20,6 @@ require(webshot)
 require(mapview)
 require(shinyWidgets) 
 require(leaflet.minicharts)
-require(randomcoloR)
 
 #required for users to download map plots from shinyapps.io
 if (is.null(suppressMessages(webshot:::find_phantom()))) { webshot::install_phantomjs() }
@@ -223,7 +222,17 @@ ui <- fluidPage(
   #Specify plot sizes
   tags$head(tags$style("#Sampleplot{height:100vh !important;}")),
   tags$head(tags$style("#CPUEplot{height:80vh !important;}")),
-  tags$head(tags$style("#Mapplot{height:80vh !important;}"))
+  tags$head(tags$style("#Mapplot{height:80vh !important;}")),
+  
+  #Specify app icon 
+  
+    tags$head(
+      tags$link(
+        rel = "icon", 
+        type = "image/x-icon", 
+        href = "http://localhost:1984/Zooper_icon.ico")
+    )
+  
 )
 
 # Define server logic to process data, draw plots, and dowload data -------
@@ -725,7 +734,7 @@ server <- function(input, output, session) {
         {if(input$Salzones){
           facet_wrap(~Salinity_zone, nrow=1)
         }}+
-        scale_fill_manual(values=distinctColorPalette(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=2))+
+        scale_fill_manual(values=sample(colorRampPalette(brewer.pal(12, "Set3"))(colorCount)), name="Taxa and life stage", guide = guide_legend(ncol=2))+
         ylab(bquote(Average~CPUE~"("*Catch*"/"*m^3*")"))+
         theme_bw()+
         theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=6), legend.key.size = unit(10, "points"), strip.background=element_blank())
