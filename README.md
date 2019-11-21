@@ -1,6 +1,5 @@
-ZoopSynth
+Zooplankton Synthesis in the Sacramento San Joaquin Delta
 ================
-Sam Bashevkin
 11/21/2019
 
 # Introduction
@@ -38,7 +37,6 @@ lets me use all these datasets.*
   - Consistent taxonomic categories
   - No plankters counted more than once
   - Sacrifices some taxonomic resolution
-  - Sacrifices some taxonomic resolution
   - Removes taxa with no relatives in all datasets (eg., Annelida)
 
 ## For specific taxa analyzers
@@ -66,13 +64,18 @@ We have integrated zooplankton data from 3 net size classes:
 3.  Micro (43 ![mu](https://latex.codecogs.com/gif.latex?%24%5Cmu%24)m):
     Copepods, rotifers
 
-Nets accurately samples zooplankton larger than the mesh size.
+Nets accurately sample zooplankton larger than the mesh size.
 Zooplankton smaller than the mesh size are still captured and often
 recorded in datasets, but the resulting CPUEs are not accurate. To
 account for this we:
 
 1.  Resolve taxonomic resolution separately within each net size class.
-2.  For the option `Data = 'Taxa'`, we mark “summed groups” with the net
-    size class from which they were derived.
+2.  If `Data = 'Taxa'`, we mark “summed groups” with the net size class
+    from which they were derived.
 3.  All potentially undersampled data are marked with a flag
     `Undersampled == TRUE`
+
+# Unresolved issues
+
+For many studies, taxonomic resolution has changed over time. This could
+confound analyses of zooplankton communities and abundances over time.
