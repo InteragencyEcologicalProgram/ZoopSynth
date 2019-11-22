@@ -74,6 +74,9 @@ account for this we:
     from which they were derived.
 3.  All potentially undersampled data are marked with a flag
     `Undersampled == TRUE`
+4.  For the plots in the shiny app, all data with `Undersampled == TRUE`
+    are removed. However, data downloaded from the app do contain
+    undersampled data.
 
 # Unresolved issues
 
