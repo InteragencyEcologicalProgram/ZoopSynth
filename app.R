@@ -9,12 +9,9 @@ require(RColorBrewer)
 require(shiny)
 require(tidyverse)
 require(readxl)
-
-#Requires Github developer version of dtplyr: devtools::install_github("tidyverse/dtplyr")
 require(dtplyr)
-
 require(lubridate)
-require(ggiraph) # NEW VERSION MAKES APP SUPER SLOW, STICK WITH 0.6.1
+require(ggiraph) # NEW VERSION MAKES APP SUPER SLOW, STICK WITH 0.6.1 devtools::install_version("ggiraph", version = "0.6.1", repos = "http://cran.us.r-project.org")
 require(leaflet)
 require(webshot)
 require(mapview)
@@ -68,7 +65,7 @@ ui <- fluidPage(
                                             "Fish Restoration Program (FRP)" = "FRP", "Fall Midwater Trawl (FMWT)" = "FMWT", "Summer Townet Survey (TNS)" = "TNS", "20mm Survey (twentymm)" = "twentymm")),
            awesomeCheckboxGroup("Size_class",
                                 "Size classes:",
-                                choices = c("Micro", "Meso", "Macro"), selected = "Meso"),
+                                choices = c("Micro (43 micrometer mesh)"="Micro", "Meso (150-160 micrometer mesh)"="Meso", "Macro (500-505 micrometer mesh)"="Macro"), selected = "Meso"),
            
            #Allow users to select which filters they would like to use, then those filter options will appear.
            awesomeCheckboxGroup("Filters",
@@ -593,6 +590,7 @@ server <- function(input, output, session) {
     #Filter and process data
     data<-plotdata2()%>%
       mutate(Month=recode_factor(month(Date), "1"="January","2"="February", "3"="March", "4"="April", "5"="May", "6"="June", "7"="July", "8"="August", "9"="September", "10"="October", "11"="November", "12"="December"))%>%
+      filter(CPUE>0)%>%
       select(Source, Year, Month, SampleID)%>%
       distinct()
     
@@ -643,7 +641,7 @@ server <- function(input, output, session) {
       }
       
       #Process data
-      plotdata2()%>%
+      p<-plotdata2()%>%
         filter(SizeClass%in%input$CPUE_size_class)%>%
         {if(input$Salzones){
           filter(., !is.na(SalSurf))%>% 
@@ -702,9 +700,9 @@ server <- function(input, output, session) {
       str_model <- paste0("<tr><td>Year &nbsp</td><td>%s</td></tr>",
                           "<tr><td>Taxa &nbsp</td><td>%s</td></tr>",
                           "<tr><td>CPUE &nbsp</td><td>%s</td></tr>")
-      
+      set.seed(500)
       #Process data
-      plotdata2()%>%
+      p<-plotdata2()%>%
         filter(SizeClass%in%input$CPUE_size_class & !Undersampled)%>%
         {if(input$Salzones){
           filter(., !is.na(SalSurf))%>% 
@@ -738,7 +736,9 @@ server <- function(input, output, session) {
         ylab(bquote(Average~CPUE~"("*Catch*"/"*m^3*")"))+
         theme_bw()+
         theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=6), legend.key.size = unit(10, "points"), strip.background=element_blank())
+      set.seed(seed=NULL)
     }
+    p
   })
   
   #Map plot bases
