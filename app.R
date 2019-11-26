@@ -302,7 +302,7 @@ server <- function(input, output, session) {
                                     tags$p("Briefly, 'Community' optimizes for community-level analyses by taking all taxa by life stage combinations that are not measured in every input dataset, and summing them up taxonomic levels to the lowest taxonomic level they belong to that is covered by all datasets. Remaining Taxa x life stage combinations that are not covered in all datasets up to the phylum level (usually something like Annelida or Nematoda or Insect Pupae) are removed from the final dataset."), 
                                     tags$p("'Taxa' optimizes for the Taxa-level user by maintaining all data at the original taxonomic level. To facilitate comparions across datasets, this option also sums data into general categories that are comparable across all datasets (e.g., Calanoida_all"), 
                                     "------------------------------------------",
-                                    tags$p(tags$b("App created and maintained by Sam Bashevkin with help from the IEP zooplankton synthesis team. Please email sam.bashevkin@deltacouncil.ca.gov with any questions or comments"))),
+                                    tags$p(tags$b("App created and maintained by Sam Bashevkin with help from the IEP zooplankton synthesis team. Please email shiny@deltacouncil.ca.gov with any questions or comments"))),
                    type = "info",
                    btn_labels = "Ok", html = F, closeOnClickOutside = TRUE)
   })
