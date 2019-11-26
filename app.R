@@ -45,7 +45,7 @@ addLegendCustom <- function(map, colors, labels, sizes, position, opacity = 0.5,
 ui <- fluidPage(
   
   # Application title and IEP logo
-  titlePanel(title=div(h1("Zooplankton data synthesizer: TEST VERSION", style="display: inline-block"), img(src="Logo.png", height = 132, width = 100, align="right", style="display: inline-block")), windowTitle = "Zooplankton data synthesizer"),
+  titlePanel(title=div(h1("Zooplankton data synthesizer: TEST VERSION", style="display: inline-block"), img(src="Logo.jpg", height = 132, width = 100, align="right", style="display: inline-block")), windowTitle = "Zooplankton data synthesizer"),
   
   
   # Sidebar with user instructions, input, and downloading options ----------
