@@ -46,7 +46,7 @@ ui <- fluidPage(
   
   # Application title and IEP logo
   titlePanel(title=div(h1("Zooplankton data synthesizer: TEST VERSION", style="display: inline-block"), img(src="Logo.jpg", height = 132, width = 100, align="right", style="display: inline-block")), windowTitle = "Zooplankton data synthesizer"),
-  
+  withMathJax(),
   
   # Sidebar with user instructions, input, and downloading options ----------
   
@@ -62,10 +62,10 @@ ui <- fluidPage(
            awesomeCheckboxGroup("Sources",
                                 "Sources:",
                                 choices = c("Environmental Monitoring Program (EMP)" = "EMP", 
-                                            "Fish Restoration Program (FRP)" = "FRP", "Fall Midwater Trawl (FMWT)" = "FMWT", "Summer Townet Survey (TNS)" = "TNS", "20mm Survey (twentymm)" = "twentymm")),
+                                            "Fish Restoration Program (FRP)" = "FRP", "Fall Midwater Trawl (FMWT)" = "FMWT", "Summer Townet Survey (TNS)" = "TNS", "20mm Survey (20mm)" = "20mm")),
            awesomeCheckboxGroup("Size_class",
                                 "Size classes:",
-                                choices = c("Micro (43 micrometer mesh)"="Micro", "Meso (150-160 micrometer mesh)"="Meso", "Macro (500-505 micrometer mesh)"="Macro"), selected = "Meso"),
+                                choices = c("Micro (43 \\(\\mu\\)m mesh)"="Micro", "Meso (150-160 \\(\\mu\\)m mesh)"="Meso", "Macro (500-505 \\(\\mu\\)m mesh)"="Macro"), selected = "Meso"),
            
            #Allow users to select which filters they would like to use, then those filter options will appear.
            awesomeCheckboxGroup("Filters",
@@ -259,8 +259,8 @@ server <- function(input, output, session) {
   ModalDownloadData<-function(){
     modalDialog(
       h1("Data disclaimer"),
-      h4("Data are subject to the following caveats:"),
-      p(plotdata()$Caveats),
+      h3("Data are subject to the following caveats:"),
+      map(plotdata()$Caveats, tags$p),
       footer = tagList(modalButton("Cancel"),
                        downloadBttn("Downloaddata", "Download data", style="bordered", color = "primary", size="sm")),
       easyClose=TRUE
@@ -289,9 +289,9 @@ server <- function(input, output, session) {
   
   #Popup for data disclaimer
   observeEvent(input$Disclaimer, {
-    sendSweetAlert(session, title = "Data disclaimer", text = paste0("Data are subject to the following caveats:\n\n", plotdata()$Caveats),
+    sendSweetAlert(session, title = "Data disclaimer", text = tags$span(tags$h2("Data are subject to the following caveats:"), map(plotdata()$Caveats, tags$p)),
                    type = "info",
-                   btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
+                   btn_labels = "Ok", html = TRUE, closeOnClickOutside = TRUE)
   })
   
   #Popup for app instructions
@@ -579,7 +579,7 @@ server <- function(input, output, session) {
     
     #Set color palette
     myColors <- RColorBrewer::brewer.pal(5,"Set2")
-    names(myColors) <- c("EMP", "FMWT", "TNS", "twentymm", "FRP")
+    names(myColors) <- c("EMP", "FMWT", "TNS", "20mm", "FRP")
     fillScale <- scale_fill_manual(name = "Source", values = myColors)
     
     #Create tooltip text template for mouse hovers

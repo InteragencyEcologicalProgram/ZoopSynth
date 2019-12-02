@@ -1,4 +1,4 @@
-Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=c("Micro", "Meso", "Macro"), Data="Community", Date_range=c(NA, NA), Months=NA, Years=NA, Sal_bott_range=NA, Sal_surf_range=NA, Temp_range=NA, Lat_range=NA, Long_range=NA, Shiny=F, Reload_data=F, Redownload_data=F, All_env=T){
+Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Size_class=c("Micro", "Meso", "Macro"), Data="Community", Date_range=c(NA, NA), Months=NA, Years=NA, Sal_bott_range=NA, Sal_surf_range=NA, Temp_range=NA, Lat_range=NA, Long_range=NA, Shiny=F, Reload_data=F, Redownload_data=F, All_env=T){
   
   
   # Documentation -----------------------------------------------------------
@@ -72,8 +72,8 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
   require(lubridate)
   
   #Warnings for improper arguments
-  if (!every(Sources, ~.%in%c("EMP", "FRP", "FMWT", "TNS", "twentymm"))){
-    stop("Sources must contain one or more of the following options: EMP, FRP, FMWT, TNS, twentymm")
+  if (!every(Sources, ~.%in%c("EMP", "FRP", "FMWT", "TNS", "20mm"))){
+    stop("Sources must contain one or more of the following options: EMP, FRP, FMWT, TNS, 20mm")
   }
   
   
@@ -93,6 +93,9 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
     source("Zoop data downloader.R")
     Zoopdownloader("Data/zoopforzooper.Rds", Redownload_data)
   }
+  
+  #Recode Source 
+  Sources <- recode(Sources, "20mm"= "twentymm")
   
   # Read in data
   zoop<-readRDS("Data/zoopforzooper.Rds")
@@ -368,7 +371,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
                   }}, by="SampleID")
     
     #Output caveats specific to these data
-    caveats<-c(paste0("These species are not counted in all datasets: ", paste(unique(unlist(sapply(names(Orphans), function(x) strsplit(Orphans[[x]], ", ")[[1]]), use.names = FALSE)), collapse=" "), "NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE. Orphan status varies with size class. Do not compare UnID categories across data sources."))
+    caveats<-c(paste0("These species are not counted in all datasets: ", paste(unique(unlist(sapply(names(Orphans), function(x) strsplit(Orphans[[x]], ", ")[[1]]), use.names = FALSE)), collapse=", ")), "NOTE: Do not use this data to make additional higher-level taxonomic summaries or any other operations to add together taxa above the species level unless you first filter out all rows with Taxatype==`Summed group` and, depending on your purpose, Orphan==TRUE. Orphan status varies with size class. Do not compare UnID categories across data sources.")
     
     
     rm(Orphans)
@@ -403,6 +406,13 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
       pull(Taxlifesize)%>%
       unique()
     
+    #Create vector of species level taxa
+    UniqueSpecies<-crosswalk%>%
+      select(Taxname, Level)%>%
+      filter(Level=="Species")%>%
+      pull(Taxname)%>%
+      unique()
+    
     #Create taxonomy table for all taxonomic levels present (and measured) in all datasets. If the taxonomic level is not present as a taxname (i.e. there is no spp. category for that taxonomic level) it will be removed. 
     Commontaxkey<-map2_dfr(rep(Size_classes, each=length(Taxcats)),
                            rep(Taxcats, length(Size_classes)), 
@@ -429,8 +439,8 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
                Family=if_else(str_detect(Taxname_new, "\\_Genus|\\_Family"), Family, NA_character_),
                Order=if_else(str_detect(Taxname_new, "\\_Genus|\\_Family|\\_Order"), Order, NA_character_),
                Class=if_else(str_detect(Taxname_new, "\\_Genus|\\_Family|\\_Order|\\_Class"), Class, NA_character_)
-        )%>%
-        mutate(Taxname_new=str_extract(Taxname_new, "^[^_]+(?=_)"))
+        )%>% # Addtaxonomoic levels into appropriate columns, making sure all are filled as appropriate. 
+        mutate(Taxname_new=str_extract(Taxname_new, "^[^_]+(?=_)")) # Remove the _Genus etc. labels from taxname
     }
     
     Lumpedkey<-map_dfr(Size_classes, 
@@ -482,6 +492,8 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
                   distinct(),
                 by="Taxlifestage"
       )%>%
+      mutate(Taxname=if_else(Taxname%in%UniqueSpecies, Taxname, paste0(Taxname, "_UnID")))%>%
+      mutate(Taxlifestage=paste(Taxname, Lifestage))%>%
       left_join(zoopEnv%>%
                   {if(!All_env){
                     select(., Year, Date, SalSurf, Latitude, Longitude, SampleID)
@@ -493,7 +505,8 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "twentymm"), Size_class=
   #Add warnings for taxa undersampled by different methods
     zoop<-zoop%>%
       left_join(Undersampled, by=c("Taxlifestage", "SizeClass"))%>%
-      mutate(Undersampled=replace_na(Undersampled, FALSE))
+      mutate(Undersampled=replace_na(Undersampled, FALSE))%>%
+      mutate(Source = recode(Source, twentymm = "20mm"))
   
   out<-list(Data=zoop, Caveats=caveats)
   
