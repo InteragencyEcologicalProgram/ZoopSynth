@@ -62,7 +62,7 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Size_class=c("M
   
   
   # Setup -------------------------------------------------------------------
-
+  
   require(tidyverse)
   require(readxl)
   
@@ -359,8 +359,12 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Size_class=c("M
     
     zoop<-zoop%>%
       mutate(Taxlifestage=paste(Taxname, Lifestage))%>% #add back in the Taxlifestage variable (removed by the LCD_Taxa function)
-      left_join(Orphansdf, by=c("Taxlifestage", "SizeClass"))%>%
-      mutate(Orphan=replace_na(Orphan, FALSE))%>%#add an identifier for orphan taxa (species not counted in all data sources)
+      {if(nrow(Orphansdf)>0){
+        left_join(., Orphansdf, by=c("Taxlifestage", "SizeClass"))%>%
+        mutate(Orphan=replace_na(Orphan, FALSE)) #add an identifier for orphan taxa (species not counted in all data sources)
+      } else{
+        mutate(., Orphan=FALSE)
+      }}%>%
       mutate(Taxname = ifelse(Taxatype=="UnID species", paste0(Taxname, "_UnID"), Taxname))%>%
       select_at(vars(-Taxcats_g))%>%
       left_join(zoopEnv%>%
@@ -503,10 +507,10 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Size_class=c("M
   }
   
   #Add warnings for taxa undersampled by different methods
-    zoop<-zoop%>%
-      left_join(Undersampled, by=c("Taxlifestage", "SizeClass"))%>%
-      mutate(Undersampled=replace_na(Undersampled, FALSE))%>%
-      mutate(Source = recode(Source, twentymm = "20mm"))
+  zoop<-zoop%>%
+    left_join(Undersampled, by=c("Taxlifestage", "SizeClass"))%>%
+    mutate(Undersampled=replace_na(Undersampled, FALSE))%>%
+    mutate(Source = recode(Source, twentymm = "20mm"))
   
   out<-list(Data=zoop, Caveats=caveats)
   
