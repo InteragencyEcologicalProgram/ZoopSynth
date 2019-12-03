@@ -30,15 +30,10 @@ create_app(
   app_name = "Zooper", 
   app_dir = file.path("..", "Zoop App"),
   pkgs = c("RColorBrewer", "shiny", "tidyverse", "readxl", "ggiraph", "dtplyr", "lubridate", #"ggiraph", 
-           "leaflet", "webshot", "mapview", "shinyWidgets", "leaflet.minicharts", "randomcoloR"),
+           "leaflet", "webshot", "mapview", "shinyWidgets", "leaflet.minicharts"),
   include_R = TRUE,
   app_icon= "Zooper_icon.ico"
 )
-
-
-
-# add to the file: utils\launch_app.R, line 87 (before # start electron)
-# Sys.sleep(3) (3 second for me to be sure, 1 could be enough)
 
 
 # Create installer --------------------------------------------------------
