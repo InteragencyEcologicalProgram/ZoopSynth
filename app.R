@@ -98,7 +98,7 @@ ui <- fluidPage(
            #than when the user has checked the taxa box but not yet clicked run. It prevents the
            #user from accidentally filtering taxa in the "Community" mode.
            conditionalPanel(condition = "output.Datatype == 'Taxa'", 
-                            uiOutput("select_Taxlifestage")), 
+                            pickerInput('Taxlifestage', 'Select Taxa:', choices =character(), multiple =T, options=list(`live-search`=TRUE, `actions-box`=TRUE, size=10, title = "Select Taxa", `selected-text-format` = "count > 3"))), 
            conditionalPanel(condition = "output.Datatype == 'Taxa'", 
                             actionBttn("Update_taxa", "Update taxa", style="bordered", icon = icon("sync"), color="primary"), size="sm"),
            br(), br(),
@@ -456,9 +456,7 @@ server <- function(input, output, session) {
   # Calculate available choices for various UI inputs -----------------------
   
   #Calculate available taxlifestages for choosing taxlifestages
-  output$select_Taxlifestage <- renderUI({
-    
-    choice_Taxlifestage <- reactive({
+  choice_Taxlifestage <- reactive({
       if (input$Datatype=="Taxa"){
         plotdata()$Data%>%
           mutate(Group=case_when(
@@ -479,7 +477,9 @@ server <- function(input, output, session) {
       
     })
     
-    pickerInput('Taxlifestage', 'Select Taxa:', choices =choice_Taxlifestage(), multiple =T, selected=choice_Taxlifestage(), options=list(`live-search`=TRUE, `actions-box`=TRUE, size=10, title = "Select Taxa", `selected-text-format` = "count > 3")) 
+    observeEvent(plotdata(), {
+     req(length(choice_Taxlifestage())>0)
+      updatePickerInput(session, inputId='Taxlifestage', choices=choice_Taxlifestage())
     
   })
   
