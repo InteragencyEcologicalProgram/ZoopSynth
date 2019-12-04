@@ -32,7 +32,8 @@ create_app(
   pkgs = c("RColorBrewer", "shiny", "tidyverse", "readxl", "ggiraph", "dtplyr", "lubridate", #"ggiraph", 
            "leaflet", "webshot", "mapview", "shinyWidgets", "leaflet.minicharts"),
   include_R = TRUE,
-  app_icon= "Zooper_icon.ico"
+  app_icon= "Zooper_icon.ico",
+  user_browser = "chrome"
 )
 
 
