@@ -48,11 +48,6 @@ Zooper<-function(
   
   # Setup -------------------------------------------------------------------
   
-  #require(tidyverse)
-  #require(readxl)
-  #require(dtplyr)
-  #require(lubridate)
-  
   #Warnings for improper arguments
   if (!purrr::every(Sources, ~.%in%c("EMP", "FRP", "FMWT", "TNS", "20mm"))){
     stop("Sources must contain one or more of the following options: EMP, FRP, FMWT, TNS, 20mm")

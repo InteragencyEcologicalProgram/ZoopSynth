@@ -24,10 +24,6 @@ Zoopdownloader <- function(
   Env_path = file.path(Data_folder, "zoopenvforzooper")){
   
   # Setup -------------------------------------------------------------------
-  #require(tidyverse)
-  #require(readxl)
-  #require(dtplyr)
-  #require(lubridate)
   
   # Load crosswalk key to convert each dataset's taxonomic codes to a
   # unified set of "Taxname" and "Lifestage" values.
