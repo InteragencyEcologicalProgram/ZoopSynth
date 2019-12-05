@@ -1,74 +1,56 @@
-Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Size_class=c("Micro", "Meso", "Macro"), Data="Community", Date_range=c(NA, NA), Months=NA, Years=NA, Sal_bott_range=NA, Sal_surf_range=NA, Temp_range=NA, Lat_range=NA, Long_range=NA, Shiny=F, Reload_data=F, Redownload_data=F, All_env=T){
-  
-  
-  # Documentation -----------------------------------------------------------
-  
-  # This function combines any combination of the zoo datasets (included as
-  # parameters) and calculates least common denominator taxa to facilitate
-  # comparisons across datasets with differing levels of taxonomic
-  # resolution.
-  
-  # Option "Data" allows you to choose a final output dataset for either 
-  # community (Data="Community"; the default) or Taxa-specific (Data="Taxa) 
-  # analyses.
-  
-  # If you want all available data on given Taxa, use Data="Taxa"
-  # If you want to conduct a community analysis, use Data="Community"
-  
-  # Briefly, Data="Community" optimizes for community-level analyses by
-  # taking all taxa x life stage combinations that are not measured in 
-  # every input dataset, and summing them up taxonomic levels to the lowest 
-  # taxonomic level they belong to that is covered by all datasets. Remaining
-  # Taxa x life stage combos that are not covered in all datasets up to the 
-  # phylum level (usually something like Annelida or Nematoda or Insect Pupae)
-  # are removed from the final dataset.
-  
-  # Data="Taxa" optimizes for the Taxa-level user by maintaining all data at
-  # the original taxonomic level (but it outputs warnings for taxa not measured
-  # in all datasets, which we call "orphans"). To facilitate comparions across 
-  # datasets, this option also sums data into general categories that are 
-  # comparable across all datasets and years: "summed groups." The new variable 
-  # "Taxatype" identifies which taxa are summed groups (Taxatype="Summed group"),
-  # which are measured to the species level (Taxatype = "Species"), and which 
-  # are higher taxonomic groupings with the species designation unknown:
-  # (Taxatype = "UnID species").
-  
-  # Includes options to filter by Date, Month, Year, Bottom salinity,
-  # Surface salinity, Temperature, Latitude, or Longitude.
-  
-  # If you do not wish to filter by any variable, leave it as the default
-  # value (NA or c(NA, NA)). 
-  
-  # To filter by Month or year, include a numeric vector of the months or
-  # years you wish to include. 
-  
-  # To filter by salinity or temperature, include a vector of length 2 
-  # specifying the minimum and maximum values you wish to include. To 
-  # include all values above or below a limit, utilize Inf or -Inf for the
-  # upper or lower bound respectively.
-  
-  # To filter within a range of dates, include a character vector of 2 
-  # dates formatted in the yyyy-mm-dd format exactly, specifying the upper
-  # and lower bounds. To specify an infinite upper or lower bound (to
-  # include all values above or below a limit) utilize "NA"
-  
-  # To filter within a range of latitudes or longitudes, include a vector 
-  # of length 2 specifying the minimum and maximum values you wish to 
-  # include, in decimal degree format. Don't forget Longitudes should be 
-  # negative
-  
-  # To re-load data from local files, use option Reload_data=T. To redownload
-  # data from the internet, use option Redownload_data=T.
+#' Integrates zooplankton datasets in the Sacramento San Joaquin Delta
+#' 
+#' This function returns an integrated zooplankton dataset with taxonomic issues resolved, according to user-specifications, along with important caveats about the data. 
+#' @param Sources Source datasets to be included. Choices include "EMP" (Environmental Monitoring Program), "FRP" (Fish Restoration Program), "FMWT" (Fall Midwater Trawl), "TNS" (Townet Survey), and "20mm" (20mm survey). Defaults to `Sources = c("EMP", "FRP", "FMWT", "TNS", "20mm")`.
+#' @param Size_class Zooplankton size classes (as defined by net mesh sizes) to be included in the integrated dataset. Choices include "Micro" (43 \mu m), "Meso" (150 - 160 \mu m), and "Macro" (500-505 \mu m). Defaults to `Size_class = c("Micro", "Meso", "Macro")`.
+#' @param Data What type of data are you looking for? This option allows you to to choose a final output dataset for either community (`Data = "Community"`; the default) or Taxa-specific (`Data = "Taxa`) analyses. See below for more explanation.
+#' @param Date_range Range of dates to include in the final dataset. To filter within a range of dates, include a character vector of 2  dates formatted in the yyyy-mm-dd format exactly, specifying the upper and lower bounds. To specify an infinite upper or lower bound (to include all values above or below a limit) input "NA" for that infinite bound. Defaults to `Date_range = c(NA, NA)`, which includes all dates. 
+#' @param Months Months to be included in the integrated dataset. If you wish to only include data from a subset of months, input a vector of integers corresponding to the month numbers you wish to be included. Defaults to `Months = NA`, which includes all months.
+#' @param Years Years to be included in the integrated dataset. If you wish to only include data from a subset of years, input a vector of years you wish to be included. Defaults to `Years = NA`, which includes all months.
+#' @param Sal_bott_range Filter the data by bottom salinity values. Include a vector of length 2 specifying the minimum and maximum values you wish to include. To include all values above or below a limit, utilize Inf or -Inf for the upper or lower bound respectively. Defaults to `Sal_bott_range = NA`, which includes all bottom salinities.
+#' @param Sal_surf_range Same as previous, but for surface salinity.
+#' @param Temp_range Same as `Sal_bott_range` but for surface temperature.
+#' @param Lat_range Latitude range to include in the final dataset. Include a vector of length 2 specifying the minimum and maximum values you wish to include, in decimal degree format. Defaluts to `Lat_range = NA`, which includes all latitudes.
+#' @param Long_range Same as previous, but for longitude. Don't forget that Longitudes should be negative in the Delta!
+#' @param Reload_data If set to `Reload_data = T` runs the `Zoopdownloader` function to re-combine source datasets. To include local versions of the datasets without redownloading them from online, set `Reload_data = TRUE` and `Redownload_data = FALSE`. Defaults to `Reload_data= FALSE`
+#' @param Redownload_data Should data be re-downloaded from the internet? If set to `Redownload_data = TRUE`, runs `Zoopdownloader(Redownload_data = TRUE)`. Defaults to `Redownload_data = FALSE`.
+#' @param All_env Should all environmental parameters be included? Defaults to `All_env = TRUE`
+#' @param Shiny Is this function being used within the shiny app? If set to `Shiny = TRUE`, outputs a list with the integrated dataset as one component and the caveats as the other component. Defaults to `Shiny = FALSE`
+#' @keywords integration, synthesis, zooplankton.
+#' @import tidyverse, readxl, dtplyr, lubridate.
+#' @return An integrated zooplankton dataset.
+#' @details This function combines any combination of the zoo datasets (included as parameters) and calculates least common denominator taxa to facilitate comparisons across datasets with differing levels of taxonomic resolution.
+#' @section Data type:
+#' The `Data` parameter toggles between two approaches to resolving differences in taxonomic resolution. If you want all available data on given Taxa, use `Data="Taxa"` but if you want to conduct a community analysis, use `Data="Community"`. 
+#' Briefly, `Data="Community"` optimizes for community-level analyses by taking all taxa x life stage combinations that are not measured in every input dataset, and summing them up taxonomic levels to the lowest taxonomic level they belong to that is covered by all datasets. Remaining Taxa x life stage combos that are not covered in all datasets up to the phylum level (usually something like Annelida or Nematoda or Insect Pupae) are removed from the final dataset. 
+#' `Data="Taxa"` optimizes for the Taxa-level user by maintaining all data at the original taxonomic level (but it outputs warnings for taxa not measured in all datasets, which we call "orphans"). To facilitate comparions across datasets, this option also sums data into general categories that are comparable across all datasets and years: "summed groups." The new variable "Taxatype" identifies which taxa are summed groups (`Taxatype="Summed group"`), which are measured to the species level (`Taxatype = "Species"`), and which are higher taxonomic groupings with the species designation unknown: (`Taxatype = "UnID species"`).
+#' @author Sam Bashevkin
+#' @example 
+#' MyZoops <- Zooper(Sources = c("EMP", "FRP", "FMWT"), Size_class = "Meso", Date_range=c("1990-10-01", "2000-09-30"))
+
+Zooper<-function(
+  Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), 
+  Size_class=c("Micro", "Meso", "Macro"), 
+  Data="Community", 
+  Date_range=c(NA, NA), 
+  Months=NA, 
+  Years=NA, 
+  Sal_bott_range=NA, 
+  Sal_surf_range=NA, 
+  Temp_range=NA, 
+  Lat_range=NA, 
+  Long_range=NA, 
+  Reload_data=F, 
+  Redownload_data=F, 
+  All_env=T, 
+  Shiny=F){
   
   
   # Setup -------------------------------------------------------------------
   
   require(tidyverse)
   require(readxl)
-  
-  #Requires Github developer version of dtplyr: devtools::install_github("tidyverse/dtplyr")
   require(dtplyr)
-  
   require(lubridate)
   
   #Warnings for improper arguments
@@ -89,9 +71,9 @@ Zooper<-function(Sources=c("EMP", "FRP", "FMWT", "TNS", "20mm"), Size_class=c("M
   crosswalk <- read_excel("Data/new_crosswalk.xlsx", sheet = "Hierarchy2")
   
   #Make it possible to re-download data if desired
-  if(Reload_data){
+  if(Reload_data | Redownload_data){
     source("Zoop data downloader.R")
-    Zoopdownloader("Data/zoopforzooper.Rds", Redownload_data)
+    Zoopdownloader(Redownload_data=Redownload_data)
   }
   
   #Recode Source 

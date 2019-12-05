@@ -1,17 +1,38 @@
-Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoopenvforzooper.Rds", ReDownloadData=F){
+#' Downloads and combines zooplankton datasets from the Sacramento San Joaquin Delta
+#' 
+#' This function downloads datasets from the internet, converts them to a consistent format, binds them together, and exports the combined dataset as .Rds R data files.
+#' @param Data_folder Path to folder in which source datasets are stored, and to which you would like datasets to be downloaded if you set `Redownload_data = TRUE`.
+#' @param Save_object Should the combined data be saved to disk? Defaults to `Save_object = TRUE`.
+#' @param Return_object Should data be returned as an R object? If `TRUE`, the function will return the full combined dataset. Defaults to `Return_object = FALSE`.
+#' @param Redownload_data Should source datasets be redownloaded from the internet? Defaults to `Redownload_data = FALSE`.
+#' @param Zoop_path File path specifying the folder and filename of the zooplankton dataset. Defaults to `Zoop_path = file.path(Data_folder, "zoopforzooper")`.
+#' @param Env_path File path specifying the folder and filename of the dataset with accessory environmental parameters. Defaults to `Env_path = file.path(Data_folder, "zoopenvforzooper")`.
+#' @keywords download, integration, synthesis, zooplankton
+#' @import tidyverse, readxl, dtplyr, lubridate
+#' @return If `Return_object = TRUE`, returns the combined dataset as a tibble. If `Save_object = TRUE`, writes 2 .Rds files to disk: one with the zooplankton catch data and another with accessary environmental parameters. 
+#' @author Sam Bashevkin
+#' @example 
+#' Data <- Zoopdownloader(Return_object = TRUE, Save_object = FALSE)
+#' 
+
+Zoopdownloader <- function(
+  Data_folder = "Data",
+  Save_object = TRUE,
+  Return_object = FALSE,
+  Redownload_data=FALSE,
+  Zoop_path = file.path(Data_folder, "zoopforzooper"), 
+  Env_path = file.path(Data_folder, "zoopenvforzooper")){
   
   # Setup -------------------------------------------------------------------
   require(tidyverse) 
   require(readxl)
-  
-  #Requires Github developer version of dtplyr: devtools::install_github("tidyverse/dtplyr")
   require(dtplyr)
   require(lubridate)
   
   # Load crosswalk key to convert each dataset's taxonomic codes to a
   # unified set of "Taxname" and "Lifestage" values.
   
-  crosswalk <- read_excel("Data/new_crosswalk.xlsx", sheet = "Hierarchy2")%>%
+  crosswalk <- read_excel(file.path(Data_folder, "new_crosswalk.xlsx"), sheet = "Hierarchy2")%>%
     mutate_at(vars(c("EMPstart", "EMPend", "Intro", "FMWTstart", "FMWTend", "twentymmstart", "twentymmend", "twentymmstart2")), ~parse_date(as.character(.), format="%Y"))%>%
     mutate_at(vars(c("EMPstart", "FMWTstart", "twentymmstart", "twentymmstart2", "EMPend", "FMWTend", "twentymmend")), ~replace_na(., as_date(Inf)))%>% #Change any NAs for starts or ends to Infinity (i.e. never started or ended)
     mutate(EMPend = if_else(is.finite(EMPend), EMPend+years(1), EMPend))%>% #Change end dates to beginning of next year (first day it was not counted)
@@ -21,7 +42,7 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   
   # Load station key to later incorporate latitudes and longitudes
   
-  stations <- read_excel("Data/zoop_stations.xlsx", sheet="lat_long")%>%
+  stations <- read_excel(file.path(Data_folder, "zoop_stations.xlsx"), sheet="lat_long")%>%
     rename(Source=Project)
   
   # Initialize list of dataframes
@@ -34,15 +55,15 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   
   
   #download the file
-  if (!file.exists("Data/1972-2018CBMatrix.xlsx") | ReDownloadData) {
+  if (!file.exists(file.path(Data_folder, "1972-2018CBMatrix.xlsx")) | Redownload_data) {
     download.file("ftp://ftp.wildlife.ca.gov/IEP_Zooplankton/1972-2018CBMatrix.xlsx", 
-                  "Data/1972-2018CBMatrix.xlsx", mode="wb")
+                  file.path(Data_folder, "1972-2018CBMatrix.xlsx"), mode="wb")
   }
   
   
   # Import the EMP data
   
-  zoo_EMP_Meso <- read_excel("Data/1972-2018CBMatrix.xlsx", 
+  zoo_EMP_Meso <- read_excel(file.path(Data_folder, "1972-2018CBMatrix.xlsx"), 
                              sheet = "CB CPUE Matrix 1972-2018", 
                              col_types = c("numeric","numeric", "numeric", "numeric", "date", 
                                            "text", "text", "text", "numeric", "text", "text",
@@ -90,14 +111,14 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   # FMWT Meso --------------------------------------------------------------------
   
   #download the file
-  if (!file.exists("Data/FMWT_TNSZooplanktonDataCPUEOct2017.xls") | ReDownloadData) {
+  if (!file.exists(file.path(Data_folder, "FMWT_TNSZooplanktonDataCPUEOct2017.xls")) | Redownload_data) {
     download.file("ftp://ftp.wildlife.ca.gov/TownetFallMidwaterTrawl/Zoopl_TownetFMWT/FMWT%20TNSZooplanktonDataCPUEOct2017.xls", 
-                  "Data/FMWT_TNSZooplanktonDataCPUEOct2017.xls", mode="wb")
+                  file.path(Data_folder, "FMWT_TNSZooplanktonDataCPUEOct2017.xls"), mode="wb")
   }
   
   # Import the FMWT data
   
-  suppressWarnings(zoo_FMWT_Meso <- read_excel("Data/FMWT_TNSZooplanktonDataCPUEOct2017.xls", 
+  suppressWarnings(zoo_FMWT_Meso <- read_excel(file.path(Data_folder, "FMWT_TNSZooplanktonDataCPUEOct2017.xls"), 
                                                sheet = "FMWT&TNS ZP CPUE", 
                                                col_types=c("text", rep("numeric", 3), "date", "text", "text", 
                                                            "text", "numeric", rep("text", 3), rep("numeric", 3), 
@@ -141,14 +162,14 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   # twentymm Meso ----------------------------------------------------------------
   
   #download the file
-  if (!file.exists("Data/CDFW 20-mm Zooplankton Catch Matrix.xlsx") | ReDownloadData) {
+  if (!file.exists(file.path(Data_folder, "CDFW 20-mm Zooplankton Catch Matrix.xlsx")) | Redownload_data) {
     download.file("ftp://ftp.dfg.ca.gov/Delta%20Smelt/20mm%20Zooplankton%20Catch%20Matrix_1995-2017.xlsx", 
-                  "Data/CDFW 20-mm Zooplankton Catch Matrix.xlsx", mode="wb")
+                  file.path(Data_folder, "CDFW 20-mm Zooplankton Catch Matrix.xlsx"), mode="wb")
   }
   
   # Import and modify 20mm data
   
-  zoo_20mm_Meso<-read_excel("Data/CDFW 20-mm Zooplankton Catch Matrix.xlsx", 
+  zoo_20mm_Meso<-read_excel(file.path(Data_folder, "CDFW 20-mm Zooplankton Catch Matrix.xlsx"), 
                             sheet="20-mm CB CPUE Data", 
                             col_types = c("date", rep("numeric", 3), "date", rep("numeric", 80)))
   
@@ -193,12 +214,12 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   # Import the FRP data
   
   #download the file
-  if (!file.exists("Data/zoopsFRP2018.csv") | ReDownloadData) {
+  if (!file.exists(file.path(Data_folder, "zoopsFRP2018.csv")) | Redownload_data) {
     download.file("https://portal.edirepository.org/nis/dataviewer?packageid=edi.269.2&entityid=d4c76f209a0653aa86bab1ff93ab9853",
-                  "Data/zoopsFRP2018.csv", mode="wb")
+                  file.path(Data_folder, "zoopsFRP2018.csv"), mode="wb")
   }
   
-  zoo_FRP_Meso <- read_csv("Data/zoopsFRP2018.csv",
+  zoo_FRP_Meso <- read_csv(file.path(Data_folder, "zoopsFRP2018.csv"),
                            col_types = "cctddddddddcccdddddc", na=c("", "NA"))
   
   #Already in long format
@@ -239,7 +260,7 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   
   #NO IDEA WHAT TO DO ABOUT INCONSISTENT TAXONOMIC RESOLUTION WITH NO DOCUMENTATION AND LACK OF LIFE STAGE INFORMATION
   
-  #   zoo_YBFMP<-read_csv("Data/yolo_zoop_public.csv", col_types = "ctddcccdddddddccccccccccccccccccdd")
+  #   zoo_YBFMP<-read_csv(file.path(Data_folder, "yolo_zoop_public.csv"), col_types = "ctddcccdddddddccccccccccccccccccdd")
   
   #  data.list[["YBFMP"]]<-zoo_YBFMP%>%
   #    mutate(SampleDate=parse_date_time(SampleDate, "%m/%d/%Y", tz="America/Los_Angeles"))%>%
@@ -266,15 +287,15 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   # EMP Micro ---------------------------------------------------------------
   
   #download the file
-  if (!file.exists("Data/1972-2018PumpMatrix.xlsx") | ReDownloadData) {
+  if (!file.exists(file.path(Data_folder, "1972-2018PumpMatrix.xlsx")) | Redownload_data) {
     download.file("ftp://ftp.dfg.ca.gov/IEP_Zooplankton/1972-2018Pump%20Matrix.xlsx", 
-                  "Data/1972-2018PumpMatrix.xlsx", mode="wb")
+                  file.path(Data_folder, "1972-2018PumpMatrix.xlsx"), mode="wb")
   }
   
   
   # Import the EMP data
   
-  zoo_EMP_Micro <- read_excel("Data/1972-2018PumpMatrix.xlsx", 
+  zoo_EMP_Micro <- read_excel(file.path(Data_folder, "1972-2018PumpMatrix.xlsx"), 
                               sheet = " Pump CPUE Matrix 1972-2018", 
                               col_types = c(rep("numeric", 4), "date", rep("text", 3), "numeric", "text", rep("numeric", 36)))
   
@@ -320,12 +341,12 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   # Import the FRP data
   
   #download the file
-  if (!file.exists("Data/bugsFRP2018.csv") | ReDownloadData) {
+  if (!file.exists(file.path(Data_folder, "bugsFRP2018.csv")) | Redownload_data) {
     download.file("https://portal.edirepository.org/nis/dataviewer?packageid=edi.269.2&entityid=630f16b33a9cbf75f1989fc18690a6b3",
-                  "Data/bugsFRP2018.csv", mode="wb")
+                  file.path(Data_folder, "bugsFRP2018.csv"), mode="wb")
   }
   
-  zoo_FRP_Macro <- read_csv("Data/bugsFRP2018.csv",
+  zoo_FRP_Macro <- read_csv(file.path(Data_folder, "bugsFRP2018.csv"),
                             col_types = "cctcddddddddccdddcddc", na=c("", "NA"))
   
   #Already in long format
@@ -365,15 +386,15 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   # EMP Macro ---------------------------------------------------------------
   
   #download the file
-  if (!file.exists("Data/1972-2018MysidMatrix.xlsx") | ReDownloadData) {
+  if (!file.exists(file.path(Data_folder, "1972-2018MysidMatrix.xlsx")) | Redownload_data) {
     download.file("ftp://ftp.dfg.ca.gov/IEP_Zooplankton/1972-2018MysidMatrix.xlsx", 
-                  "Data/1972-2018MysidMatrix.xlsx", mode="wb")
+                  file.path(Data_folder, "1972-2018MysidMatrix.xlsx"), mode="wb")
   }
   
   
   # Import the EMP data
   
-  zoo_EMP_Macro <- read_excel("Data/1972-2018MysidMatrix.xlsx", 
+  zoo_EMP_Macro <- read_excel(file.path(Data_folder, "1972-2018MysidMatrix.xlsx"), 
                               sheet = "Mysid CPUE Matrix 1972-2018 ", 
                               col_types = c(rep("numeric", 4), "date", rep("text", 3), "numeric", "text", rep("numeric", 14)))
   
@@ -416,21 +437,21 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   # FMWT Macro --------------------------------------------------------------
   
   #download the file
-  if (!file.exists("Data/FMWT_TNSMysidCPUEJuly2019.xlsx") | ReDownloadData) {
+  if (!file.exists(file.path(Data_folder, "FMWT_TNSMysidCPUEJuly2019.xlsx")) | Redownload_data) {
     download.file("ftp://ftp.dfg.ca.gov/TownetFallMidwaterTrawl/Zoopl_TownetFMWT/FMWT%20TNSMysidCPUEJuly2019.xlsx", 
-                  "Data/FMWT_TNSMysidCPUEJuly2019.xlsx", mode="wb")
+                  file.path(Data_folder, "FMWT_TNSMysidCPUEJuly2019.xlsx"), mode="wb")
   }
   
   #download the file
-  if (!file.exists("Data/FMWT_TNSAmphipodCPUEJuly2019.xls") | ReDownloadData) {
+  if (!file.exists(file.path(Data_folder, "FMWT_TNSAmphipodCPUEJuly2019.xls")) | Redownload_data) {
     download.file("ftp://ftp.dfg.ca.gov/TownetFallMidwaterTrawl/Zoopl_TownetFMWT/FMWT%20TNSAmphipodCPUEJuly2019.xls", 
-                  "Data/FMWT_TNSAmphipodCPUEJuly2019.xls", mode="wb")
+                  file.path(Data_folder, "FMWT_TNSAmphipodCPUEJuly2019.xls"), mode="wb")
   }
   
-  zoo_FMWT_Macro_Mysid <- read_excel("Data/FMWT_TNSMysidCPUEJuly2019.xlsx", 
+  zoo_FMWT_Macro_Mysid <- read_excel(file.path(Data_folder, "FMWT_TNSMysidCPUEJuly2019.xlsx"), 
                                                sheet = "FMWT STN Mysid CPUE Matrix")
   
-  zoo_FMWT_Macro_Amph <- read_excel("Data/FMWT_TNSAmphipodCPUEJuly2019.xls", 
+  zoo_FMWT_Macro_Amph <- read_excel(file.path(Data_folder, "FMWT_TNSAmphipodCPUEJuly2019.xls"), 
                                                sheet = "FMWT STN amphipod CPUE")
   
   data.list[["FMWT_Macro"]] <- zoo_FMWT_Macro_Mysid%>%
@@ -488,8 +509,13 @@ Zoopdownloader <- function(ZoopPath="Data/zoopforzooper.Rds", EnvPath="Data/zoop
   zoop<-zoop%>%
     select(-Year, -Date, -Datetime, -Tide, -Station, -Chl, -Secchi, -Temperature, -BottomDepth, -Turbidity, -Microcystis, -pH, -DO, -SalSurf, -SalBott, -Latitude, -Longitude)
   
-  saveRDS(zoop, file=ZoopPath)
+  saveRDS(zoop, file=paste0(Zoop_path, ".Rds"))
   
-  saveRDS(zoopEnv, file=EnvPath)
+  saveRDS(zoopEnv, file=paste0(Env_path, ".Rds"))
+  
+  if(Return_object){
+    zoop_full <- left_join(zoop, select(zoopEnv, -Source), by="SampleID")
+    return(zoop_full)
+  }
   
 }
