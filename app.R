@@ -17,12 +17,10 @@ require(webshot)
 require(mapview)
 require(shinyWidgets) 
 require(leaflet.minicharts)
+require(zooper)
 
 #required for users to download map plots from shinyapps.io
 if (is.null(suppressMessages(webshot:::find_phantom()))) { webshot::install_phantomjs() }
-
-#Source zooplankton synthesizer function
-source("Zoop synthesizer function.R")
 
 #Settings for the "data crunching" message. 
 info_loading <- "Data crunching in progress..."
@@ -273,7 +271,7 @@ server <- function(input, output, session) {
   #Using eventReactive so app only updates when "Run" button is clicked, letting you check all the boxes you want before running the app
   plotdata <- eventReactive(input$Run, {
     
-    Zooper(Data = input$Datatype, 
+    Zoopsynther(Data = input$Datatype, 
            Sources = input$Sources, 
            Size_class=input$Size_class,
            Date_range = ifelse(rep("Dates"%in%input$Filters, 2), input$Date_range, c(NA, NA)),
@@ -879,7 +877,7 @@ server <- function(input, output, session) {
     content = function(file) {
       
       #Load extra environmental data
-      zoopEnv<-readRDS("Data/zoopenvforzooper.Rds")%>%
+      zoopEnv<-zoopEnvComb%>%
         select(-Year, -Date, -SalSurf, -Latitude, -Longitude, -Source)
       
       data <- plotdata2()%>%
