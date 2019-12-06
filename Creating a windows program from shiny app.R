@@ -11,8 +11,10 @@ require(RInno)
 
 #First must create "Data" and "www" folders within the "Zoop App" folder.
 
-file.copy(from=file.path(getwd(), c("app.R", "Zoop synthesizer function.R")), to=file.path("..", "Zoop App"), overwrite = TRUE)
-file.copy(from=file.path(getwd(), "Data", c("zoopforzooper.Rds", "zoopenvforzooper.Rds", "new_crosswalk.xlsx", "Undersampled taxa.xlsx")), to=file.path("..", "Zoop App", "Data"), overwrite = TRUE)
+file.copy(from=file.path(getwd(), "app.R"), to=file.path("..", "Zoop App"), overwrite = TRUE)
+
+#file.copy(from=file.path(getwd(), c("app.R", "Zoop synthesizer function.R")), to=file.path("..", "Zoop App"), overwrite = TRUE)
+#file.copy(from=file.path(getwd(), "Data", c("zoopforzooper.Rds", "zoopenvforzooper.Rds", "new_crosswalk.xlsx", "Undersampled taxa.xlsx")), to=file.path("..", "Zoop App", "Data"), overwrite = TRUE)
 file.copy(from=file.path(getwd(), "www", "Logo.jpg"), to=file.path("..", "Zoop App", "www"), overwrite = TRUE)
 
 
@@ -27,18 +29,14 @@ file.copy(from=file.path(getwd(), "www", "Logo.jpg"), to=file.path("..", "Zoop A
 #While running, say "no" to all prompts about updating packages
 
 create_app(
-  app_name = "Zooper", 
+  app_name = "Zooper_app", 
   app_dir = file.path("..", "Zoop App"),
   pkgs = c("RColorBrewer", "shiny", "tidyverse", "readxl", "ggiraph", "dtplyr", "lubridate", #"ggiraph", 
-           "leaflet", "webshot", "mapview", "shinyWidgets", "leaflet.minicharts", "randomcoloR"),
+           "leaflet", "webshot", "mapview", "shinyWidgets", "leaflet.minicharts"),
   include_R = TRUE,
-  app_icon= "Zooper_icon.ico"
+  app_icon= "Zooper_icon.ico",
+  user_browser = "chrome"
 )
-
-
-
-# add to the file: utils\launch_app.R, line 87 (before # start electron)
-# Sys.sleep(3) (3 second for me to be sure, 1 could be enough)
 
 
 # Create installer --------------------------------------------------------

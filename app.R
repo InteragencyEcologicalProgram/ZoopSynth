@@ -17,12 +17,10 @@ require(webshot)
 require(mapview)
 require(shinyWidgets) 
 require(leaflet.minicharts)
+require(zooper)
 
 #required for users to download map plots from shinyapps.io
 if (is.null(suppressMessages(webshot:::find_phantom()))) { webshot::install_phantomjs() }
-
-#Source zooplankton synthesizer function
-source("Zoop synthesizer function.R")
 
 #Settings for the "data crunching" message. 
 info_loading <- "Data crunching in progress..."
@@ -46,7 +44,7 @@ ui <- fluidPage(
   
   # Application title and IEP logo
   titlePanel(title=div(h1("Zooplankton data synthesizer: TEST VERSION", style="display: inline-block"), img(src="Logo.jpg", height = 132, width = 100, align="right", style="display: inline-block")), windowTitle = "Zooplankton data synthesizer"),
-  
+  withMathJax(),
   
   # Sidebar with user instructions, input, and downloading options ----------
   
@@ -62,10 +60,10 @@ ui <- fluidPage(
            awesomeCheckboxGroup("Sources",
                                 "Sources:",
                                 choices = c("Environmental Monitoring Program (EMP)" = "EMP", 
-                                            "Fish Restoration Program (FRP)" = "FRP", "Fall Midwater Trawl (FMWT)" = "FMWT", "Summer Townet Survey (TNS)" = "TNS", "20mm Survey (twentymm)" = "twentymm")),
+                                            "Fish Restoration Program (FRP)" = "FRP", "Fall Midwater Trawl (FMWT)" = "FMWT", "Summer Townet Survey (TNS)" = "TNS", "20mm Survey (20mm)" = "20mm")),
            awesomeCheckboxGroup("Size_class",
                                 "Size classes:",
-                                choices = c("Micro (43 micrometer mesh)"="Micro", "Meso (150-160 micrometer mesh)"="Meso", "Macro (500-505 micrometer mesh)"="Macro"), selected = "Meso"),
+                                choices = c("Micro (43 \\(\\mu\\)m mesh)"="Micro", "Meso (150-160 \\(\\mu\\)m mesh)"="Meso", "Macro (500-505 \\(\\mu\\)m mesh)"="Macro"), selected = "Meso"),
            
            #Allow users to select which filters they would like to use, then those filter options will appear.
            awesomeCheckboxGroup("Filters",
@@ -98,7 +96,7 @@ ui <- fluidPage(
            #than when the user has checked the taxa box but not yet clicked run. It prevents the
            #user from accidentally filtering taxa in the "Community" mode.
            conditionalPanel(condition = "output.Datatype == 'Taxa'", 
-                            uiOutput("select_Taxlifestage")), 
+                            pickerInput('Taxlifestage', 'Select Taxa:', choices =character(), multiple =T, options=list(`live-search`=TRUE, `actions-box`=TRUE, size=10, title = "Select Taxa", `selected-text-format` = "count > 3"))), 
            conditionalPanel(condition = "output.Datatype == 'Taxa'", 
                             actionBttn("Update_taxa", "Update taxa", style="bordered", icon = icon("sync"), color="primary"), size="sm"),
            br(), br(),
@@ -259,8 +257,8 @@ server <- function(input, output, session) {
   ModalDownloadData<-function(){
     modalDialog(
       h1("Data disclaimer"),
-      h4("Data are subject to the following caveats:"),
-      p(plotdata()$Caveats),
+      h3("Data are subject to the following caveats:"),
+      map(plotdata()$Caveats, tags$p),
       footer = tagList(modalButton("Cancel"),
                        downloadBttn("Downloaddata", "Download data", style="bordered", color = "primary", size="sm")),
       easyClose=TRUE
@@ -273,7 +271,7 @@ server <- function(input, output, session) {
   #Using eventReactive so app only updates when "Run" button is clicked, letting you check all the boxes you want before running the app
   plotdata <- eventReactive(input$Run, {
     
-    Zooper(Data = input$Datatype, 
+    Zoopsynther(Data = input$Datatype, 
            Sources = input$Sources, 
            Size_class=input$Size_class,
            Date_range = ifelse(rep("Dates"%in%input$Filters, 2), input$Date_range, c(NA, NA)),
@@ -289,9 +287,9 @@ server <- function(input, output, session) {
   
   #Popup for data disclaimer
   observeEvent(input$Disclaimer, {
-    sendSweetAlert(session, title = "Data disclaimer", text = paste0("Data are subject to the following caveats:\n\n", plotdata()$Caveats),
+    sendSweetAlert(session, title = "Data disclaimer", text = tags$span(tags$h2("Data are subject to the following caveats:"), map(plotdata()$Caveats, tags$p)),
                    type = "info",
-                   btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
+                   btn_labels = "Ok", html = TRUE, closeOnClickOutside = TRUE)
   })
   
   #Popup for app instructions
@@ -300,7 +298,7 @@ server <- function(input, output, session) {
                    text = tags$span(tags$p("This app combines any combination of the zoop datasets and calculates least common denominator taxa to facilitate comparisons across datasets with differing levels of taxonomic resolution."),
                                     tags$p("Option 'Data type' allows you to choose a final output dataset for either Community or Taxa-specific  analyses. If you want all available data on given Taxa, use 'Taxa' If you want to conduct a community analysis, use 'Community.'"),
                                     tags$p("Briefly, 'Community' optimizes for community-level analyses by taking all taxa by life stage combinations that are not measured in every input dataset, and summing them up taxonomic levels to the lowest taxonomic level they belong to that is covered by all datasets. Remaining Taxa x life stage combinations that are not covered in all datasets up to the phylum level (usually something like Annelida or Nematoda or Insect Pupae) are removed from the final dataset."), 
-                                    tags$p("'Taxa' optimizes for the Taxa-level user by maintaining all data at the original taxonomic level. To facilitate comparions across datasets, this option also sums data into general categories that are comparable across all datasets (e.g., Calanoida_all"), 
+                                    tags$p("'Taxa' optimizes for the Taxa-level user by maintaining all data at the original taxonomic level. To facilitate comparions across datasets, this option also sums data into general categories that are comparable across all datasets (e.g., Calanoida_all)"), 
                                     "------------------------------------------",
                                     tags$p(tags$b("App created and maintained by Sam Bashevkin with help from the IEP zooplankton synthesis team. Please email shiny@deltacouncil.ca.gov with any questions or comments"))),
                    type = "info",
@@ -456,9 +454,7 @@ server <- function(input, output, session) {
   # Calculate available choices for various UI inputs -----------------------
   
   #Calculate available taxlifestages for choosing taxlifestages
-  output$select_Taxlifestage <- renderUI({
-    
-    choice_Taxlifestage <- reactive({
+  choice_Taxlifestage <- reactive({
       if (input$Datatype=="Taxa"){
         plotdata()$Data%>%
           mutate(Group=case_when(
@@ -479,7 +475,9 @@ server <- function(input, output, session) {
       
     })
     
-    pickerInput('Taxlifestage', 'Select Taxa:', choices =choice_Taxlifestage(), multiple =T, selected=choice_Taxlifestage(), options=list(`live-search`=TRUE, `actions-box`=TRUE, size=10, title = "Select Taxa", `selected-text-format` = "count > 3")) 
+    observeEvent(plotdata(), {
+     req(length(choice_Taxlifestage())>0)
+      updatePickerInput(session, inputId='Taxlifestage', choices=choice_Taxlifestage())
     
   })
   
@@ -579,7 +577,7 @@ server <- function(input, output, session) {
     
     #Set color palette
     myColors <- RColorBrewer::brewer.pal(5,"Set2")
-    names(myColors) <- c("EMP", "FMWT", "TNS", "twentymm", "FRP")
+    names(myColors) <- c("EMP", "FMWT", "TNS", "20mm", "FRP")
     fillScale <- scale_fill_manual(name = "Source", values = myColors)
     
     #Create tooltip text template for mouse hovers
@@ -879,7 +877,7 @@ server <- function(input, output, session) {
     content = function(file) {
       
       #Load extra environmental data
-      zoopEnv<-readRDS("Data/zoopenvforzooper.Rds")%>%
+      zoopEnv<-zoopEnvComb%>%
         select(-Year, -Date, -SalSurf, -Latitude, -Longitude, -Source)
       
       data <- plotdata2()%>%
