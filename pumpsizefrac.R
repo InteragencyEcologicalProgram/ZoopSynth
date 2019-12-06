@@ -4,14 +4,20 @@ library(lubridate)
 library(ggplot2)
 library(dplyr)
 library(vegan)
+library(tidyverse)
 library(reshape2)
 
-EMPpump <- read.csv("~/Documents/EMPzoops/EMPpump.csv")
+EMPpump <- read.csv("~/ZoopSynth/Old data/EMPpump.csv")
+EMPCB = read.csv("~/ZoopSynth/Old data/EMPzoops.csv")
 EMPpump$Date = mdy_hm(EMPpump$Date)
 EMPpump$SizeFrac = as.factor(EMPpump$SizeFrac)
+EMPCB$Date = mdy_hm(EMPCB$Date)
+EMPCB = rename(EMPCB, taxon = EMP, Station = EMPzoop)
+
 
 #make a unique code for each sample
 EMPpump$sampleID = paste(EMPpump$SurveyCode, EMPpump$Station)
+EMPCB$sampleID = paste(EMPCB$SurveyCode, EMPCB$Station)
 
 #calculate relative abundance of each taxon in the sample
 EMPpump2 = group_by(EMPpump, sampleID, SizeFrac) %>% summarise(totCPUE = sum(CPUE))
@@ -135,3 +141,20 @@ crosswalk <- read_excel("FRP_EMP_Veg crosswalk.xlsx")
 # they don't occur in the other studies, or are not identified to the same level of resolution, so the
 # column "LCDtax" is the lowest common denominator between the three lists. We'll have to use those
 # ID's to make the comparison.
+
+#############################################################################
+#look at CB versus pump
+EMPpump3$net = "pump"
+EMPCB$net = "CB"
+EMPCB = filter(EMPCB, Date > "2008-02-01")
+EMPpumpall = group_by(EMPpump3, sampleID, taxon, net) %>% 
+  summarize(CPUE = sum(CPUE))
+
+EMPall = rbind(ungroup(EMPpumpall), ungroup(EMPCB[,4:7]))
+EMPallsum = group_by(EMPall, sampleID, taxon) %>% summarize(tCPUE = sum(CPUE, na.rm = T))
+EMPallsum2 = merge(EMPall, EMPallsum)
+EMPallsum2$Rel = EMPallsum2$CPUE/EMPallsum2$tCPUE
+EMPallmean = group_by(EMPallsum2, taxon, net) %>% summarize(mRel = mean(Rel), mCPUE = mean(CPUE))
+
+ggplot(EMPallmean, aes(x = net, y = mCPUE, fill = net)) + 
+  geom_bar(stat = "identity") + facet_wrap(~taxon, scales = "free_y")
