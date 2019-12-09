@@ -69,6 +69,9 @@ ui <- fluidPage(
            awesomeCheckboxGroup("Filters",
                                 "Filters:",
                                 choices = c("Dates", "Months", "Surface salinity", "Latitude", "Longitude")),
+           conditionalPanel(condition = "input.Datatype == 'Taxa'",
+                            selectizeInput("Taxa", label = "Select taxa to include in dataset:", 
+                                           choices=completeTaxaList, selected=NULL, multiple=TRUE)),
            conditionalPanel(condition = "input.Filters.includes('Dates')",
                             dateRangeInput("Date_range", label = "Date range", 
                                            start = "1972-01-01", end = "2018-12-31", startview = "year")),
@@ -96,7 +99,7 @@ ui <- fluidPage(
            #than when the user has checked the taxa box but not yet clicked run. It prevents the
            #user from accidentally filtering taxa in the "Community" mode.
            conditionalPanel(condition = "output.Datatype == 'Taxa'", 
-                            pickerInput('Taxlifestage', 'Select Taxa:', choices =character(), multiple =T, options=list(`live-search`=TRUE, `actions-box`=TRUE, size=10, title = "Select Taxa", `selected-text-format` = "count > 3"))), 
+                            pickerInput('Taxlifestage', 'Select Taxa to plot and download:', choices =character(), multiple =T, options=list(`live-search`=TRUE, `actions-box`=TRUE, size=10, title = "Select Taxa", `selected-text-format` = "count > 3"))), 
            conditionalPanel(condition = "output.Datatype == 'Taxa'", 
                             actionBttn("Update_taxa", "Update taxa", style="bordered", icon = icon("sync"), color="primary"), size="sm"),
            br(), br(),
@@ -271,9 +274,10 @@ server <- function(input, output, session) {
   #Using eventReactive so app only updates when "Run" button is clicked, letting you check all the boxes you want before running the app
   plotdata <- eventReactive(input$Run, {
     
-    Zoopsynther(Data = input$Datatype, 
+    Zoopsynther(Data_type = input$Datatype, 
            Sources = input$Sources, 
            Size_class=input$Size_class,
+           Taxa=input$Taxa,
            Date_range = ifelse(rep("Dates"%in%input$Filters, 2), input$Date_range, c(NA, NA)),
            Months = ifelse(rep("Months"%in%input$Filters, length(input$Months)), as.integer(input$Months), rep(NA, length(input$Months))),  
            Sal_surf_range = ifelse(rep("Surface salinity"%in%input$Filters, 2), input$Sal_surf_range, c(NA, NA)),
