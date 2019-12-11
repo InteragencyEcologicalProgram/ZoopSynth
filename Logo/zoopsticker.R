@@ -55,7 +55,7 @@ sticker(p3,
 
 
 
-p4 <- ggplot(data.frame(x=1,y=1,image="zooperdelta2.png"), aes(x,y)) +
+p4 <- ggplot(data.frame(x=1,y=1,image="Logo/zooperdelta2.png"), aes(x,y)) +
   geom_image(aes(image=image), size=1) + theme_void()
 p4
 
@@ -68,5 +68,5 @@ sticker(p4,
         package = "zooper", p_size = 30, p_color = "black", 
         p_family = "wqy-microhei",
         h_fill = "white", h_color = "black", white_around_sticker = T,
-        filename = "zooperhex3.png")
+        filename = "Logo/zooperhex3.png")
 
