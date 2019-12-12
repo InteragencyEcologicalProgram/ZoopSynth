@@ -136,9 +136,42 @@ ui <- fluidPage(
                                 #Info
                                 fluidRow(column(1, actionBttn("CPUE_info", label = NULL, style="material-circle", 
                                                               color="primary", icon=icon("question"))), 
-                                         
                                          #Select size classes
-                                         column(2, uiOutput("select_SizeClass_CPUE")),
+                                         column(1, dropdown(
+                                           tags$h3("Plot settings"),
+                                           uiOutput("select_SizeClass_CPUE"),
+                                           materialSwitch(
+                                             inputId = "Undersampled_CPUE",
+                                             label = "Should undersampled taxa (plankton smaller than the net mesh size) be removed?", 
+                                             value = TRUE, inline=F,
+                                             status = "primary"
+                                           ),
+                                           conditionalPanel(condition = "output.Datatype == 'Taxa'",
+                                                            tags$h4("Plot type:"),
+                                                            prettyToggle(
+                                                              inputId = "CPUE_graph_type",
+                                                              label_on = "Line graph", 
+                                                              label_off = "Bar graph",
+                                                              value=TRUE,
+                                                              outline = TRUE,
+                                                              plain = TRUE,
+                                                              bigger=TRUE,
+                                                              icon_on = icon("chart-line"), 
+                                                              icon_off = icon("chart-bar")
+                                                            ),
+                                                            conditionalPanel(condition = "input.Salzones && input.CPUE_graph_type", materialSwitch(
+                                                              inputId = "Facet",
+                                                              label = "Facet by salinity zones?", 
+                                                              value = FALSE, inline=F,
+                                                              status = "primary"
+                                                            ))),
+                                           circle = TRUE, 
+                                           status = "danger",
+                                           icon = icon("gear"), 
+                                           width = "300px",
+                                           tooltip = tooltipOptions(title = "Click to see inputs!")
+                                         ),
+                                         ),
                                          
                                          #Group by salinity zones
                                          column(1, materialSwitch(
@@ -147,7 +180,7 @@ ui <- fluidPage(
                                            value = FALSE, inline=F,
                                            status = "primary"
                                          )), 
-                                         column(8, conditionalPanel(condition = "input.Salzones", 
+                                         column(9, conditionalPanel(condition = "input.Salzones", 
                                                                     sliderInput("Lowsal", "Low salinity zone", 
                                                                                 min=0, max=30, value=c(0.5,6), 
                                                                                 step=0.1, width="100%")))), 
@@ -164,21 +197,29 @@ ui <- fluidPage(
                                                 column(2, offset = 0, style='padding:0px;', br(), 
                                                        
                                                        #Community map options
-                                                       conditionalPanel(condition = "output.Datatype == 'Community'", dropdown(
+                                                       dropdown(
                                                          tags$h3("Map settings"),
+                                                         materialSwitch(
+                                                           inputId = "Undersampled_map",
+                                                           label = "Should undersampled taxa (plankton smaller than the net mesh size) be removed?", 
+                                                           value = TRUE, inline=F,
+                                                           status = "primary"
+                                                         ),
+                                                         conditionalPanel(condition = "output.Datatype == 'Community'", 
                                                          uiOutput("select_Lifestage"), 
-                                                         pickerInput('Taxagroups', 'Select taxa:', choices =c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Mysida", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other"), multiple =T, selected=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Mysida", "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other")),
-                                                         uiOutput("select_SizeClass_mapcom"),
-                                                         circle = TRUE, status = "danger",
-                                                         icon = icon("gear"), width = "300px",
-                                                         
+                                                         pickerInput('Taxagroups', 'Select taxa:', 
+                                                                     choices =c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Mysida", 
+                                                                                "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other"), 
+                                                                     multiple =T, 
+                                                                     selected=c("Calanoida", "Cyclopoida", "Harpacticoida", "UnID copepods", "Mysida", 
+                                                                                "Cladocera", "Rotifera", "Cirripedia", "Insecta", "Other"))),
+                                                         uiOutput("select_SizeClass_map"),
+                                                         circle = TRUE, 
+                                                         status = "danger",
+                                                         icon = icon("gear"), 
+                                                         width = "300px",
                                                          tooltip = tooltipOptions(title = "Click to see inputs!")
                                                        )), 
-                                                       
-                                                       #Select size classess for taxa plot
-                                                       conditionalPanel(condition = "output.Datatype == 'Taxa'", 
-                                                                        uiOutput("select_SizeClass_maptaxa"))),
-                                                
                                                 #Year slider
                                                 column(9, uiOutput("select_Year"))),
                                 
@@ -224,12 +265,12 @@ ui <- fluidPage(
   
   #Specify app icon 
   
-    tags$head(
-      tags$link(
-        rel = "icon", 
-        type = "image/x-icon", 
-        href = "http://localhost:1984/Zooper_icon.ico")
-    )
+  tags$head(
+    tags$link(
+      rel = "icon", 
+      type = "image/x-icon", 
+      href = "http://localhost:1984/Zooper_icon.ico")
+  )
   
 )
 
@@ -275,15 +316,15 @@ server <- function(input, output, session) {
   plotdata <- eventReactive(input$Run, {
     
     Zoopsynther(Data_type = input$Datatype, 
-           Sources = input$Sources, 
-           Size_class=input$Size_class,
-           Taxa=input$Taxa,
-           Date_range = ifelse(rep("Dates"%in%input$Filters, 2), input$Date_range, c(NA, NA)),
-           Months = ifelse(rep("Months"%in%input$Filters, length(input$Months)), as.integer(input$Months), rep(NA, length(input$Months))),  
-           Sal_surf_range = ifelse(rep("Surface salinity"%in%input$Filters, 2), input$Sal_surf_range, c(NA, NA)),
-           Lat_range = ifelse(rep("Latitude"%in%input$Filters, 2), input$Lat_range, c(NA, NA)), 
-           Long_range = ifelse(rep("Longitude"%in%input$Filters, 2), input$Long_range, c(NA, NA)), 
-           Shiny=T, All_env=F)
+                Sources = input$Sources, 
+                Size_class=input$Size_class,
+                Taxa=input$Taxa,
+                Date_range = ifelse(rep("Dates"%in%input$Filters, 2), input$Date_range, c(NA, NA)),
+                Months = ifelse(rep("Months"%in%input$Filters, length(input$Months)), as.integer(input$Months), rep(NA, length(input$Months))),  
+                Sal_surf_range = ifelse(rep("Surface salinity"%in%input$Filters, 2), input$Sal_surf_range, c(NA, NA)),
+                Lat_range = ifelse(rep("Latitude"%in%input$Filters, 2), input$Lat_range, c(NA, NA)), 
+                Long_range = ifelse(rep("Longitude"%in%input$Filters, 2), input$Long_range, c(NA, NA)), 
+                Shiny=T, All_env=F)
   })
   
   
@@ -356,9 +397,26 @@ server <- function(input, output, session) {
   
   #Create data for tax map plot
   mapdatataxa <- reactive( {
-    req(length(input$Maptax_size_class)>0)
+    
+    if(is.null(input$Undersampled_map)){
+      Undersampled_map <- TRUE
+    } else{
+      Undersampled_map <- input$Undersampled_map
+    }
+    
+    if(is.null(input$Map_size_class)){
+      Map_size_class<-input$Size_class
+    } else{
+      Map_size_class<-input$Map_size_class
+    }
+    
     plotdata2()%>%
-      filter(!is.na(Latitude) & !is.na(Longitude) & SizeClass%in%input$Maptax_size_class)%>%
+      filter(!is.na(Latitude) & !is.na(Longitude) & SizeClass%in%Map_size_class)%>%
+      {if(Undersampled_map){
+        filter(., !Undersampled)
+      } else{
+        .
+      }}%>%
       group_by(Taxlifestage, Year, Latitude, Longitude)%>%
       summarise(CPUE=mean(CPUE, na.rm=T))%>%
       ungroup()
@@ -379,14 +437,25 @@ server <- function(input, output, session) {
       Taxagroups<-input$Taxagroups
     }
     
-    if(is.null(input$Mapcom_size_class)){
-      Mapcom_size_class<-c("Micro", "Meso", "Macro")
+    if(is.null(input$Map_size_class)){
+      Map_size_class<-input$Size_class
     } else{
-      Mapcom_size_class<-input$Mapcom_size_class
+      Map_size_class<-input$Map_size_class
+    }
+    
+    if(is.null(input$Undersampled_map)){
+      Undersampled_map <- TRUE
+    } else{
+      Undersampled_map <- input$Undersampled_map
     }
     
     plotdata2()%>%
-      filter(!is.na(Latitude) & !is.na(Longitude) & Lifestage%in%Lifestages & SizeClass%in%Mapcom_size_class & !Undersampled)%>%
+      filter(!is.na(Latitude) & !is.na(Longitude) & Lifestage%in%Lifestages & SizeClass%in%Map_size_class)%>%
+      {if(Undersampled_map){
+        filter(., !Undersampled)
+      } else{
+        .
+      }}%>%
       mutate(Taxa=case_when(
         Order=="Calanoida" ~ "Calanoida",
         Order=="Cyclopoida" ~ "Cyclopoida",
@@ -459,29 +528,29 @@ server <- function(input, output, session) {
   
   #Calculate available taxlifestages for choosing taxlifestages
   choice_Taxlifestage <- reactive({
-      if (input$Datatype=="Taxa"){
-        plotdata()$Data%>%
-          mutate(Group=case_when(
-            Class=="Insecta" ~ "Insecta",
-            Phylum=="Arthropoda" & !is.na(Order) ~ Order,
-            TRUE ~ Phylum
-          ))%>%
-          select(Taxatype, Taxname, Lifestage, Taxlifestage, Group)%>%
-          distinct()%>%
-          arrange(Group, Taxatype, Taxname, Lifestage)%>%
-          select(Taxlifestage, Group)%>%
-          distinct()%>%
-          split(x=.$Taxlifestage, f=.$Group)%>%
-          lapply(., as.list)
-      } else {
-        NULL
-      }
-      
-    })
+    if (input$Datatype=="Taxa"){
+      plotdata()$Data%>%
+        mutate(Group=case_when(
+          Class=="Insecta" ~ "Insecta",
+          Phylum=="Arthropoda" & !is.na(Order) ~ Order,
+          TRUE ~ Phylum
+        ))%>%
+        select(Taxatype, Taxname, Lifestage, Taxlifestage, Group)%>%
+        distinct()%>%
+        arrange(Group, Taxatype, Taxname, Lifestage)%>%
+        select(Taxlifestage, Group)%>%
+        distinct()%>%
+        split(x=.$Taxlifestage, f=.$Group)%>%
+        lapply(., as.list)
+    } else {
+      NULL
+    }
     
-    observeEvent(plotdata(), {
-     req(length(choice_Taxlifestage())>0)
-      updatePickerInput(session, inputId='Taxlifestage', choices=choice_Taxlifestage())
+  })
+  
+  observeEvent(plotdata(), {
+    req(length(choice_Taxlifestage())>0)
+    updatePickerInput(session, inputId='Taxlifestage', choices=choice_Taxlifestage())
     
   })
   
@@ -508,26 +577,11 @@ server <- function(input, output, session) {
     
   })
   
-  #Size class input for community map
-  output$select_SizeClass_mapcom <- renderUI({
-    
-    checkboxGroupButtons(
-      inputId = "Mapcom_size_class",
-      label = "Size classes",
-      choices = choice_SizeClass(),
-      direction="horizontal",
-      size = "sm",
-      justified = TRUE,
-      selected=choice_SizeClass()
-    )
-    
-  })
-  
   #Size class input for taxa map
-  output$select_SizeClass_maptaxa <- renderUI({
+  output$select_SizeClass_map <- renderUI({
     
     checkboxGroupButtons(
-      inputId = "Maptax_size_class",
+      inputId = "Map_size_class",
       label = "Size classes",
       choices = choice_SizeClass(),
       direction="horizontal",
@@ -620,10 +674,31 @@ server <- function(input, output, session) {
   #CPUE plot
   CPUEplot <- reactive({
     
-    #Only run after it has processed the plot size class selection
-    req(length(input$CPUE_size_class)>0)
+    if(is.null(input$CPUE_size_class)){
+      CPUE_size_class <- input$Size_class
+    } else{
+      CPUE_size_class <- input$CPUE_size_class
+    }
     
-    if("Taxatype"%in%colnames(plotdata2())){
+    if(is.null(input$CPUE_graph_type)){
+      CPUE_graph_type <- TRUE
+    } else{
+      CPUE_graph_type <- input$CPUE_graph_type
+    }
+    
+    if(is.null(input$Facet)){
+      Facet <- FALSE
+    } else{
+      Facet <- input$Facet
+    }
+    
+    if(is.null(input$Undersampled_CPUE)){
+      Undersampled_CPUE <- TRUE
+    } else{
+      Undersampled_CPUE <- input$Undersampled_CPUE
+    }
+    
+    if("Taxatype"%in%colnames(plotdata2()) & CPUE_graph_type){
       
       #Taxa plot
       
@@ -644,7 +719,7 @@ server <- function(input, output, session) {
       
       #Process data
       p<-plotdata2()%>%
-        filter(SizeClass%in%input$CPUE_size_class)%>%
+        filter(SizeClass%in%CPUE_size_class)%>%
         {if(input$Salzones){
           filter(., !is.na(SalSurf))%>% 
             mutate(Salinity_zone=case_when(
@@ -675,11 +750,14 @@ server <- function(input, output, session) {
             geom_point_interactive(size=2, aes(color=Taxlifestage, shape=Salinity_zone, tooltip=tooltip, data_id = ID))+
             scale_linetype_manual(values=c(3,2,1))+
             coord_cartesian(expand=0)+
+            {if(Facet){
+              facet_wrap(~Salinity_zone, nrow=1)
+            }}+
             scale_x_continuous(breaks = function(x) unique(floor(pretty(seq(min(x), max(x)), n=4))), expand=c(0,0))+
             scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=1))+
             ylab(bquote(Average~CPUE~"("*Catch*"/"*m^3*")"))+
             theme_bw()+
-            theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=10))
+            theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=10), strip.background=element_blank())
         } else{
           ggplot(., aes(x=Year, y=CPUE))+
             geom_line(size=1, aes(color=Taxlifestage))+
@@ -696,7 +774,15 @@ server <- function(input, output, session) {
       #CPUE plot
       
       #Number of colors needed
-      colorCount <- plotdata2()%>%filter(!Undersampled)%>%pull(Taxlifestage)%>%unique()%>%length()
+        colorCount <- plotdata2()%>%
+          {if(Undersampled_CPUE){
+            filter(., !Undersampled)
+          } else{
+            .
+          }}%>%
+          pull(Taxlifestage)%>%
+          unique()%>%
+          length()
       
       #Create text template for mouse hover tooltip
       str_model <- paste0("<tr><td>Year &nbsp</td><td>%s</td></tr>",
@@ -705,7 +791,12 @@ server <- function(input, output, session) {
       set.seed(500)
       #Process data
       p<-plotdata2()%>%
-        filter(SizeClass%in%input$CPUE_size_class & !Undersampled)%>%
+        filter(SizeClass%in%CPUE_size_class)%>%
+        {if(Undersampled_CPUE){
+          filter(., !Undersampled)
+        } else{
+          .
+        }}%>%
         {if(input$Salzones){
           filter(., !is.na(SalSurf))%>% 
             mutate(Salinity_zone=case_when(
@@ -734,7 +825,11 @@ server <- function(input, output, session) {
         {if(input$Salzones){
           facet_wrap(~Salinity_zone, nrow=1)
         }}+
-        scale_fill_manual(values=sample(colorRampPalette(brewer.pal(12, "Set3"))(colorCount)), name="Taxa and life stage", guide = guide_legend(ncol=2))+
+        {if(colorCount>12){
+          scale_fill_manual(values=sample(colorRampPalette(brewer.pal(12, "Set3"))(colorCount)), name="Taxa and life stage", guide = guide_legend(ncol=2))
+        } else{
+          scale_fill_manual(values=sample(brewer.pal(colorCount, "Set3")), name="Taxa and life stage", guide = guide_legend(ncol=1))
+        }}+
         ylab(bquote(Average~CPUE~"("*Catch*"/"*m^3*")"))+
         theme_bw()+
         theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=6), legend.key.size = unit(10, "points"), strip.background=element_blank())
@@ -785,7 +880,7 @@ server <- function(input, output, session) {
   #leafletProxy lets us change layers in the map plot without re-rendering the whole thing
   
   #Taxa map plot
-  observeEvent(c(input$Update_taxa, input$Year, input$Maptax_size_class), {
+  observeEvent(c(input$Update_taxa, input$Year, input$Map_size_class, input$Undersampled_map), {
     req(input$Tab=="Map" & "Taxatype"%in%colnames(plotdata2()))
     pal <- Taxapal()
     map<-leafletProxy("Mapplot", session, data = filteredmapdatataxa(), deferUntilFlush=T)%>%
@@ -795,7 +890,7 @@ server <- function(input, output, session) {
   }, ignoreNULL = T)
   
   #Community map plot
-  observeEvent(c(input$Lifestage, input$Year, input$Taxagroups, input$Mapcom_size_class), {
+  observeEvent(c(input$Lifestage, input$Year, input$Taxagroups, input$Map_size_class, input$Undersampled_map), {
     req(input$Tab=="Map" & !("Taxatype"%in%colnames(plotdata2())) & nrow(filteredmapdatacom())>1)
     filteredspreadmapdatacom<-filteredmapdatacom()%>%
       spread(key=Taxa, value = CPUE)
