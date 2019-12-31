@@ -71,7 +71,7 @@ ui <- fluidPage(
                                 choices = c("Dates", "Months", "Surface salinity", "Latitude", "Longitude")),
            conditionalPanel(condition = "input.Datatype == 'Taxa'",
                             selectizeInput("Taxa", label = "Select taxa to include in dataset:", 
-                                           choices=completeTaxaList, selected=NULL, multiple=TRUE)),
+                                           choices=completeTaxaList, selected=NULL, multiple=TRUE, options=list(placeholder="All"))),
            conditionalPanel(condition = "input.Filters.includes('Dates')",
                             dateRangeInput("Date_range", label = "Date range", 
                                            start = "1972-01-01", end = "2018-12-31", startview = "year")),
