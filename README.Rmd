@@ -13,11 +13,17 @@ require(tidyverse)
 
 Code and files related to zooplankton synthesis
 
-The function `Zooplankton Synthesizer function.R` takes zooplankton data from different surveys and integrates the data according to user-specified parameter choices. The shiny app is a GUI (graphical user interface) that allows folks without R experience to run the zooplankton synthesizer funciton and download the resulting data. The shiny app also allows folks with all experience levels to easily visualize the data.
+The function `Zooplankton Synthesizer function.R` takes zooplankton data from different surveys and integrates the data according to user-specified parameter choices. The shiny app is a GUI (graphical user interface) that allows folks without R experience to run the zooplankton synthesizer function and download the resulting data. The shiny app also allows folks with all experience levels to easily visualize the data.
 
 The `Zoop data downloader.R` function downloads the zooplankton datasets from their respective online sources and converts them to a consistent format.
 
 There is also some old code that Rosie used to merge the EMP zooplankton and 20mm code with FRP data and some code from Wim. We don't know what it does yet.
+
+# Shiny app
+
+The R shiny app can be accessed in [a limited form hosted online](https://iepsynthesis.shinyapps.io/ZoopSynth/).
+
+The full shiny app can be installed by downloading and running [the installer](https://deltacouncil.box.com/s/3zjd9g0u0koamsmqoe2deyjmrcegwooz). This desktop version of the app can only be installed on windows computers and google chrome must be installed. If R is not already installed on your computer, this installer will install R as well. After installation, the app can be opened like any other desktop windows application. It may take a while to start up (especially the first time you open it). The app will open in a google chrome tab. Simply close the tab to exit the app.
 
 # Community or taxon-specific analyses?
 
