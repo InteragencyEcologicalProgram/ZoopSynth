@@ -1,25 +1,25 @@
 Zooplankton Synthesis in the Sacramento San Joaquin Delta
 ================
-11/21/2019
 
 # Introduction
 
 Code and files related to zooplankton synthesis
 
-The function `Zooplankton Synthesizer function.R` takes zooplankton data
-from different surveys and integrates the data according to
-user-specified parameter choices. The shiny app is a GUI (graphical user
-interface) that allows folks without R experience to run the zooplankton
-synthesizer function and download the resulting data. The shiny app also
-allows folks with all experience levels to easily visualize the data.
+The code has been incorporated into a new R package `zooper`.
 
-The `Zoop data downloader.R` function downloads the zooplankton datasets
-from their respective online sources and converts them to a consistent
-format.
+[<img src="Logo/zooperhex3.png" height="200" />](https://github.com/InteragencyEcologicalProgram/zooper)
 
-There is also some old code that Rosie used to merge the EMP zooplankton
-and 20mm code with FRP data and some code from Wim. We don’t know what
-it does yet.
+R users can install the R package to download and integrate zooplankton
+datasets with our code.
+
+We have also produced a shiny app (see below), which is a GUI (graphical
+user interface) that allows folks without R experience to integrate and
+download zooplankton datasets. It offers the same functionality as the
+`zooper` package, without requiring the users to write code. The shiny
+app also allows folks of all experience levels to easily visualize the
+data.
+
+There is also some old code from Rosie and Wim.
 
 # Shiny app
 
@@ -70,14 +70,9 @@ lets me use all these datasets.*
 
 We have integrated zooplankton data from 3 net size classes:
 
-1.  Macro (500-505
-    ![mu](https://latex.codecogs.com/gif.latex?%24%5Cmu%24)m): Amphipods
-    and mysids
-2.  Meso (150 - 160
-    ![mu](https://latex.codecogs.com/gif.latex?%24%5Cmu%24)m): Copepods,
-    cladocera
-3.  Micro (43 ![mu](https://latex.codecogs.com/gif.latex?%24%5Cmu%24)m):
-    Copepods, rotifers
+1.  Macro (500-505 μm): Amphipods and mysids
+2.  Meso (150 - 160 μm): Copepods, cladocera
+3.  Micro (43 μm): Copepods, rotifers
 
 Nets accurately sample zooplankton larger than the mesh size.
 Zooplankton smaller than the mesh size are still captured and often
