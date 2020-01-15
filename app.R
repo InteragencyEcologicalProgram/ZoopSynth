@@ -314,7 +314,6 @@ server <- function(input, output, session) {
   
   #Using eventReactive so app only updates when "Run" button is clicked, letting you check all the boxes you want before running the app
   plotdata <- eventReactive(input$Run, {
-    
     Zoopsynther(Data_type = input$Datatype, 
                 Sources = input$Sources, 
                 Size_class=input$Size_class,
@@ -377,7 +376,7 @@ server <- function(input, output, session) {
                      type = "info",
                      btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
     } else{
-      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Mapped yearly community composition of major taxonomic groups"), tags$p("Click the red gear to adjust map options. Life stages of each taxa are summed within each sample, so it is not recommended to combine life stages. If the map is too crowded with simialr colors, taxa can be deselected and they will be summed into the 'other' group."), p("The map can be animated to loop through years by clicking the 'play' button on the right side of the year selector. Click pie charts to view data values. Adjustments to the bounds and zoom of the plot will not be reflected in the downloaded plot, sorry!")),
+      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Mapped yearly community composition of major taxonomic groups"), tags$p("Click the red gear to adjust map options. Life stages of each taxa are summed within each sample, so it is not recommended to combine life stages. If the map is too crowded with similar colors, taxa can be deselected and they will be summed into the 'other' group."), p("The map can be animated to loop through years by clicking the 'play' button on the right side of the year selector. Click pie charts to view data values. Adjustments to the bounds and zoom of the plot will not be reflected in the downloaded plot, sorry!")),
                      type = "info",
                      btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
     }
@@ -389,7 +388,12 @@ server <- function(input, output, session) {
   #Filter data to selected taxa.
   plotdata2 <- eventReactive(c(input$Run, input$Update_taxa), {
     if (length(input$Taxlifestage)>0 & input$Datatype=="Taxa"){
-      filter(plotdata()$Data, Taxlifestage%in%input$Taxlifestage)
+      if(all(input$Taxlifestage%in%unique(plotdata()$Data$Taxlifestage))){
+        filter(plotdata()$Data, Taxlifestage%in%input$Taxlifestage)
+      } else{
+        plotdata()$Data
+      }
+      
     } else {
       plotdata()$Data
     }
