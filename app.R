@@ -43,7 +43,7 @@ addLegendCustom <- function(map, colors, labels, sizes, position, opacity = 0.5,
 ui <- fluidPage(
   
   # Application title and IEP logo
-  titlePanel(title=div(h1("Zooplankton data synthesizer: TEST VERSION", style="display: inline-block"), a(img(src="Logo.jpg", height = 132, width = 100, align="right", style="display: inline-block"), href="https://water.ca.gov/Programs/Environmental-Services/Interagency-Ecological-Program")), windowTitle = "Zooplankton data synthesizer"),
+  titlePanel(title=div(h1("Zooplankton data synthesizer: TEST VERSION", style="display: inline-block"), a(img(src="Logo.jpg", height = 132, width = 100, align="right", style="display: inline-block"), href="https://water.ca.gov/Programs/Environmental-Services/Interagency-Ecological-Program"), h5("If you encounter any issues, please email us at ", a("shiny@deltacouncil.ca.gov.", href="mailto:shiny@deltacouncil.ca.gov?subject=ZoopSynth%20Shiny%20app"), "For more info and the code behind this app, visit the ", a("github repository.", href="https://github.com/InteragencyEcologicalProgram/ZoopSynth"), "If you are a heavy user, consider downloading and installing the windows desktop application. Instructions are in the ", a("github repository.", href="https://github.com/InteragencyEcologicalProgram/ZoopSynth")), h5("To access and integrate these data in R, try the ", a("Zooper package.", href="https://github.com/InteragencyEcologicalProgram/zooper"))), windowTitle = "Zooplankton data synthesizer"),
   withMathJax(),
   
   # Sidebar with user instructions, input, and downloading options ----------

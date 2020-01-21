@@ -31,7 +31,7 @@ file.copy(from=file.path(getwd(), "www", "Logo.jpg"), to=file.path("..", "Zoop A
 create_app(
   app_name = "Zooper_app", 
   app_dir = file.path("..", "Zoop App"),
-  pkgs = c("RColorBrewer", "shiny", "tidyverse", "readxl", "ggiraph", "dtplyr", "lubridate", #"ggiraph", 
+  pkgs = c("RColorBrewer", "shiny", "tidyverse", "readxl", "ggiraph", "dtplyr", "lubridate",
            "leaflet", "webshot", "mapview", "shinyWidgets", "leaflet.minicharts"),
   include_R = TRUE,
   app_icon= "Zooper_icon.ico",
