@@ -19,19 +19,23 @@ download zooplankton datasets. It offers the same functionality as the
 app also allows folks of all experience levels to easily visualize the
 data.
 
-There is also some old code from Rosie and Wim.
-
 # Shiny app
 
-The R shiny app can be accessed in [a limited form hosted
-online](https://iepsynthesis.shinyapps.io/ZoopSynth/).
+The R shiny app can be accessed
+[here](https://iepsynthesis.shinyapps.io/ZoopSynth/).
 
-The full shiny app can be installed by downloading and running [the
+The full shiny app can also be downloaded and installed to your computer
+by downloading and running [the
 installer](https://deltacouncil.box.com/s/3zjd9g0u0koamsmqoe2deyjmrcegwooz).
 This desktop version of the app can only be installed on windows
 computers and google chrome must be installed. If R is not already
-installed on your computer, this installer will install R as well. After
-installation, the app can be opened like any other desktop windows
+installed on your computer, this installer will install R as well.
+
+*NOTE: during installation, you will probably receive 1-2 scary looking
+errror messages saying “Access is denied.” These can be safely ignored,
+the app will still install correctly.*
+
+After installation, the app can be opened like any other desktop windows
 application. It may take a while to start up (especially the first time
 you open it). The app will open in a google chrome tab. Simply close the
 tab to exit the app.

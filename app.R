@@ -1,4 +1,3 @@
-
 # Setup -------------------------------------------------------------------
 
 #options(shiny.reactlog = TRUE)
@@ -18,6 +17,8 @@ require(mapview)
 require(shinyWidgets) 
 require(leaflet.minicharts)
 require(zooper)
+
+version <- packageVersion("zooper")
 
 #required for users to download map plots from shinyapps.io
 if (is.null(suppressMessages(webshot:::find_phantom()))) { webshot::install_phantomjs() }
@@ -43,7 +44,7 @@ addLegendCustom <- function(map, colors, labels, sizes, position, opacity = 0.5,
 ui <- fluidPage(
   
   # Application title and IEP logo
-  titlePanel(title=div(h1("Zooplankton data synthesizer: TEST VERSION", style="display: inline-block"), a(img(src="Logo.jpg", height = 132, width = 100, align="right", style="display: inline-block"), href="https://water.ca.gov/Programs/Environmental-Services/Interagency-Ecological-Program"), h5("If you encounter any issues, please email us at ", a("shiny@deltacouncil.ca.gov.", href="mailto:shiny@deltacouncil.ca.gov?subject=ZoopSynth%20Shiny%20app"), "For more info and the code behind this app, visit the ", a("github repository.", href="https://github.com/InteragencyEcologicalProgram/ZoopSynth"), "If you are a heavy user, consider downloading and installing the windows desktop application. Instructions are in the ", a("github repository.", href="https://github.com/InteragencyEcologicalProgram/ZoopSynth")), h5("To access and integrate these data in R, try the ", a("Zooper package.", href="https://github.com/InteragencyEcologicalProgram/zooper"))), windowTitle = "Zooplankton data synthesizer"),
+  titlePanel(title=div(h1(paste0("Zooplankton data synthesizer: Version ", version), style="display: inline-block"), a(img(src="Logo.jpg", height = 132, width = 100, align="right", style="display: inline-block"), href="https://water.ca.gov/Programs/Environmental-Services/Interagency-Ecological-Program"), h5("If you encounter any issues, please email us at ", a("shiny@deltacouncil.ca.gov.", href="mailto:shiny@deltacouncil.ca.gov?subject=ZoopSynth%20Shiny%20app"), "For more info and the code behind this app, visit the ", a("github repository.", href="https://github.com/InteragencyEcologicalProgram/ZoopSynth"), "If you are a heavy user, consider downloading and installing the windows desktop application. Instructions are in the ", a("github repository.", href="https://github.com/InteragencyEcologicalProgram/ZoopSynth")), h5("To access and integrate these data in R, try the ", a("zooper package.", href="https://github.com/InteragencyEcologicalProgram/zooper"))), windowTitle = "Zooplankton data synthesizer"),
   withMathJax(),
   
   # Sidebar with user instructions, input, and downloading options ----------
@@ -301,8 +302,7 @@ server <- function(input, output, session) {
   ModalDownloadData<-function(){
     modalDialog(
       h1("Data disclaimer"),
-      h3("Data are subject to the following caveats:"),
-      map(plotdata()$Caveats, tags$p),
+      Disclaimer(),
       footer = tagList(modalButton("Cancel"),
                        downloadBttn("Downloaddata", "Download data", style="bordered", color = "primary", size="sm")),
       easyClose=TRUE
@@ -329,9 +329,22 @@ server <- function(input, output, session) {
   
   # Informational popups ----------------------------------------------------
   
+  Disclaimer <- reactive({
+    req(plotdata())
+    text <- tags$span(tags$h2("Data are subject to the following caveats:"), 
+                      tags$p("Data users are responsible for reading the metadata of all source datasets: ", 
+                             tags$a("EMP, ", href = "ftp://ftp.dfg.ca.gov/IEP_Zooplankton", target="_blank"), 
+                             tags$a("FRP, ", href = "http://doi.org/10.6073/pasta/86810e72766ad19fccb1b9dd3955bdf8", target="_blank"), 
+                             tags$a("FMWT, ", href = "ftp://ftp.dfg.ca.gov/TownetFallMidwaterTrawl/FMWT%20Data/", target="_blank"), 
+                             tags$a("TNS, ", href = "ftp://ftp.dfg.ca.gov/TownetFallMidwaterTrawl/TNS%20MS%20Access%20Data/TNS%20data/", target="_blank"), 
+                             "and", 
+                             tags$a("20mm", href = "ftp://ftp.wildlife.ca.gov/Delta%20Smelt/", target="_blank")), 
+                      map(plotdata()$Caveats, tags$p))
+  })
+  
   #Popup for data disclaimer
   observeEvent(input$Disclaimer, {
-    sendSweetAlert(session, title = "Data disclaimer", text = tags$span(tags$h2("Data are subject to the following caveats:"), map(plotdata()$Caveats, tags$p)),
+    sendSweetAlert(session, title = "Data disclaimer", text = Disclaimer(),
                    type = "info",
                    btn_labels = "Ok", html = TRUE, closeOnClickOutside = TRUE)
   })
@@ -372,11 +385,11 @@ server <- function(input, output, session) {
   #Map plot info
   observeEvent(input$Map_info, {
     if("Taxatype"%in%colnames(plotdata2())){
-      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Mapped average yearly abundance of each selected taxa by life stage combination"), h3("It is highly recommended to only select a few taxa for this plot"), tags$p("Bubble area is scaled to CPUE. The map can be animated to loop through years by clicking the 'play' button on the right side of the year selector. Hover over the plot with your mouse to view data values. Adjustments to the bounds and zoom of the plot will not be reflected in the downloaded plot, sorry!")),
+      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Mapped average yearly abundance of each selected taxa by life stage combination"), h3("It is highly recommended to only select a few taxa for this plot"), tags$p("Bubble area is scaled to CPUE. The map can be animated to loop through years by clicking the 'play' button on the right side of the year selector. Hover over the plot with your mouse to view data values. Adjustments to the bounds and zoom of the plot will not be reflected in the downloaded plot, sorry!"), tags$p("If data do not load on map, try opening and closing the gear icon dropdown menu.")),
                      type = "info",
                      btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
     } else{
-      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Mapped yearly community composition of major taxonomic groups"), tags$p("Click the red gear to adjust map options. Life stages of each taxa are summed within each sample, so it is not recommended to combine life stages. If the map is too crowded with similar colors, taxa can be deselected and they will be summed into the 'other' group."), p("The map can be animated to loop through years by clicking the 'play' button on the right side of the year selector. Click pie charts to view data values. Adjustments to the bounds and zoom of the plot will not be reflected in the downloaded plot, sorry!")),
+      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Mapped yearly community composition of major taxonomic groups"), tags$p("Click the red gear to adjust map options. Life stages of each taxa are summed within each sample, so it is not recommended to combine life stages. If the map is too crowded with similar colors, taxa can be deselected and they will be summed into the 'other' group."), p("The map can be animated to loop through years by clicking the 'play' button on the right side of the year selector. Click pie charts to view data values. Adjustments to the bounds and zoom of the plot will not be reflected in the downloaded plot, sorry!"), tags$p("If data do not load on map, try opening and closing the gear icon dropdown menu.")),
                      type = "info",
                      btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
     }
@@ -975,7 +988,7 @@ server <- function(input, output, session) {
   #Download handler for data downloading
   output$Downloaddata <- downloadHandler(
     filename = function() {
-      paste("data-", Sys.Date(), ".csv", sep="")
+      paste("data-", "_V", version, "_", Sys.Date(), ".csv", sep="")
     },
     content = function(file) {
       
