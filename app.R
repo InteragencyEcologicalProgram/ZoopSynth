@@ -71,7 +71,7 @@ ui <- fluidPage(
                                 "Filters:",
                                 choices = c("Dates", "Months", "Surface salinity", "Latitude", "Longitude")),
            conditionalPanel(condition = "input.Datatype == 'Taxa'",
-                            selectizeInput("Taxa", label = "Select taxa to include in dataset:", 
+                            selectizeInput("Taxa", label = "Select taxa to include in dataset. If you know what you want, this will speed up the data crunching.", 
                                            choices=completeTaxaList, selected=NULL, multiple=TRUE, options=list(placeholder="All"))),
            conditionalPanel(condition = "input.Filters.includes('Dates')",
                             dateRangeInput("Date_range", label = "Date range", 
@@ -100,7 +100,7 @@ ui <- fluidPage(
            #than when the user has checked the taxa box but not yet clicked run. It prevents the
            #user from accidentally filtering taxa in the "Community" mode.
            conditionalPanel(condition = "output.Datatype == 'Taxa'", 
-                            pickerInput('Taxlifestage', 'Select Taxa to plot and download:', choices =character(), multiple =T, options=list(`live-search`=TRUE, `actions-box`=TRUE, size=10, title = "Select Taxa", `selected-text-format` = "count > 3"))), 
+                            pickerInput('Taxlifestage', 'Select taxa to plot and download:', choices =character(), multiple =T, options=list(`live-search`=TRUE, `actions-box`=TRUE, size=10, title = "Select Taxa", `selected-text-format` = "count > 3"))), 
            conditionalPanel(condition = "output.Datatype == 'Taxa'", 
                             actionBttn("Update_taxa", "Update taxa", style="bordered", icon = icon("sync"), color="primary"), size="sm"),
            br(), br(),
