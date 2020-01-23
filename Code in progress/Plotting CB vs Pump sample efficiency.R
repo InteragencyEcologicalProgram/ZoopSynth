@@ -11,15 +11,17 @@ EMP_CB <- read_excel("Data/1972-2018CBMatrix.xlsx",
                                    "text", rep("numeric", 62)))%>%
   rename(Volume=CBVolume)
 
-EMP_Pump <- read_excel("Old data/1972-2018Pump Matrix.xlsx", 
+EMP_Pump <- read_excel("Old data and code/1972-2018Pump Matrix.xlsx", 
                        sheet = "Pump CPUE Matrix 1972-2018", 
                        col_types = c("numeric","numeric", "numeric", "numeric", "date", 
                                      "text", "text", "text", "numeric", 
                                      "text", rep("numeric", 36)))%>%
   rename(Date=SampleDate, Volume=PumpVolume)
 
-crosswalk <- read_excel("Data/new_crosswalk.xlsx", sheet = "Hierarchy2")%>%
+crosswalk <- zooper::crosswalk%>%
   select(EMP=EMP_Meso, Taxname, Lifestage, EMPstart, EMPend, Intro)%>%
+  filter(!is.na(EMP))%>%
+  mutate(EMPstart=ifelse(EMP=="OTHCYCAD", 1975, EMPstart))%>% #Pump started counting OTHCYCAD in 1975 while CB started in 1972 so using the later year for both
   mutate_at(vars(c("EMPstart", "EMPend", "Intro")), ~parse_date(as.character(.), format="%Y"))%>%
   mutate_at(vars(c("EMPstart", "EMPend")), ~replace_na(., as_date(Inf)))%>% #Change any NAs for starts or ends to Infinity (i.e. never started or ended)
   mutate(EMPend = if_else(is.finite(EMPend), EMPend+years(1), EMPend))%>% #Change end dates to beginning of next year (first day it was not counted)
@@ -51,10 +53,17 @@ EMP_Pump2<-EMP_Pump%>%
   select(-Volume)%>%
   rename(OTHCYCADPUMP_Pump=OTHCYCAD_Pump)
 
+
+#Ensure that the same samples are present from both methods
+EMP_CB3<-EMP_CB2%>%
+  filter(SampleID%in%unique(EMP_Pump2$SampleID))
+
+EMP_Pump3<-EMP_Pump2%>%
+  filter(SampleID%in%unique(EMP_CB2$SampleID))
+
 #Join pump and CB data
-#Join pump and CB data
-EMP<-EMP_CB2%>%
-  inner_join(EMP_Pump2, 
+EMP<-EMP_CB3%>%
+  inner_join(EMP_Pump3, 
              by = c("Year", "Date", "Station", "Region", "Secchi", "Chl-a", "Temperature", "ECSurfacePreTow", "ECBottomPreTow", "SampleID"))%>%
   select(-Region, -Secchi, -`Chl-a`, -Temperature, -ECSurfacePreTow, -ECBottomPreTow, -Station)%>%
   pivot_longer(cols= c(ends_with("_CB"), ends_with("_Pump")), names_to=c("EMP", "Method"), names_sep = "_", values_to="CPUE")%>%
@@ -64,7 +73,8 @@ EMP<-EMP_CB2%>%
               distinct(),
             by="EMP")%>%
   filter(!is.na(Taxname))%>% #Should remove all the summed categories in original dataset
-  mutate(Taxlifestage=paste(Taxname, Lifestage))%>% #create variable for combo taxonomy x life stage
+  mutate(Taxlifestage=ifelse(Taxname%in%c("Asplanchna", "Keratella", "Limnoithona", "Limnoithona sinensis", "Limnoithona tetraspina", "Oithona", "Oithona davisae", "Oithona similis", "Polyarthra", "Synchaeta", "Synchaeta bicornis", "Trichocerca", "Eurytemora affinis", "Pseudodiaptomus", "Sinocalanus doerrii"), paste0("italic('", Taxname, "')~", "'", Lifestage,"'"),
+                             paste0("'", Taxname, "'~", "'", Lifestage,"'")))%>% #create variable for combo taxonomy x life stage and make some names italicized for graph. 
   mutate(CPUE=case_when(
     CPUE!=0 ~ CPUE, 
     CPUE==0 & Date < Intro ~ 0,
@@ -75,23 +85,28 @@ EMP<-EMP_CB2%>%
   select(-EMP, -EMPstart, -EMPend, -Intro)%>% #Remove EMP taxa codes 
   lazy_dt()%>% #Speed up code using dtplyr package that takes advantage of data.table speed
   group_by_at(vars(-CPUE))%>%
-  summarise(CPUE=sum(CPUE, na.rm=T))%>% #Some taxa now have the same names (e.g., CYCJUV and OTHCYCJUV)
+  summarise(CPUE=sum(CPUE, na.rm=TRUE))%>% #Some taxa now have the same names (e.g., CYCJUV and OTHCYCJUV)
   #so we now add those categories together.
   ungroup()%>%
   as_tibble() #required to finish operation after lazy_dt()
 
 EMP_sum<-EMP%>%
   group_by(Method, Taxlifestage)%>%
-  summarise(CPUE=mean(CPUE, na.rm=T))%>%
-  ungroup()
+  summarise(CPUE=sum(CPUE, na.rm=T))%>%
+  ungroup()%>%
+  mutate(Method = recode(Method, CB = "Meso (CB)", Pump = "Micro (Pump)"))
 
 p<-ggplot(EMP_sum, aes(x=Method, y=CPUE, fill=Method))+
   geom_bar(stat="identity")+
-  facet_wrap(~Taxlifestage, scales="free_y")+
+  facet_wrap(~Taxlifestage, scales="free_y", labeller = label_parsed, ncol=4)+
+  scale_fill_manual(values=brewer.pal(3, "PRGn")[c(1,3)])+
   scale_y_continuous(limits=c(0,NA), expand=expand_scale(mult=c(0,0.05)))+
+  ylab("Total CPUE")+
+  xlab("Collection method")+
   theme_bw()+
-  theme(panel.grid=element_blank(), strip.background=element_blank())
-ggsave(p, file="Pump CB CPUEs bar.png", device = "png", units="in", height=8, width=10)
+  theme(panel.grid=element_blank(), strip.background=element_blank(), legend.position = "none")
+p
+ggsave(p, file="Code in progress/Pump CB CPUEs bar.png", device = "png", units="in", height=10, width=9.5)
 
 
 EMP_xyplot<-EMP%>%
