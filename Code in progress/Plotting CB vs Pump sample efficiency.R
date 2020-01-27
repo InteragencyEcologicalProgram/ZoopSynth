@@ -3,6 +3,7 @@ require(readxl)
 require(lubridate)
 require(dtplyr)
 require(broom)
+require(RColorBrewer)
 
 EMP_CB <- read_excel("Data/1972-2018CBMatrix.xlsx", 
                      sheet = "CB CPUE Matrix 1972-2018", 
@@ -32,9 +33,6 @@ crosswalk <- zooper::crosswalk%>%
 #Create vector of taxonomic variables
 Taxvars<-c("LIMNOSPP", "LIMNOSINE", "LIMNOTET", "OITHDAV", "OITHSIM", "OITHSPP", "OTHCYCAD", "ALLCYCADULTS", "HARPACT", "CYCJUV", "LIMNOJUV", "OITHJUV", "OTHCYCJUV", "ALLCYCJUV", "COPNAUP", "EURYNAUP", "OTHCOPNAUP", "PDIAPNAUP", "SINONAUP", "ALLCOPNAUP", "ASPLANCH", "KERATELA", "OTHROT", "POLYARTH", "SYNCH", "SYNCHBIC", "TRICHO", "ALLROTIFERS", "BARNNAUP")
 
-#create vector of taxonomic variables minus the summed "ALL" categories
-Taxvars2<-c("LIMNOSPP", "LIMNOSINE", "LIMNOTET", "OITHDAV", "OITHSIM", "OITHSPP", "OTHCYCAD", "HARPACT", "CYCJUV", "LIMNOJUV", "OITHJUV", "OTHCYCJUV", "COPNAUP", "EURYNAUP", "OTHCOPNAUP", "PDIAPNAUP", "SINONAUP", "ASPLANCH", "KERATELA", "OTHROT", "POLYARTH", "SYNCH", "SYNCHBIC", "TRICHO", "BARNNAUP")
-
 EMP_CB2<-EMP_CB%>%
   select(intersect(names(.), names(EMP_Pump)))%>% #select columns in common between two datasets
   select(-Survey, -SurveyCode, -SurveyRep, -EZStation, -Core)%>% #Remove some variables
@@ -50,8 +48,7 @@ EMP_Pump2<-EMP_Pump%>%
   mutate(SampleID=paste(Date, Station))%>%
   rename_at(vars(Taxvars),
             ~paste0(., "_Pump"))%>%
-  select(-Volume)%>%
-  rename(OTHCYCADPUMP_Pump=OTHCYCAD_Pump)
+  select(-Volume)
 
 
 #Ensure that the same samples are present from both methods
@@ -73,8 +70,8 @@ EMP<-EMP_CB3%>%
               distinct(),
             by="EMP")%>%
   filter(!is.na(Taxname))%>% #Should remove all the summed categories in original dataset
-  mutate(Taxlifestage=ifelse(Taxname%in%c("Asplanchna", "Keratella", "Limnoithona", "Limnoithona sinensis", "Limnoithona tetraspina", "Oithona", "Oithona davisae", "Oithona similis", "Polyarthra", "Synchaeta", "Synchaeta bicornis", "Trichocerca", "Eurytemora affinis", "Pseudodiaptomus", "Sinocalanus doerrii"), paste0("italic('", Taxname, "')~", "'", Lifestage,"'"),
-                             paste0("'", Taxname, "'~", "'", Lifestage,"'")))%>% #create variable for combo taxonomy x life stage and make some names italicized for graph. 
+  mutate(Taxname_label=ifelse(Taxname%in%c("Asplanchna", "Keratella", "Limnoithona", "Limnoithona sinensis", "Limnoithona tetraspina", "Oithona", "Oithona davisae", "Oithona similis", "Polyarthra", "Synchaeta", "Synchaeta bicornis", "Trichocerca", "Eurytemora affinis", "Pseudodiaptomus", "Sinocalanus doerrii"), paste0("italic('", Taxname, "')"),
+                             Taxname))%>% #create variable for combo taxonomy x life stage and make some names italicized for graph. 
   mutate(CPUE=case_when(
     CPUE!=0 ~ CPUE, 
     CPUE==0 & Date < Intro ~ 0,
@@ -91,22 +88,28 @@ EMP<-EMP_CB3%>%
   as_tibble() #required to finish operation after lazy_dt()
 
 EMP_sum<-EMP%>%
-  group_by(Method, Taxlifestage)%>%
+  group_by(Method, Taxname, Lifestage, Taxname_label)%>%
   summarise(CPUE=sum(CPUE, na.rm=T))%>%
   ungroup()%>%
-  mutate(Method = recode(Method, CB = "Meso (CB)", Pump = "Micro (Pump)"))
+  mutate(Method = recode(Method, CB = "Meso", Pump = "Micro"))%>%
+  group_by(Taxname, Lifestage, Taxname_label)%>%
+  mutate(Total=sum(CPUE, na.rm=T))%>%
+  ungroup%>%
+  mutate(Proportion=CPUE/Total)%>%
+  arrange(Taxname, Lifestage)%>%
+  mutate(Taxname_label=factor(Taxname_label, levels=unique(Taxname_label)))
 
-p<-ggplot(EMP_sum, aes(x=Method, y=CPUE, fill=Method))+
-  geom_bar(stat="identity")+
-  facet_wrap(~Taxlifestage, scales="free_y", labeller = label_parsed, ncol=4)+
+p<-ggplot(EMP_sum)+
+  geom_bar(aes(x=Method, y=Proportion, fill=Method), stat="identity")+
+  facet_wrap(~Taxname_label*Lifestage, labeller = label_parsed, ncol=4)+
   scale_fill_manual(values=brewer.pal(3, "PRGn")[c(1,3)])+
-  scale_y_continuous(limits=c(0,NA), expand=expand_scale(mult=c(0,0.05)))+
-  ylab("Total CPUE")+
+  scale_y_continuous(limits=c(0,1), expand=c(0,0))+
+  ylab("Proportion of total CPUE")+
   xlab("Collection method")+
   theme_bw()+
-  theme(panel.grid=element_blank(), strip.background=element_blank(), legend.position = "none")
+  theme(text=element_text(size=14), panel.grid=element_blank(), strip.background=element_blank(), legend.position = "none", strip.text.x = element_text(margin = margin(b = 0, t = 0)))
 p
-ggsave(p, file="Code in progress/Pump CB CPUEs bar.png", device = "png", units="in", height=10, width=9.5)
+ggsave(p, file="Code in progress/Pump CB CPUEs bar.png", device = "png", units="in", height=8, width=7.5)
 
 
 EMP_xyplot<-EMP%>%
