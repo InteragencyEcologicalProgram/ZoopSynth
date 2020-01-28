@@ -1,8 +1,12 @@
 # !diagnostics off
 
 #BSA Data Cleanup
+<<<<<<< HEAD
 #scope: works for all zooplankton data analyzed by BSA, regardless of project
 #process: extracts unformatted data from Excel workbook(s) and exports as properly formatted .csv files
+=======
+#extracting data from Excel workbook(s) and export as .csv files
+>>>>>>> 96ce5f5f3a64ee6968cb1e588206994106b9067d
 #output: a folder, named after the workbook, that's populated by the indvidual .csv files
 #questions: sarah.perry@water.ca.gov
 
