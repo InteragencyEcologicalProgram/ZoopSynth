@@ -16,7 +16,7 @@ crosswalk <- zooper::crosswalk%>%
 
 #Calculate years when taxa were not counted but should have been
 
-Uncounter<- function(Source, SizeClass){
+Uncountedyears<- function(Source, SizeClass, Crosswalk){
   start<-sym(paste0(Source, "start"))
   start<-enquo(start)
   end<-sym(paste0(Source, "end"))
@@ -24,15 +24,29 @@ Uncounter<- function(Source, SizeClass){
   dataset<-sym(paste(Source, SizeClass, sep="_"))
   dataset<-enquo(dataset)
   
-  out<-crosswalk%>%
+  start2<-sym(paste0(Source, "start2"))
+  start2<-enquo(start2)
+  
+  out<-Crosswalk%>%
     filter(!is.na(!!dataset))%>%
     mutate(!!start := if_else(!is.finite(!!start), Sys.Date(), !!start))%>%
     mutate(Intro = if_else(!is.finite(Intro) | Intro > !!start, !!start, Intro),
            !!end := if_else(!is.finite(!!end), Sys.Date(), !!end))%>%
-    select(Taxname, Lifestage, !!start, !!end, Intro, !!dataset)%>%
     mutate(Taxlifestage=paste(Taxname, Lifestage))%>%
-    group_by(Taxname, Lifestage, !!dataset, Taxlifestage, !!start, !!end, Intro, n = row_number())%>%
-    do(tibble(Years = list(c(seq(year(.$Intro), year(.[[paste0(Source, "start")]]), by = 1), seq(year(.[[paste0(Source, "end")]]), year(Sys.Date()), by=1)))))%>%
+    {if(quo_name(start2)%in%names(Crosswalk)){
+      select(., Taxname, Lifestage, Taxlifestage, !!start, !!start2, !!end, Intro, !!dataset)%>%
+        group_by(Taxname, Lifestage, !!dataset, Taxlifestage, !!start, !!start2, !!end, Intro, n = row_number())%>%
+        do(tibble(Years = list(c(
+          seq(year(.$Intro), year(.[[quo_name(start)]]), by = 1), 
+          seq(year(.[[quo_name(end)]]), 
+              if_else(is.finite(.[[quo_name(start2)]]), year(.[[quo_name(start2)]])-1, year(Sys.Date())), by=1)))))
+    } else{
+      select(., Taxname, Lifestage, Taxlifestage, !!start, !!end, Intro, !!dataset)%>%
+        group_by(Taxname, Lifestage, !!dataset, Taxlifestage, !!start, !!end, Intro, n = row_number())%>%
+        do(tibble(Years = list(c(
+          seq(year(.$Intro), year(.[[quo_name(start)]]), by = 1), 
+          seq(year(.[[quo_name(end)]]), year(Sys.Date()), by=1)))))
+    }}%>%
     ungroup()%>%
     select(-n)%>%
     unnest(cols=c(Years))%>%
@@ -57,5 +71,5 @@ datasets<-zoopComb%>%
   filter(Source%in%c("EMP", "FMWT", "twentymm"))%>%
   distinct()
 
-test<-map2_dfr(datasets$Source, datasets$SizeClass, Uncounter)
+test<-map2_dfr(datasets$Source, datasets$SizeClass, Uncountedyears, Crosswalk=crosswalk)
 
