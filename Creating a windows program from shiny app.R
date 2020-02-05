@@ -15,7 +15,7 @@ file.copy(from=file.path(getwd(), "app.R"), to=file.path("..", "Zoop App"), over
 
 #file.copy(from=file.path(getwd(), c("app.R", "Zoop synthesizer function.R")), to=file.path("..", "Zoop App"), overwrite = TRUE)
 #file.copy(from=file.path(getwd(), "Data", c("zoopforzooper.Rds", "zoopenvforzooper.Rds", "new_crosswalk.xlsx", "Undersampled taxa.xlsx")), to=file.path("..", "Zoop App", "Data"), overwrite = TRUE)
-file.copy(from=file.path(getwd(), "www", "Logo.jpg"), to=file.path("..", "Zoop App", "www"), overwrite = TRUE)
+file.copy(from=file.path(getwd(), "www", c("Logo.jpg", "zooper.png")), to=file.path("..", "Zoop App", "www"), overwrite = TRUE)
 
 
 # Create application ------------------------------------------------------

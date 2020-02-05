@@ -44,7 +44,7 @@ addLegendCustom <- function(map, colors, labels, sizes, position, opacity = 0.5,
 ui <- fluidPage(
   
   # Application title and IEP logo
-  titlePanel(title=div(h1(paste0("Zooplankton data synthesizer: Version ", version), style="display: inline-block"), a(img(src="Logo.jpg", height = 132, width = 100, align="right", style="display: inline-block"), href="https://water.ca.gov/Programs/Environmental-Services/Interagency-Ecological-Program"), h5("If you encounter any issues, please email us at ", a("shiny@deltacouncil.ca.gov.", href="mailto:shiny@deltacouncil.ca.gov?subject=ZoopSynth%20Shiny%20app"), "For more info and the code behind this app, visit the ", a("github repository.", href="https://github.com/InteragencyEcologicalProgram/ZoopSynth"), "If you are a heavy user, consider downloading and installing the windows desktop application. Instructions are in the ", a("github repository.", href="https://github.com/InteragencyEcologicalProgram/ZoopSynth")), h5("To access and integrate these data in R, try the ", a("zooper package.", href="https://github.com/InteragencyEcologicalProgram/zooper"))), windowTitle = "Zooplankton data synthesizer"),
+  titlePanel(title=div(h1(paste0("Zooplankton data synthesizer: Version ", version), style="display: inline-block"), a(img(src="Logo.jpg", height = 132, width = 100, align="right", style="display: inline-block"), href="https://water.ca.gov/Programs/Environmental-Services/Interagency-Ecological-Program"), a(img(src="zooper.png", height = 132, width = 114, align="right", style="display: inline-block"), href="https://github.com/InteragencyEcologicalProgram/zooper"), h5("If you encounter any issues, please email us at ", a("shiny@deltacouncil.ca.gov.", href="mailto:shiny@deltacouncil.ca.gov?subject=ZoopSynth%20Shiny%20app"), "For more info and the code behind this app, visit the ", a("github repository.", href="https://github.com/InteragencyEcologicalProgram/ZoopSynth"), "If you are a heavy user, consider downloading and installing the windows desktop application. Instructions are in the ", a("github repository.", href="https://github.com/InteragencyEcologicalProgram/ZoopSynth")), h5("To access and integrate these data in R, try the ", a("zooper package.", href="https://github.com/InteragencyEcologicalProgram/zooper"))), windowTitle = "Zooplankton data synthesizer"),
   withMathJax(),
   
   # Sidebar with user instructions, input, and downloading options ----------
@@ -57,7 +57,18 @@ ui <- fluidPage(
            br(), br(),
            
            #Select data type and sources
-           radioGroupButtons("Datatype", "Data Type:", choices = c("Taxa", "Community"), selected = "Community", individual = TRUE, checkIcon = list( yes = tags$i(class = "fa fa-circle", style = "color: steelblue"), no = tags$i(class = "fa fa-circle-o", style = "color: steelblue"))),
+           radioGroupButtons("Datatype", "Data Type:", choices = c("Taxa", "Community"), selected = "Community", individual = TRUE, 
+                             checkIcon = list( yes = tags$i(class = "fa fa-circle", style = "color: steelblue"), no = tags$i(class = "fa fa-circle-o", style = "color: steelblue"))),
+           conditionalPanel(condition = "input.Datatype == 'Community'", 
+                            radioGroupButtons(
+                              inputId = "Time",
+                              label = "Enforce consistent taxonomic resolution over time?",
+                              choices = c("No", "Yes")
+                            ),
+                            conditionalPanel(condition = "input.Time == 'Yes'", 
+                                             sliderInput("Introlag",
+                                                         "How many years after a non-native species' introduction do you expect surveys to start counting it?",
+                                                         min = 0, max = 5, value = 2, step=1))),
            awesomeCheckboxGroup("Sources",
                                 "Sources:",
                                 choices = c("Environmental Monitoring Program (EMP)" = "EMP", 
@@ -314,9 +325,13 @@ server <- function(input, output, session) {
   
   #Using eventReactive so app only updates when "Run" button is clicked, letting you check all the boxes you want before running the app
   plotdata <- eventReactive(input$Run, {
+    Time <- if_else(input$Datatype=="Community" & input$Time=="Yes", TRUE, FALSE)
+    
     Zoopsynther(Data_type = input$Datatype, 
                 Sources = input$Sources, 
                 Size_class=input$Size_class,
+                Time_consistency = Time,
+                Intro_lag = input$Introlag,
                 Taxa=input$Taxa,
                 Date_range = ifelse(rep("Dates"%in%input$Filters, 2), input$Date_range, c(NA, NA)),
                 Months = ifelse(rep("Months"%in%input$Filters, length(input$Months)), as.integer(input$Months), rep(NA, length(input$Months))),  
@@ -356,6 +371,7 @@ server <- function(input, output, session) {
                                     tags$p("Option 'Data type' allows you to choose a final output dataset for either Community or Taxa-specific  analyses. If you want all available data on given Taxa, use 'Taxa' If you want to conduct a community analysis, use 'Community.'"),
                                     tags$p("Briefly, 'Community' optimizes for community-level analyses by taking all taxa by life stage combinations that are not measured in every input dataset, and summing them up taxonomic levels to the lowest taxonomic level they belong to that is covered by all datasets. Remaining Taxa x life stage combinations that are not covered in all datasets up to the phylum level (usually something like Annelida or Nematoda or Insect Pupae) are removed from the final dataset."), 
                                     tags$p("'Taxa' optimizes for the Taxa-level user by maintaining all data at the original taxonomic level. To facilitate comparions across datasets, this option also sums data into general categories that are comparable across all datasets (e.g., Calanoida_all)"), 
+                                    tags$p("Under the 'Community' option, users can select an option to enforce consistent taxonomic resolution over time. If this option is selected, the app detects all taxa that were not counted every year across the date range the user inputs (but taking into account the years non-native species were introduced and each survey first started sampling), then sums those taxa to higher taxonomic levels, as is done for taxa that were not counted across all datasets. Often, non-native species are not added to zooplankton species lists the same year they are first detected in the system. To allow for some lag between the introduction year and the year a species was first counted, you can set the number of years after a species' introduction that you expect surveys to start counting it (defaults to 2 years"),
                                     "------------------------------------------",
                                     tags$p(tags$b("App created and maintained by Sam Bashevkin with help from the IEP zooplankton synthesis team. Please email shiny@deltacouncil.ca.gov with any questions or comments"))),
                    type = "info",
