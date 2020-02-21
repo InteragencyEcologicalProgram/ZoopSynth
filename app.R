@@ -778,14 +778,19 @@ server <- function(input, output, session) {
         
         #Plot
         {if(input$Salzones){
-          ggplot(., aes(x=Year, y=CPUE))+
-            geom_line(size=1, aes(color=Taxlifestage, linetype=Salinity_zone))+
-            geom_point_interactive(size=2, aes(color=Taxlifestage, shape=Salinity_zone, tooltip=tooltip, data_id = ID))+
-            scale_linetype_manual(values=c(3,2,1))+
-            coord_cartesian(expand=0)+
             {if(Facet){
-              facet_wrap(~Salinity_zone, nrow=1)
+              ggplot(., aes(x=Year, y=CPUE))+
+              geom_line(size=1, aes(color=Taxlifestage))+
+                geom_point_interactive(size=2, aes(color=Taxlifestage, tooltip=tooltip, data_id = ID))+
+                facet_wrap(~Salinity_zone, nrow=1)
+            } else{
+              ggplot(., aes(x=Year, y=CPUE))+
+              geom_line(size=1, aes(color=Taxlifestage, linetype=Salinity_zone))+
+                geom_point_interactive(size=2, aes(color=Taxlifestage, shape=Salinity_zone, tooltip=tooltip, data_id = ID))+
+                scale_shape_discrete(name="Salinity zone")+
+                scale_linetype_manual(name="Salinity zone", values=c(3,2,1))
             }}+
+            coord_cartesian(expand=0)+
             scale_x_continuous(breaks = function(x) unique(floor(pretty(seq(min(x), max(x)), n=4))), expand=c(0,0))+
             scale_color_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(colorCount), name="Taxa and life stage", guide = guide_legend(ncol=1))+
             ylab(bquote(Average~CPUE~"("*Catch*"/"*m^3*")"))+
