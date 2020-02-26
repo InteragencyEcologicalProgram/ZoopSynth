@@ -22,7 +22,7 @@ data.
 # Shiny app
 
 The R shiny app can be accessed
-[here](https://iepsynthesis.shinyapps.io/ZoopSynth/).
+[here](https://deltascience.shinyapps.io/ZoopSynth/).
 
 The full shiny app can also be downloaded and installed to your computer
 by downloading and running [the
