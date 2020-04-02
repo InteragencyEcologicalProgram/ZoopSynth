@@ -9,12 +9,9 @@
 #devtools::install_github("sbashevkin/RInno") #Must use my modified version of RInno
 require(RInno)
 
-#First must create "Data" and "www" folders within the "Zoop App" folder.
+#First must create "Zoop App" folder and "www" subfolder.
 
 file.copy(from=file.path(getwd(), "app.R"), to=file.path("..", "Zoop App"), overwrite = TRUE)
-
-#file.copy(from=file.path(getwd(), c("app.R", "Zoop synthesizer function.R")), to=file.path("..", "Zoop App"), overwrite = TRUE)
-#file.copy(from=file.path(getwd(), "Data", c("zoopforzooper.Rds", "zoopenvforzooper.Rds", "new_crosswalk.xlsx", "Undersampled taxa.xlsx")), to=file.path("..", "Zoop App", "Data"), overwrite = TRUE)
 file.copy(from=file.path(getwd(), "www", c("Logo.jpg", "zooper.png")), to=file.path("..", "Zoop App", "www"), overwrite = TRUE)
 
 
@@ -42,6 +39,7 @@ create_app(
 # Create installer --------------------------------------------------------
 
 #Where is Inno installed on your computer?
-Inno_dir<-"C:/Users/sbashevkin/AppData/Local/Programs"
+#Inno_dir<-"C:/Users/sbashevkin/AppData/Local/Programs"
+Inno_dir<-"C:\\Program Files (x86)"
 
 compile_iss(Inno_dir)
