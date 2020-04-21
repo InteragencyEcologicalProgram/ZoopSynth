@@ -1,0 +1,52 @@
+---
+title: "Zoop QAQC"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+require(zooper)
+require(tidyverse)
+require(lubridate)
+```
+
+```{r}
+zoop<-zoopComb%>%
+  left_join(zoopEnvComb, by=c("SampleID", "Source"))
+```
+
+# Volume
+
+## Data preparation
+
+```{r}
+Volume <- zoop%>%
+  group_by(Volume, Date, Station, Source, SampleID, SizeClass)%>%
+  summarise(CPUE=sum(CPUE, na.rm=T))%>%
+  ungroup()%>%
+  mutate(Source=case_when(
+    Source=="EMP" & SizeClass=="Micro" & year(Date)<2008 ~ "EMP_pre_2008",
+    Source=="EMP" & SizeClass=="Micro" & year(Date)>=2008 ~ "EMP_post_2008",
+    TRUE ~ Source
+  ))
+```
+
+## Plotting
+
+```{r}
+ggplot(Volume)+
+  geom_boxplot(aes(x=Source, y=Volume))+
+  facet_wrap(~SizeClass, scales = "free")
+```
+
+```{r}
+ggplot(Volume)+
+  geom_point(aes(x=Volume, y=CPUE))+
+  facet_wrap(Source~SizeClass, scales = "free")
+```
+
