@@ -21,6 +21,9 @@ env<-zooper::zoopEnvComb%>%
 stations<-zooper::stations%>%
   filter(Source!="YBFMP")
 
+stations_EMP_EZ<-zooper::stationsEMPEZ%>%
+  mutate(Date=as.character(Date, format="%Y-%m-%d"))
+
 taxonomy <- zooper::crosswalk%>%
   select(Taxname, Phylum, Class, Order, Family, Genus, Species)%>%
   distinct()
@@ -40,9 +43,9 @@ biomass_mesomicro<-read_excel("Data paper/Biomass conversions.xlsx", sheet=1)%>%
 
 biomass_macro<-read_excel("Data paper/Biomass conversions.xlsx", sheet=2)
 
-data_files <- c("zooplankton.csv", "environment.csv", "taxonomy.csv", "undersampled.csv", "stations.csv", "study_metadata.csv", "biomass_mesomicro.csv", "biomass_macro.csv")
+data_files <- c("zooplankton.csv", "environment.csv", "taxonomy.csv", "undersampled.csv", "stations.csv", "stations_EMP_EZ.csv", "study_metadata.csv", "biomass_mesomicro.csv", "biomass_macro.csv")
 
-walk2(list(zoop, env, taxonomy, undersampled, stations, meta2, biomass_mesomicro, biomass_macro), data_files, ~write_csv(.x, file.path("~", "Zooplankton EDI", .y)))
+walk2(list(zoop, env, taxonomy, undersampled, stations, stations_EMP_EZ, meta2, biomass_mesomicro, biomass_macro), data_files, ~write_csv(.x, file.path("~", "Zooplankton EDI", .y)))
 
 
 # Create EML --------------------------------------------------------------
@@ -65,6 +68,10 @@ template_categorical_variables(
 )
 
 stations%>%
+  bind_rows(stations_EMP_EZ%>%
+              mutate(Source="EMP",
+                     Station=paste(Station, Date))%>%
+              select(-Date))%>%
   mutate(Unique_station=paste(Source, Station))%>%
   write_csv(file.path("~", "Zooplankton EDI", "stations2.csv"))
 
@@ -93,7 +100,7 @@ make_eml(
   maintenance.description = 'ongoing',
   data.table = data_files,
   data.table.name = c("Zooplankton abundance", "Datetime and environmental data", "Taxonomic information", 
-                      "Taxa that are poorly sampled by meso- or micro-zooplankton nets", "Sampling station locations", 
+                      "Taxa that are poorly sampled by meso- or micro-zooplankton nets", "Sampling station locations", "EMP EZ station locations",
                       "Compiled metadata information on component studies", "Biomass conversions for meso- and micro-zooplankton",
                       "Biomass length-weight conversions for macro-zooplankton"),
   data.table.description = c("Catch per unit effort of micro, meso, and macro zooplankton from the Upper San Francisco Estuary.", 
@@ -101,6 +108,7 @@ make_eml(
                              "Taxonomic heirarchy for each species in this dataset, validated primarily with the World Registry of Marine Species.",
                              "The taxa and life stages sampled in the indicated size class in this table should be treated with caution, as they are likely under sampled, i.e. the reported number is lower than their actual abundance. More details can be found in the methods but these zooplankton are likely either small enought to escape through the mesh (for the taxa and life stages under sampled in the meso sample) or large enough to swim away from the pump (from the taxa and life stages under sampled in the micro sample).",
                              "Latitude and longitude for each fixed sampling station.",
+                             "Latitude and longitude for moving EMP EZ sampling locations on each sampling date since 2004",
                              "A comprehensive table of information on the 5 component studies included in this integrated dataset.",
                              "Average carbon mass of zooplankton species and life stages obtained from the literature. Not all taxa and life stages are represented due to gaps in the literature.",
                              "Length - wet weight equations for mysids and amphipods from the literature."),
