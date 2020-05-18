@@ -41,11 +41,11 @@ meta2<-meta%>%
 biomass_mesomicro<-read_excel("Data paper/Biomass conversions.xlsx", sheet=1)%>%
   rename(Carbon_mass_micrograms=starts_with("Carbon"))
 
-biomass_macro<-read_excel("Data paper/Biomass conversions.xlsx", sheet=2)
+#biomass_macro<-read_excel("Data paper/Biomass conversions.xlsx", sheet=2)
 
-data_files <- c("zooplankton.csv", "environment.csv", "taxonomy.csv", "undersampled.csv", "stations.csv", "stations_EMP_EZ.csv", "study_metadata.csv", "biomass_mesomicro.csv", "biomass_macro.csv")
+data_files <- c("zooplankton.csv", "environment.csv", "taxonomy.csv", "undersampled.csv", "stations.csv", "stations_EMP_EZ.csv", "study_metadata.csv", "biomass_mesomicro.csv")
 
-walk2(list(zoop, env, taxonomy, undersampled, stations, stations_EMP_EZ, meta2, biomass_mesomicro, biomass_macro), data_files, ~write_csv(.x, file.path("~", "Zooplankton EDI", .y)))
+walk2(list(zoop, env, taxonomy, undersampled, stations, stations_EMP_EZ, meta2, biomass_mesomicro), data_files, ~write_csv(.x, file.path("~", "Zooplankton EDI", .y)))
 
 
 # Create EML --------------------------------------------------------------
@@ -99,10 +99,7 @@ make_eml(
   temporal.coverage = c('1972-01-01', '2018-12-19'),
   maintenance.description = 'ongoing',
   data.table = data_files,
-  data.table.name = c("Zooplankton abundance", "Datetime and environmental data", "Taxonomic information", 
-                      "Taxa that are poorly sampled by meso- or micro-zooplankton nets", "Sampling station locations", "EMP EZ station locations",
-                      "Compiled metadata information on component studies", "Biomass conversions for meso- and micro-zooplankton",
-                      "Biomass length-weight conversions for macro-zooplankton"),
+  data.table.name = data_files,
   data.table.description = c("Catch per unit effort of micro, meso, and macro zooplankton from the Upper San Francisco Estuary.", 
                              "Datetime, environmental, and water quality data from the zooplankton surveys. Not all surveys collect data on all variables. This table can be merged to the zooplankton table using the 'SampleID' column as a key.",
                              "Taxonomic heirarchy for each species in this dataset, validated primarily with the World Registry of Marine Species.",
@@ -110,8 +107,7 @@ make_eml(
                              "Latitude and longitude for each fixed sampling station.",
                              "Latitude and longitude for moving EMP EZ sampling locations on each sampling date since 2004",
                              "A comprehensive table of information on the 5 component studies included in this integrated dataset.",
-                             "Average carbon mass of zooplankton species and life stages obtained from the literature. Not all taxa and life stages are represented due to gaps in the literature.",
-                             "Length - wet weight equations for mysids and amphipods from the literature."),
+                             "Average carbon mass of zooplankton species and life stages obtained from the literature. Not all taxa and life stages are represented due to gaps in the literature."),
   provenance = "edi.269.2",
   user.domain = "EDI",
   user.id="sbashevkin"
