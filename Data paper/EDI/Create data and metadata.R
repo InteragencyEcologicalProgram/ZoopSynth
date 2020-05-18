@@ -10,6 +10,10 @@ require(readxl)
 
 # Create data -------------------------------------------------------------
 
+zoop_com<-Zoopsynther(Data_type="Community")%>%
+  mutate(Date=as.character(Date, format="%Y-%m-%d"),
+         Datetime=as.character(Datetime))
+
 zoop<-zooper::zoopComb%>%
   select(-Phylum, -Class, -Order, -Family, -Genus, -Species, -Source, -Taxlifestage)
 
@@ -43,9 +47,9 @@ biomass_mesomicro<-read_excel("Data paper/Biomass conversions.xlsx", sheet=1)%>%
 
 #biomass_macro<-read_excel("Data paper/Biomass conversions.xlsx", sheet=2)
 
-data_files <- c("zooplankton.csv", "environment.csv", "taxonomy.csv", "undersampled.csv", "stations.csv", "stations_EMP_EZ.csv", "study_metadata.csv", "biomass_mesomicro.csv")
+data_files <- c("zooplankton_community.csv", "zooplankton.csv", "environment.csv", "taxonomy.csv", "undersampled.csv", "stations.csv", "stations_EMP_EZ.csv", "study_metadata.csv", "biomass_mesomicro.csv")
 
-walk2(list(zoop, env, taxonomy, undersampled, stations, stations_EMP_EZ, meta2, biomass_mesomicro), data_files, ~write_csv(.x, file.path("~", "Zooplankton EDI", .y)))
+walk2(list(zoop_com, zoop, env, taxonomy, undersampled, stations, stations_EMP_EZ, meta2, biomass_mesomicro), data_files, ~write_csv(.x, file.path("~", "Zooplankton EDI", .y)))
 
 
 # Create EML --------------------------------------------------------------
@@ -93,6 +97,10 @@ template_taxonomic_coverage(
   taxa.name.type = 'scientific'
 )
 
+file.copy(from=c("Data paper/EDI/abstract.md", "Data paper/EDI/additional_info.md", "Data paper/EDI/methods.md"),
+          to=c("~/Zooplankton EDI/abstract.md", "~/Zooplankton EDI/additional_info.md", "~/Zooplankton EDI/methods.md"),
+          overwrite = TRUE)
+
 make_eml(
   path = "~/Zooplankton EDI",
   dataset.title = 'Interagency Ecological Program: Zooplankton abundance in the Upper San Francisco Estuary from 1972-2018, an integration of 5 long-term monitoring programs',
@@ -100,10 +108,11 @@ make_eml(
   maintenance.description = 'ongoing',
   data.table = data_files,
   data.table.name = data_files,
-  data.table.description = c("Catch per unit effort of micro, meso, and macro zooplankton from the Upper San Francisco Estuary.", 
+  data.table.description = c("The full dataset optimized for a community ecology analysis. This includes data from the rest of the tables, except the biomass table. So users should either use this file or construct their own dataset with the other tables. This dataset was optimized for community analysis by forcing each survey to have the same set of measured taxa. Any taxa not counted by all datasets was either summed to a higher level that would be comparable with all datasets, or removed if it had no close relatives in all datasets. However, taxonomic resolution is not consistent over time. This dataset was created using the zooper R package with zoopSynther(Data_type='Community'). To create a more customized dataset and read more information about how this dataset was created, visit https://github.com/InteragencyEcologicalProgram/zooper.",
+                             "Catch per unit effort of micro, meso, and macro zooplankton from the Upper San Francisco Estuary.", 
                              "Datetime, environmental, and water quality data from the zooplankton surveys. Not all surveys collect data on all variables. This table can be merged to the zooplankton table using the 'SampleID' column as a key.",
                              "Taxonomic heirarchy for each species in this dataset, validated primarily with the World Registry of Marine Species.",
-                             "The taxa and life stages sampled in the indicated size class in this table should be treated with caution, as they are likely under sampled, i.e. the reported number is lower than their actual abundance. More details can be found in the methods but these zooplankton are likely either small enought to escape through the mesh (for the taxa and life stages under sampled in the meso sample) or large enough to swim away from the pump (from the taxa and life stages under sampled in the micro sample).",
+                             "The taxa and life stages sampled in the indicated size class in this table should be treated with caution, as they are likely under sampled, i.e. the reported number is lower than their actual abundance. More details can be found in the methods but these zooplankton are likely either small enought to escape through the mesh (for the taxa and life stages under sampled in the meso sample) or large enough to swim away from the pump (for the taxa and life stages under sampled in the micro sample).",
                              "Latitude and longitude for each fixed sampling station.",
                              "Latitude and longitude for moving EMP EZ sampling locations on each sampling date since 2004",
                              "A comprehensive table of information on the 5 component studies included in this integrated dataset.",
