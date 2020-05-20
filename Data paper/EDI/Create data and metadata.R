@@ -97,11 +97,14 @@ template_taxonomic_coverage(
   taxa.name.type = 'scientific'
 )
 
-file.copy(from=c("Data paper/EDI/abstract.md", "Data paper/EDI/additional_info.md", "Data paper/EDI/methods.md"),
-          to=c("~/Zooplankton EDI/abstract.md", "~/Zooplankton EDI/additional_info.md", "~/Zooplankton EDI/methods.md"),
+file.copy(from=file.path("C:/Users/sbashevkin/OneDrive - deltacouncil/Zooplankton synthesis/Meeting stuff and documents", 
+                         c("EDI abstract.docx", "EDI additional info.docx", "EDI methods.docx")),
+          to=file.path("~/Zooplankton EDI", c("abstract.docx", "additional_info.docx", "methods.docx")),
           overwrite = TRUE)
 
-make_eml(
+ID<-"edi.101.1"
+
+zoop_eml<-make_eml(
   path = "~/Zooplankton EDI",
   dataset.title = 'Interagency Ecological Program: Zooplankton abundance in the Upper San Francisco Estuary from 1972-2018, an integration of 5 long-term monitoring programs',
   temporal.coverage = c('1972-01-01', '2018-12-19'),
@@ -119,5 +122,44 @@ make_eml(
                              "Average carbon mass of zooplankton species and life stages obtained from the literature. Not all taxa and life stages are represented due to gaps in the literature."),
   provenance = "edi.269.2",
   user.domain = "EDI",
-  user.id="sbashevkin"
+  user.id="sbashevkin",
+  return.obj=TRUE,
+  write.file=FALSE,
+  package.id=ID
 )
+
+prov_TNSFMWT<-list(description=list(para="This provenance metadata does not contain entity specific information."),
+                   dataSource=list(title="Summer Townet and Fall Midwater Trawl meso-zooplankton (CB net) data and Fall Midwater Trawl macro-zooplankton (mysid net) data.",
+                                   creator=list(individualName=list(surName="CDFW")),
+                                   distribution=list(online=list(onlineDescription="This online link references one of the source datasetes included in this integrated data package.",
+                                                                 url=list("function"="information",
+                                                                          url="ftp://ftp.wildlife.ca.gov/TownetFallMidwaterTrawl/Zoopl_TownetFMWT"))),
+                                   contact=list(individualName=list(surName="CDFW"))))
+class(prov_TNSFMWT)<-c("emld", "list")
+
+prov_EMP<-list(description=list(para="This provenance metadata does not contain entity specific information."),
+                   dataSource=list(title="CDFW Environmental Monitoring Program.",
+                                   creator=list(individualName=list(surName="CDFW")),
+                                   distribution=list(online=list(onlineDescription="This online link references one of the source datasetes included in this integrated data package.",
+                                                                 url=list("function"="information",
+                                                                          url="ftp://ftp.dfg.ca.gov/IEP_Zooplankton/"))),
+                                   contact=list(individualName=list(surName="CDFW"))))
+class(prov_EMP)<-c("emld", "list")
+
+prov_20mm<-list(description=list(para="This provenance metadata does not contain entity specific information."),
+                   dataSource=list(title="CDFW 20-mm Survey meso-zooplankton data.",
+                                   creator=list(individualName=list(surName="CDFW")),
+                                   distribution=list(online=list(onlineDescription="This online link references one of the source datasetes included in this integrated data package.",
+                                                                 url=list("function"="information",
+                                                                          url="ftp://ftp.dfg.ca.gov/Delta%20Smelt/"))),
+                                   contact=list(individualName=list(surName="CDFW"))))
+class(prov_20mm)<-c("emld", "list")
+
+zoop_eml$dataset$methods$methodStep[[3]]<-prov_TNSFMWT
+
+zoop_eml$dataset$methods$methodStep[[4]]<-prov_EMP
+
+zoop_eml$dataset$methods$methodStep[[5]]<-prov_20mm
+
+write_eml(zoop_eml, file.path("~", "Zooplankton EDI", paste0(ID, ".xml")))
+eml_validate(file.path("~", "Zooplankton EDI", paste0(ID, ".xml")))
