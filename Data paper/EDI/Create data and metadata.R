@@ -6,6 +6,7 @@ library(EMLassemblyline)
 library(stringr)
 require(purrr)
 require(readxl)
+require(EML)
 
 
 # Create data -------------------------------------------------------------
