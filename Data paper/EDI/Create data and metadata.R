@@ -13,27 +13,37 @@ require(EML)
 
 zoop_com<-Zoopsynther(Data_type="Community")%>%
   mutate(Date=as.character(Date, format="%Y-%m-%d"),
-         Datetime=as.character(Datetime))
+         Datetime=as.character(Datetime))%>%
+  select(Source, Station, Latitude, Longitude, Year, Date, Datetime, SampleID, Tide, 
+         BottomDepth, Chl, Secchi, Temperature, Turbidity, Microcystis, pH, DO, SalSurf, SalBott, 
+         SizeClass, Volume, Phylum, Class, Order, Family, Genus, Species, Taxname, Lifestage, Taxlifestage, 
+         CPUE, Undersampled)
 
 zoop<-zooper::zoopComb%>%
-  select(-Phylum, -Class, -Order, -Family, -Genus, -Species, -Source, -Taxlifestage)
+  select(-Phylum, -Class, -Order, -Family, -Genus, -Species, -Source, -Taxlifestage)%>%
+  select(SampleID, SizeClass, Volume, Taxname, Lifestage, CPUE)
 
 env<-zooper::zoopEnvComb%>%
   select(-Year, -Latitude, -Longitude)%>%
   mutate(Date=as.character(Date, format="%Y-%m-%d"),
-         Datetime=as.character(Datetime))
+         Datetime=as.character(Datetime))%>%
+  select(Source, Station, Date, Datetime, SampleID, Tide, 
+         BottomDepth, Chl, Secchi, Temperature, Turbidity, Microcystis, pH, DO, SalSurf, SalBott)
 
 stations<-zooper::stations%>%
-  filter(Source!="YBFMP")
+  filter(Source!="YBFMP")%>%
+  select(Source, Station, Latitude, Longitude)
 
 stations_EMP_EZ<-zooper::stationsEMPEZ%>%
-  mutate(Date=as.character(Date, format="%Y-%m-%d"))
+  mutate(Date=as.character(Date, format="%Y-%m-%d"))%>%
+  select(Station, Date, Latitude, Longitude)
 
 taxonomy <- zooper::crosswalk%>%
-  select(Taxname, Phylum, Class, Order, Family, Genus, Species)%>%
+  select(Phylum, Class, Order, Family, Genus, Species, Taxname)%>%
   distinct()
 
-undersampled <- zooper::undersampled
+undersampled <- zooper::undersampled%>%
+  select(SizeClass, Taxname, Lifestage)
 
 # Zooplankton metadata document
 meta <- read_sheet("https://docs.google.com/spreadsheets/d/1O4jg6j9ksS5VTWtm_k-iqUe8WPIBSGfrkx82CMzK8Ak/edit#gid=0", col_types="c", .name_repair="universal")
@@ -41,10 +51,11 @@ meta <- read_sheet("https://docs.google.com/spreadsheets/d/1O4jg6j9ksS5VTWtm_k-i
 meta2<-meta%>%
   rename_all(~str_replace_all(., fixed("."), "_"))%>%
   mutate_at(c("Start_year", "Sample_duration_minutes", "Length_of_net_cm", "Mesh_size_microns"), ~parse_number(.))%>%
-  filter(Study_name!="Yolo Bypass Fisheries Monitoring Survey: Lower Trophic")
+  filter(Study_name!="Yolo Bypass Fisheries Monitoring Survey: Lower Trophic")%>%
+  rename(Survey_name=Study_name)
 
 biomass_mesomicro<-read_excel("Data paper/Biomass conversions.xlsx", sheet=1)%>%
-  rename(Carbon_mass_micrograms=starts_with("Carbon"))
+  select(Taxname, Level, Lifestage, Carbon_mass_micrograms=starts_with("Carbon"), Reference)
 
 #biomass_macro<-read_excel("Data paper/Biomass conversions.xlsx", sheet=2)
 

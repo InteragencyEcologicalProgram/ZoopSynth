@@ -3,10 +3,16 @@ require(mapview)
 require(RColorBrewer)
 require(readxl)
 require(tidyverse)
+require(ggplot2)
+require(ggspatial)
+require(sf)
 
-Stations <- read_excel("Data/zoop_stations.xlsx", sheet="lat_long")%>%
-  rename(Source=Project)%>%
+Stations <- zooper::stations%>%
   filter(Source!="YBFMP")%>%
+  #bind_rows(zooper::stationsEMPEZ%>%
+  #            mutate(Station=paste(Station, Date),
+  #                   Source="EMP")%>%
+  #            select(-Date))%>%
   mutate(Source=recode(Source, twentymm="20mm"))%>%
   drop_na()
 
@@ -66,3 +72,24 @@ p<-leaflet(data=Stations)%>%
   addLegend("topleft", pal = pal, values = ~Source, className = "info legend, legend-big")
 p
 mapview::mapshot(p, file="Code in progress/Samples map out.png", vheight=800, vwidth=1000)
+
+
+
+# ggplot2 version ---------------------------------------------------------
+
+Stations<-Stations%>%
+  st_as_sf(coords=c("Longitude", "Latitude"), crs=4326)
+
+base<-spacetools::Delta%>%
+  st_transform(crs=4326)
+
+labels<-tibble(label=c("San Francisco Bay", "San Pablo Bay", "Suisun Bay", "Confluence"), Lat=c(37.9, 38.12, 38.02, 37.98), Lon=c(-122.3, -122.4, -122.05, -121.8))
+
+ggplot() +
+  annotation_spatial(base, fill="lightgray", color="lightgray")+
+  layer_spatial(Stations, aes(fill = Source), alpha=0.7, color="black", stroke=0.1, shape=21, size=2.5)+
+  geom_spatial_label(data=labels, aes(label=label, x=Lon, y=Lat), crs=4326)+
+  scale_fill_brewer(type="qual", palette="Dark2")+
+  annotation_scale(location = "tl") +
+  annotation_north_arrow(location = "tr", which_north = "true")+
+  theme_bw()
