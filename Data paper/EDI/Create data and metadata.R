@@ -121,7 +121,7 @@ zoop_eml<-make_eml(
                              "Latitude and longitude for moving EMP EZ sampling locations on each sampling date since 2004",
                              "A comprehensive table of information on the 5 component studies included in this integrated dataset.",
                              "Average carbon mass of zooplankton species and life stages obtained from the literature. Not all taxa and life stages are represented due to gaps in the literature."),
-  provenance = "edi.269.2",
+  provenance = c("edi.458.2", "edi.269.2"),
   user.domain = "EDI",
   user.id="sbashevkin",
   return.obj=TRUE,
