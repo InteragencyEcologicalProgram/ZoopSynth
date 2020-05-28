@@ -156,11 +156,11 @@ prov_20mm<-list(description=list(para="This provenance metadata does not contain
                                    contact=list(individualName=list(surName="CDFW"))))
 class(prov_20mm)<-c("emld", "list")
 
-zoop_eml$dataset$methods$methodStep[[3]]<-prov_TNSFMWT
+zoop_eml$dataset$methods$methodStep[[4]]<-prov_TNSFMWT
 
-zoop_eml$dataset$methods$methodStep[[4]]<-prov_EMP
+zoop_eml$dataset$methods$methodStep[[5]]<-prov_EMP
 
-zoop_eml$dataset$methods$methodStep[[5]]<-prov_20mm
+zoop_eml$dataset$methods$methodStep[[6]]<-prov_20mm
 
 write_eml(zoop_eml, file.path("~", "Zooplankton EDI", paste0(ID, ".xml")))
 eml_validate(file.path("~", "Zooplankton EDI", paste0(ID, ".xml")))
