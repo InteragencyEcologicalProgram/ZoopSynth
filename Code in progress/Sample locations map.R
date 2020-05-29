@@ -6,6 +6,8 @@ require(tidyverse)
 require(ggplot2)
 require(ggspatial)
 require(sf)
+require(ggrepel)
+library(maps)
 
 Stations <- zooper::stations%>%
   filter(Source!="YBFMP")%>%
@@ -78,18 +80,54 @@ mapview::mapshot(p, file="Code in progress/Samples map out.png", vheight=800, vw
 # ggplot2 version ---------------------------------------------------------
 
 Stations<-Stations%>%
-  st_as_sf(coords=c("Longitude", "Latitude"), crs=4326)
+  st_as_sf(coords=c("Longitude", "Latitude"), crs=4326, remove=F)
 
 base<-spacetools::Delta%>%
   st_transform(crs=4326)
 
-labels<-tibble(label=c("San Francisco Bay", "San Pablo Bay", "Suisun Bay", "Confluence"), Lat=c(37.9, 38.12, 38.02, 37.98), Lon=c(-122.3, -122.4, -122.05, -121.8))
+labels<-tibble(label=c("San Francisco Bay", "San Pablo Bay", "Suisun Bay", "Confluence"), Latitude=c(37.9, 38.07, 38.08, 38.046), Longitude=c(-122.4, -122.4, -122.05, -121.9),
+               label_lat=c(37.9, 38.11, 38.15, 38), label_lon=c(-122.25, -122.38, -122.18, -122))#%>%
+  #bind_rows(Stations%>%
+  #            st_drop_geometry()%>%
+  #            select(Latitude, Longitude)%>%
+  #            mutate(label=""))
 
-ggplot() +
-  annotation_spatial(base, fill="lightgray", color="lightgray")+
-  layer_spatial(Stations, aes(fill = Source), alpha=0.7, color="black", stroke=0.1, shape=21, size=2.5)+
-  geom_spatial_label(data=labels, aes(label=label, x=Lon, y=Lat), crs=4326)+
-  scale_fill_brewer(type="qual", palette="Dark2")+
-  annotation_scale(location = "tl") +
-  annotation_north_arrow(location = "tr", which_north = "true")+
-  theme_bw()
+states <- st_as_sf(map("state", plot = FALSE, fill = TRUE))%>%
+  st_transform(crs=st_crs(base))
+california<-filter(states, ID=="california")
+
+base2<-base%>%
+  st_crop(st_bbox(Stations))
+
+station_lims<-st_bbox(Stations)
+
+pout<-ggplot(states)+
+  geom_sf(color="dodgerblue3")+
+  geom_sf(data=base2, color="dodgerblue3", fill="dodgerblue3")+
+  geom_rect(xmin = station_lims["xmin"]-0.2, xmax = station_lims["xmax"]+0.2, ymin = station_lims["ymin"]-0.2, ymax = station_lims["ymax"]+0.2, 
+            fill = NA, colour = "black", size = 1)+
+  coord_sf(xlim=c(st_bbox(california)["xmin"], st_bbox(california)["xmax"]), ylim=c(st_bbox(california)["ymin"], st_bbox(california)["ymax"]))+
+  theme_bw()+
+  theme(panel.background = element_rect(fill = "dodgerblue3"), axis.text.x=element_text(angle=45, hjust=1))
+pout
+
+p<-ggplot() +
+  geom_sf(data=base, fill="gray95", color="lightgray")+
+  geom_point(data=Stations, aes(fill = Source, x=Longitude, y=Latitude), alpha=0.5, color="black", stroke=0.1, shape=21, size=2.5)+
+  geom_segment(data=labels, aes(x=label_lon, y=label_lat, xend=Longitude, yend=Latitude))+
+  geom_label(data=labels, aes(label=label, x=label_lon, y=label_lat))+
+  coord_sf(xlim=range(Stations$Longitude), ylim=range(Stations$Latitude))+
+  scale_fill_brewer(type="qual", palette="Set1", guide=guide_legend(override.aes = list(alpha=1)), name="Survey")+
+  annotation_scale(location = "bl") +
+  annotation_north_arrow(location = "bl", pad_y=unit(0.05, "npc"), which_north = "true")+
+  theme_bw()+
+  theme(legend.background = element_rect(color="black"), legend.position=c(0.925,0.85))+
+  annotation_custom(
+    grob = ggplotGrob(pout),
+    xmin = -Inf,
+    xmax = -122.2,
+    ymin = 38.3,
+    ymax = Inf
+  )
+p
+ggsave("Code in progress/Samples map improved.png", plot=p, device="png", width=8, height=8, units = "in")
