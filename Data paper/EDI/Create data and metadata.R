@@ -44,11 +44,11 @@ taxonomy <- zooper::crosswalk%>%
 
 taxa_lists<-zooper::crosswalk%>%
   select(-YBFMP, -Level, -Phylum, -Class, -Order, -Family, -Genus, -Species)%>%
-  mutate_at(vars(EMP_Micro, EMP_Meso, EMP_Macro, TNS_Meso, TNS_Macro, FMWT_Meso, FMWT_Macro, twentymm_Meso, FRP_Meso, FRP_Macro),
+  mutate_at(vars(EMP_Micro, EMP_Meso, EMP_Macro, STN_Meso, STN_Macro, FMWT_Meso, FMWT_Macro, twentymm_Meso, FRP_Meso, FRP_Macro),
             ~if_else(is.na(.), FALSE, TRUE))%>%
   distinct()%>%
   mutate_at(vars(Intro, EMPstart, EMPend, FMWTstart, FMWTend, twentymmstart, twentymmend, twentymmstart2), ~year(.))%>%
-  select(Taxname, Lifestage, EMP_Micro, EMP_Meso, EMP_Macro, TNS_Meso, TNS_Macro, FMWT_Meso, FMWT_Macro, twentymm_Meso, FRP_Meso, FRP_Macro,
+  select(Taxname, Lifestage, EMP_Micro, EMP_Meso, EMP_Macro, STN_Meso, STN_Macro, FMWT_Meso, FMWT_Macro, twentymm_Meso, FRP_Meso, FRP_Macro,
          Intro, EMPstart, EMPend, FMWTSTNstart=FMWTstart, FMWTSTNend=FMWTend, twentymmstart, twentymmend, twentymmstart2)
 
 undersampled <- zooper::undersampled%>%
@@ -150,14 +150,14 @@ zoop_eml<-make_eml(
   package.id=ID
 )
 
-prov_TNSFMWT<-list(description=list(para="This provenance metadata does not contain entity specific information."),
+prov_STNFMWT<-list(description=list(para="This provenance metadata does not contain entity specific information."),
                    dataSource=list(title="Summer Townet and Fall Midwater Trawl meso-zooplankton (CB net) data and Fall Midwater Trawl macro-zooplankton (mysid net) data.",
                                    creator=list(individualName=list(surName="CDFW")),
                                    distribution=list(online=list(onlineDescription="This online link references one of the source datasetes included in this integrated data package.",
                                                                  url=list("function"="information",
                                                                           url="ftp://ftp.wildlife.ca.gov/TownetFallMidwaterTrawl/Zoopl_TownetFMWT"))),
                                    contact=list(individualName=list(surName="CDFW"))))
-class(prov_TNSFMWT)<-c("emld", "list")
+class(prov_STNFMWT)<-c("emld", "list")
 
 prov_EMP<-list(description=list(para="This provenance metadata does not contain entity specific information."),
                    dataSource=list(title="CDFW Environmental Monitoring Program.",
@@ -177,7 +177,7 @@ prov_20mm<-list(description=list(para="This provenance metadata does not contain
                                    contact=list(individualName=list(surName="CDFW"))))
 class(prov_20mm)<-c("emld", "list")
 
-zoop_eml$dataset$methods$methodStep[[4]]<-prov_TNSFMWT
+zoop_eml$dataset$methods$methodStep[[4]]<-prov_STNFMWT
 
 zoop_eml$dataset$methods$methodStep[[5]]<-prov_EMP
 
