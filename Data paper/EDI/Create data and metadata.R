@@ -142,7 +142,7 @@ zoop_eml<-make_eml(
                              "Latitude and longitude for moving EMP EZ sampling locations on each sampling date since 2004",
                              "A comprehensive table of information on the 5 component studies included in this integrated dataset.",
                              "Average carbon mass of zooplankton species and life stages obtained from the literature. Not all taxa and life stages are represented due to gaps in the literature."),
-  provenance = c("edi.458.2", "edi.269.2"),
+  provenance = c("edi.458.2", "edi.269.2", "edi.522.1"),
   user.domain = "EDI",
   user.id="sbashevkin",
   return.obj=TRUE,
@@ -159,15 +159,6 @@ prov_STNFMWT<-list(description=list(para="This provenance metadata does not cont
                                    contact=list(individualName=list(surName="CDFW"))))
 class(prov_STNFMWT)<-c("emld", "list")
 
-prov_EMP<-list(description=list(para="This provenance metadata does not contain entity specific information."),
-                   dataSource=list(title="CDFW Environmental Monitoring Program.",
-                                   creator=list(individualName=list(surName="CDFW")),
-                                   distribution=list(online=list(onlineDescription="This online link references one of the source datasetes included in this integrated data package.",
-                                                                 url=list("function"="information",
-                                                                          url="ftp://ftp.dfg.ca.gov/IEP_Zooplankton/"))),
-                                   contact=list(individualName=list(surName="CDFW"))))
-class(prov_EMP)<-c("emld", "list")
-
 prov_20mm<-list(description=list(para="This provenance metadata does not contain entity specific information."),
                    dataSource=list(title="CDFW 20-mm Survey meso-zooplankton data.",
                                    creator=list(individualName=list(surName="CDFW")),
@@ -177,9 +168,7 @@ prov_20mm<-list(description=list(para="This provenance metadata does not contain
                                    contact=list(individualName=list(surName="CDFW"))))
 class(prov_20mm)<-c("emld", "list")
 
-zoop_eml$dataset$methods$methodStep[[4]]<-prov_STNFMWT
-
-zoop_eml$dataset$methods$methodStep[[5]]<-prov_EMP
+zoop_eml$dataset$methods$methodStep[[5]]<-prov_STNFMWT
 
 zoop_eml$dataset$methods$methodStep[[6]]<-prov_20mm
 
