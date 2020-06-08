@@ -69,17 +69,17 @@ ui <- fluidPage(
                                              sliderInput("Introlag",
                                                          "How many years after a non-native species' introduction do you expect surveys to start counting it?",
                                                          min = 0, max = 5, value = 2, step=1))),
-           awesomeCheckboxGroup("Sources",
-                                "Sources:",
+           prettyCheckboxGroup("Sources",
+                                "Sources:", outline=T, status="primary", shape="curve",
                                 choices = c("Environmental Monitoring Program (EMP)" = "EMP", 
-                                            "Fish Restoration Program (FRP)" = "FRP", "Fall Midwater Trawl (FMWT)" = "FMWT", "Summer Townet Survey (TNS)" = "TNS", "20mm Survey (20mm)" = "20mm")),
-           awesomeCheckboxGroup("Size_class",
-                                "Size classes:",
+                                            "Fish Restoration Program (FRP)" = "FRP", "Fall Midwater Trawl (FMWT)" = "FMWT", "Summer Townet Survey (STN)" = "STN", "20mm Survey (20mm)" = "20mm")),
+           prettyCheckboxGroup("Size_class",
+                                "Size classes:", outline=T, status="primary", shape="curve",
                                 choices = c("Micro (43 \\(\\mu\\)m mesh)"="Micro", "Meso (150-160 \\(\\mu\\)m mesh)"="Meso", "Macro (500-505 \\(\\mu\\)m mesh)"="Macro"), selected = "Meso"),
            
            #Allow users to select which filters they would like to use, then those filter options will appear.
-           awesomeCheckboxGroup("Filters",
-                                "Filters:",
+           prettyCheckboxGroup("Filters",
+                                "Filters:", outline=T, status="primary", shape="curve",
                                 choices = c("Dates", "Months", "Surface salinity", "Latitude", "Longitude")),
            conditionalPanel(condition = "input.Datatype == 'Taxa'",
                             selectizeInput("Taxa", label = "Select taxa to include in dataset. If you know what you want, this will speed up the data crunching.", 
@@ -351,7 +351,7 @@ server <- function(input, output, session) {
                              tags$a("EMP, ", href = "ftp://ftp.dfg.ca.gov/IEP_Zooplankton", target="_blank"), 
                              tags$a("FRP, ", href = "http://doi.org/10.6073/pasta/86810e72766ad19fccb1b9dd3955bdf8", target="_blank"), 
                              tags$a("FMWT, ", href = "ftp://ftp.dfg.ca.gov/TownetFallMidwaterTrawl/FMWT%20Data/", target="_blank"), 
-                             tags$a("TNS, ", href = "ftp://ftp.dfg.ca.gov/TownetFallMidwaterTrawl/TNS%20MS%20Access%20Data/TNS%20data/", target="_blank"), 
+                             tags$a("STN, ", href = "ftp://ftp.dfg.ca.gov/TownetFallMidwaterTrawl/TNS%20MS%20Access%20Data/TNS%20data/", target="_blank"), 
                              "and", 
                              tags$a("20mm", href = "ftp://ftp.wildlife.ca.gov/Delta%20Smelt/", target="_blank")), 
                       map(plotdata()$Caveats, tags$p))
@@ -388,11 +388,11 @@ server <- function(input, output, session) {
   #CPUE plot info
   observeEvent(input$CPUE_info, {
     if("Taxatype"%in%colnames(plotdata2())){
-      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Average abundance by year of each selected taxa by life stage combination"), h3("It is highly recommended to only select a few taxa for this plot"), tags$p("If desired, data can be subdivided into 3 salinity zones with the 'Salinity zones' switch. The borders of the salinity zones can be adjusted by dragging the bar to encompass your favored definition of the low salinity zone. Hover over the plot with your mouse to view data values.")),
+      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Average abundance by year of each selected taxa by life stage combination"), h3("It is highly recommended to only select a few taxa for this plot"), tags$p("If desired, data can be subdivided into 3 salinity zones with the 'Salinity zones' switch. The borders of the salinity zones can be adjusted by dragging the bar to encompass your favored definition of the low salinity zone. Hover over the plot with your mouse to view data values."), em("If plot does not appear, try opening and closing the red plot options dropdown menu with the gear symbol.")),
                      type = "info",
                      btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
     } else{
-      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Community composition by year"), tags$p("If desired, data can be subdivided into 3 salinity zones with the 'Salinity zones' switch. The borders of the salinity zones can be adjusted by dragging the bar to encompass your favored definition of the low salinity zone. Hover over the plot with your mouse to view data values.")),
+      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Community composition by year"), tags$p("If desired, data can be subdivided into 3 salinity zones with the 'Salinity zones' switch. The borders of the salinity zones can be adjusted by dragging the bar to encompass your favored definition of the low salinity zone. Hover over the plot with your mouse to view data values."), em("If plot does not appear, try opening and closing the red plot options dropdown menu with the gear symbol.")),
                      type = "info",
                      btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
     }
@@ -401,11 +401,11 @@ server <- function(input, output, session) {
   #Map plot info
   observeEvent(input$Map_info, {
     if("Taxatype"%in%colnames(plotdata2())){
-      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Mapped average yearly abundance of each selected taxa by life stage combination"), h3("It is highly recommended to only select a few taxa for this plot"), tags$p("Bubble area is scaled to CPUE. The map can be animated to loop through years by clicking the 'play' button on the right side of the year selector. Hover over the plot with your mouse to view data values. Adjustments to the bounds and zoom of the plot will not be reflected in the downloaded plot, sorry!"), tags$p("If data do not load on map, try opening and closing the gear icon dropdown menu.")),
+      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Mapped average yearly abundance of each selected taxa by life stage combination"), h3("It is highly recommended to only select a few taxa for this plot"), tags$p("Bubble area is scaled to CPUE. The map can be animated to loop through years by clicking the 'play' button on the right side of the year selector. Hover over the plot with your mouse to view data values. Adjustments to the bounds and zoom of the plot will not be reflected in the downloaded plot, sorry!"), em("If data do not load on map, try opening and closing the gear icon dropdown menu.")),
                      type = "info",
                      btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
     } else{
-      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Mapped yearly community composition of major taxonomic groups"), tags$p("Click the red gear to adjust map options. Life stages of each taxa are summed within each sample, so it is not recommended to combine life stages. If the map is too crowded with similar colors, taxa can be deselected and they will be summed into the 'other' group."), p("The map can be animated to loop through years by clicking the 'play' button on the right side of the year selector. Click pie charts to view data values. Adjustments to the bounds and zoom of the plot will not be reflected in the downloaded plot, sorry!"), tags$p("If data do not load on map, try opening and closing the gear icon dropdown menu.")),
+      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Mapped yearly community composition of major taxonomic groups"), tags$p("Click the red gear to adjust map options. Life stages of each taxa are summed within each sample, so it is not recommended to combine life stages. If the map is too crowded with similar colors, taxa can be deselected and they will be summed into the 'other' group."), p("The map can be animated to loop through years by clicking the 'play' button on the right side of the year selector. Click pie charts to view data values. Adjustments to the bounds and zoom of the plot will not be reflected in the downloaded plot, sorry!"), em("If data do not load on map, try opening and closing the gear icon dropdown menu.")),
                      type = "info",
                      btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
     }
@@ -451,8 +451,7 @@ server <- function(input, output, session) {
         .
       }}%>%
       group_by(Taxlifestage, Year, Latitude, Longitude)%>%
-      summarise(CPUE=mean(CPUE, na.rm=T))%>%
-      ungroup()
+      summarise(CPUE=mean(CPUE, na.rm=T), .groups="drop")
   })
   
   #Create data for community map plot
@@ -509,11 +508,9 @@ server <- function(input, output, session) {
         .
       }}%>%
       group_by(Taxa, Year, Latitude, Longitude, SampleID)%>%
-      summarise(CPUE=sum(CPUE, na.rm=T))%>%
-      ungroup()%>%
+      summarise(CPUE=sum(CPUE, na.rm=T), .groups="drop")%>%
       group_by(Taxa, Year, Latitude, Longitude)%>%
-      summarise(CPUE=mean(CPUE, na.rm=T))%>%
-      ungroup()%>%
+      summarise(CPUE=mean(CPUE, na.rm=T), .groups="drop")%>%
       arrange(Taxa)%>%
       mutate(CPUE=round(CPUE))
     
@@ -668,7 +665,7 @@ server <- function(input, output, session) {
     
     #Set color palette
     myColors <- RColorBrewer::brewer.pal(5,"Set2")
-    names(myColors) <- c("EMP", "FMWT", "TNS", "20mm", "FRP")
+    names(myColors) <- c("EMP", "FMWT", "STN", "20mm", "FRP")
     fillScale <- scale_fill_manual(name = "Source", values = myColors)
     
     #Create tooltip text template for mouse hovers
@@ -685,8 +682,7 @@ server <- function(input, output, session) {
     
     data<-data%>%
       group_by(Source, Year, Month)%>%
-      summarise(N_samples=n())%>%
-      ungroup()%>%
+      summarise(N_samples=n(), .groups="drop")%>%
       mutate(tooltip=sprintf(str_model, Year, Source, N_samples),
              ID=as.character(1:n()))%>%
       mutate(tooltip=paste0( "<table>", tooltip, "</table>" ))
@@ -765,8 +761,7 @@ server <- function(input, output, session) {
         } else{
           group_by(., Taxlifestage, Year)
         }}%>%
-        summarise(CPUE=mean(CPUE, na.rm = T))%>%
-        ungroup()%>%
+        summarise(CPUE=mean(CPUE, na.rm = T), .groups="drop")%>%
         {if(input$Salzones){
           mutate(., tooltip=sprintf(str_model, Year, Taxlifestage, Salinity_zone, round(CPUE)),
                  ID=as.character(1:n()))
@@ -847,8 +842,7 @@ server <- function(input, output, session) {
         } else{
           group_by(., Year,Phylum, Class, Order, Family, Genus, Species, Lifestage, Taxlifestage)
         }}%>%
-        summarise(CPUE=mean(CPUE, na.rm=T))%>%
-        ungroup()%>%
+        summarise(CPUE=mean(CPUE, na.rm=T), .groups="drop")%>%
         mutate(tooltip=sprintf(str_model, Year, Taxlifestage, round(CPUE)),
                ID=as.character(1:n()))%>%
         mutate(tooltip=paste0( "<table>", tooltip, "</table>" ))%>%
