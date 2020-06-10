@@ -70,11 +70,11 @@ ui <- fluidPage(
                                                          "How many years after a non-native species' introduction do you expect surveys to start counting it?",
                                                          min = 0, max = 5, value = 2, step=1))),
            prettyCheckboxGroup("Sources",
-                                "Sources:", outline=T, status="primary", shape="curve",
+                                "Data sources to include:", outline=T, status="primary", shape="curve",
                                 choices = c("Environmental Monitoring Program (EMP)" = "EMP", 
-                                            "Fish Restoration Program (FRP)" = "FRP", "Fall Midwater Trawl (FMWT)" = "FMWT", "Summer Townet Survey (STN)" = "STN", "20mm Survey (20mm)" = "20mm")),
+                                            "Fish Restoration Program (FRP)" = "FRP", "Fall Midwater Trawl (FMWT)" = "FMWT", "Summer Townet Survey (STN)" = "STN", "20mm Survey (20mm)" = "20mm"), selected="EMP"),
            prettyCheckboxGroup("Size_class",
-                                "Size classes:", outline=T, status="primary", shape="curve",
+                                "Size classes to include:", outline=T, status="primary", shape="curve",
                                 choices = c("Micro (43 \\(\\mu\\)m mesh)"="Micro", "Meso (150-160 \\(\\mu\\)m mesh)"="Meso", "Macro (500-505 \\(\\mu\\)m mesh)"="Macro"), selected = "Meso"),
            
            #Allow users to select which filters they would like to use, then those filter options will appear.
