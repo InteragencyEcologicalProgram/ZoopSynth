@@ -123,7 +123,11 @@ file.copy(from=file.path("C:/Users/sbashevkin/OneDrive - deltacouncil/Zooplankto
           to=file.path("~/Zooplankton EDI", c("abstract.docx", "additional_info.docx", "methods.docx")),
           overwrite = TRUE)
 
-ID<-"edi.101.1"
+file.copy(from=file.path("Data paper", "EDI", "Data publication code.R"),
+          to=file.path("~/Zooplankton EDI", "Data_processing.R"),
+          overwrite = T)
+
+ID<-"edi.539.1"
 
 zoop_eml<-make_eml(
   path = "~/Zooplankton EDI",
@@ -142,6 +146,10 @@ zoop_eml<-make_eml(
                              "Latitude and longitude for moving EMP EZ sampling locations on each sampling date since 2004",
                              "A comprehensive table of information on the 5 component studies included in this integrated dataset.",
                              "Average carbon mass of zooplankton species and life stages obtained from the literature. Not all taxa and life stages are represented due to gaps in the literature."),
+  data.table.quote.character = rep("\"", length(data_files)),
+  other.entity = "Data_processing.R",
+  other.entity.name = "Data processing code",
+  other.entity.description = "R code used to process data created with the R package zooper (v1.0.0) into the format published here. Data processing mostly involved removing duplicative variables",
   provenance = c("edi.458.2", "edi.269.2", "edi.522.1"),
   user.domain = "EDI",
   user.id="sbashevkin",
