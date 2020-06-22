@@ -79,7 +79,11 @@ mapview::mapshot(p, file="Code in progress/Samples map out.png", vheight=800, vw
 
 # ggplot2 version ---------------------------------------------------------
 
-Stations<-Stations%>%
+Stations<-zooper::stations%>%
+  filter(Source!="YBFMP")%>%
+  mutate(Source=recode(Source, twentymm="20mm"))%>%
+  drop_na()%>%
+  mutate(Source=factor(Source, levels=c("EMP", "20mm", "FMWT", "STN", "FRP")))%>%
   st_as_sf(coords=c("Longitude", "Latitude"), crs=4326, remove=F)
 
 base<-spacetools::Delta%>%
@@ -105,7 +109,7 @@ pout<-ggplot(states)+
   geom_sf(color="dodgerblue3")+
   geom_sf(data=base2, color="dodgerblue3", fill="dodgerblue3")+
   geom_rect(xmin = station_lims["xmin"]-0.2, xmax = station_lims["xmax"]+0.2, ymin = station_lims["ymin"]-0.2, ymax = station_lims["ymax"]+0.2, 
-            fill = NA, colour = "black", size = 1)+
+            fill = NA, colour = "black", size = 0.7)+
   coord_sf(xlim=c(st_bbox(california)["xmin"], st_bbox(california)["xmax"]), ylim=c(st_bbox(california)["ymin"], st_bbox(california)["ymax"]))+
   theme_bw()+
   theme(panel.background = element_rect(fill = "dodgerblue3"), axis.text.x=element_text(angle=45, hjust=1))
