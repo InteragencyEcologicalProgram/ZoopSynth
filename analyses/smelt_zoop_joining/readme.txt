@@ -1,0 +1,2 @@
+Note: currently the joining.R script uses produced zooplankton table outputs that have been saved from the data_cleaning.R script, instead of just sourcing the data_cleaning.R script. This is because the intended recipient was having issues updating their packages to be able to run the zooper package.
+The joining.R script can be changed to source from the main data_cleaning.R script by uncommenting out relevant lines.
