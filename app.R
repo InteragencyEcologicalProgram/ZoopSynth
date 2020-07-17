@@ -140,7 +140,7 @@ ui <- fluidPage(
                                                     color="primary", icon=icon("question"))), 
                                 
                                 #Plot
-                                fluidRow(ggiraphOutput("Sampleplot"))),
+                                fluidRow(girafeOutput("Sampleplot", height="80vh", width="120vh"))),
                        
                        #CPUE plot
                        tabPanel("CPUE", br(),
@@ -197,7 +197,7 @@ ui <- fluidPage(
                                                                                 min=0, max=30, value=c(0.5,6), 
                                                                                 step=0.1, width="100%")))), 
                                 #Plot
-                                fluidRow(column(12, ggiraphOutput("CPUEplot")))),
+                                fluidRow(column(12, girafeOutput("CPUEplot", height="100vh", width="120vh")))),
                        
                        #Map plot
                        tabPanel("Map", fluidRow(column(1, offset = 0, style='padding:0px;', br() ,
@@ -271,7 +271,7 @@ ui <- fluidPage(
   tags$style(type="text/css", "#Disclaimer {color: white}"),
   
   #Specify plot sizes
-  tags$head(tags$style("#Sampleplot{height:100vh !important;}")),
+  #tags$head(tags$style("#Sampleplot{height:100vh !important;}")),
   tags$head(tags$style("#CPUEplot{height:80vh !important;}")),
   tags$head(tags$style("#Mapplot{height:80vh !important;}")),
   
@@ -894,13 +894,15 @@ server <- function(input, output, session) {
   })
   
   #Output plots (girafe makes plot interactive/hoverable)
-  output$Sampleplot <- renderggiraph({
-    p1<-girafe(code=print(Sampleplot()), width_svg = 10)
-    girafe_options(p1, opts_toolbar(saveaspng = FALSE), opts_selection(type="none"))
+  output$Sampleplot <- renderGirafe({
+    p1<-girafe(code=print(Sampleplot()), width_svg = 10,  options = list(
+      opts_sizing(rescale = T, width = 1)))
+     girafe_options(p1, opts_toolbar(saveaspng = FALSE), opts_selection(type="none"))
   })
   
-  output$CPUEplot <- renderggiraph({
-    p2<-girafe(code=print(CPUEplot()), width_svg = 10)
+  output$CPUEplot <- renderGirafe({
+    p2<-girafe(code=print(CPUEplot()), width_svg = 10,  options = list(
+      opts_sizing(rescale = T, width = 1)))
     girafe_options(p2, opts_toolbar(saveaspng = FALSE), opts_selection(type="none"), opts_tooltip(offx = -100, offy = 40))
   })
   
