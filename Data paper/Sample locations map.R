@@ -89,8 +89,12 @@ Stations<-zooper::stations%>%
 base<-spacetools::Delta%>%
   st_transform(crs=4326)
 
-labels<-tibble(label=c("San Francisco Bay", "San Pablo Bay", "Suisun Bay", "Confluence"), Latitude=c(37.9, 38.07, 38.08, 38.046), Longitude=c(-122.4, -122.4, -122.05, -121.9),
-               label_lat=c(37.9, 38.11, 38.15, 38), label_lon=c(-122.25, -122.38, -122.18, -122))#%>%
+labels<-tibble(label=c("San Francisco Bay", "San Pablo Bay", "Suisun Bay", "Suisun Marsh", 
+                       "Confluence", "Cache Slough", "Sacramento River", "San Joaquin River", "Napa River"), 
+               Latitude=c(37.9, 38.07, 38.08, 38.2, 38.046, 38.23, 38.5, 37.9, 38.23), 
+               Longitude=c(-122.4, -122.4, -122.05, -122.05, -121.9, -121.675, -121.56, -121.325, -122.3),
+               label_lat=c(37.9, 38.11, 38.15, 38.25, 38, 38.2, 38.5, 37.85, 38.25), 
+               label_lon=c(-122.25, -122.38, -122.18, -122.18, -122, -121.8, -121.73, -121.42, -122.37))#%>%
   #bind_rows(Stations%>%
   #            st_drop_geometry()%>%
   #            select(Latitude, Longitude)%>%
@@ -117,11 +121,12 @@ pout
 
 p<-ggplot() +
   geom_sf(data=base, fill="gray95", color="lightgray")+
-  geom_point(data=Stations, aes(fill = Source, x=Longitude, y=Latitude), alpha=0.5, color="black", stroke=0.1, shape=21, size=2.5)+
+  geom_point(data=Stations, aes(fill = Source, x=Longitude, y=Latitude, shape=Source), alpha=0.5, color="black", stroke=0.1, size=2.5)+
   geom_segment(data=labels, aes(x=label_lon, y=label_lat, xend=Longitude, yend=Latitude))+
   geom_label(data=labels, aes(label=label, x=label_lon, y=label_lat))+
   coord_sf(xlim=range(Stations$Longitude), ylim=range(Stations$Latitude))+
-  scale_fill_brewer(type="qual", palette="Set1", guide=guide_legend(override.aes = list(alpha=1)), name="Survey")+
+  scale_fill_brewer(type="qual", palette="Set1", name="Survey")+
+  scale_shape_manual(values=21:25, name="Survey")+
   annotation_scale(location = "bl") +
   annotation_north_arrow(location = "bl", pad_y=unit(0.05, "npc"), which_north = "true")+
   theme_bw()+
@@ -134,4 +139,4 @@ p<-ggplot() +
     ymax = Inf
   )
 p
-ggsave("Code in progress/Samples map improved.png", plot=p, device="png", width=8, height=8, units = "in")
+ggsave("Data paper/Samples map improved.png", plot=p, device="png", width=8, height=8, units = "in")
