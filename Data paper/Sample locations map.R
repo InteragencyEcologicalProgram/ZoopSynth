@@ -1,7 +1,6 @@
 require(tidyverse)
 require(ggspatial)
 require(sf)
-require(ggrepel)
 require(maps)
 
 Stations<-zooper::stations%>%
