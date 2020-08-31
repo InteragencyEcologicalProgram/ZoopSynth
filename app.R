@@ -44,7 +44,18 @@ addLegendCustom <- function(map, colors, labels, sizes, position, opacity = 0.5,
 ui <- fluidPage(
   
   # Application title and IEP logo
-  titlePanel(title=div(h1(paste0("Zooplankton data synthesizer: Version ", version), style="display: inline-block"), a(img(src="Logo.jpg", height = 132, width = 100, align="right", style="display: inline-block"), href="https://water.ca.gov/Programs/Environmental-Services/Interagency-Ecological-Program"), a(img(src="zooper.png", height = 132, width = 114, align="right", style="display: inline-block"), href="https://github.com/InteragencyEcologicalProgram/zooper"), h5("If you encounter any issues, please email us at ", a("shiny@deltacouncil.ca.gov.", href="mailto:shiny@deltacouncil.ca.gov?subject=ZoopSynth%20Shiny%20app"), "For more info and the code behind this app, visit the ", a("github repository.", href="https://github.com/InteragencyEcologicalProgram/ZoopSynth"), "If you are a heavy user, consider downloading and installing the windows desktop application. Instructions are in the ", a("github repository.", href="https://github.com/InteragencyEcologicalProgram/ZoopSynth")), h5("To access and integrate these data in R, try the ", a("zooper package.", href="https://github.com/InteragencyEcologicalProgram/zooper"))), windowTitle = "Zooplankton data synthesizer"),
+  titlePanel(title=div(h1(paste0("Zooplankton data synthesizer: Version ", version), style="display: inline-block"), 
+                       a(img(src="Logo.jpg", height = 132, width = 100, align="right", style="display: inline-block"), href="https://water.ca.gov/Programs/Environmental-Services/Interagency-Ecological-Program"), 
+                       a(img(src="zooper.png", height = 132, width = 114, align="right", style="display: inline-block"), href="https://github.com/InteragencyEcologicalProgram/zooper"), 
+                       h5("If you encounter any issues, please email us at ", 
+                          a("shiny@deltacouncil.ca.gov.", href="mailto:shiny@deltacouncil.ca.gov?subject=ZoopSynth%20Shiny%20app"), 
+                          "For more info and the code behind this app, visit the ", 
+                          a("github repository.", href="https://github.com/InteragencyEcologicalProgram/ZoopSynth"), 
+                          "If you are a heavy user, consider downloading and installing the windows desktop application. Instructions are in the ", 
+                          a("github repository.", href="https://github.com/InteragencyEcologicalProgram/ZoopSynth")), 
+                       h5("To access and integrate these data in R, try the ", 
+                          a("zooper package.", href="https://github.com/InteragencyEcologicalProgram/zooper"))), 
+             windowTitle = "Zooplankton data synthesizer"),
   withMathJax(),
   
   # Sidebar with user instructions, input, and downloading options ----------
@@ -72,10 +83,12 @@ ui <- fluidPage(
            prettyCheckboxGroup("Sources",
                                 "Data sources to include:", outline=T, status="primary", shape="curve",
                                 choices = c("Environmental Monitoring Program (EMP)" = "EMP", 
-                                            "Fish Restoration Program (FRP)" = "FRP", "Fall Midwater Trawl (FMWT)" = "FMWT", "Summer Townet Survey (STN)" = "STN", "20mm Survey (20mm)" = "20mm"), selected="EMP"),
+                                            "Fish Restoration Program (FRP)" = "FRP", "Fall Midwater Trawl (FMWT)" = "FMWT", 
+                                            "Summer Townet Survey (STN)" = "STN", "20mm Survey (20mm)" = "20mm"), selected="EMP"),
            prettyCheckboxGroup("Size_class",
                                 "Size classes to include:", outline=T, status="primary", shape="curve",
-                                choices = c("Micro (43 \\(\\mu\\)m mesh)"="Micro", "Meso (150-160 \\(\\mu\\)m mesh)"="Meso", "Macro (500-505 \\(\\mu\\)m mesh)"="Macro"), selected = "Meso"),
+                                choices = c("Micro (43 \\(\\mu\\)m mesh)"="Micro", "Meso (150-160 \\(\\mu\\)m mesh)"="Meso", 
+                                            "Macro (500-505 \\(\\mu\\)m mesh)"="Macro"), selected = "Meso"),
            
            #Allow users to select which filters they would like to use, then those filter options will appear.
            prettyCheckboxGroup("Filters",
@@ -88,7 +101,11 @@ ui <- fluidPage(
                             dateRangeInput("Date_range", label = "Date range", 
                                            start = "1972-01-01", end = "2018-12-31", startview = "year")),
            conditionalPanel(condition = "input.Filters.includes('Months')",
-                            pickerInput("Months", "Months:", choices=c("January" = 1, "February" = 2, "March" = 3, "April" = 4, "May" = 5, "June" = 6, "July" = 7, "August" = 8, "September" = 9, "October" = 10, "November" = 11, "December" = 12), selected = 1, multiple = T, options=list(`actions-box`=TRUE, `selected-text-format` = "count > 3"))),
+                            pickerInput("Months", "Months:", choices=c("January" = 1, "February" = 2, "March" = 3, 
+                                                                       "April" = 4, "May" = 5, "June" = 6, "July" = 7, 
+                                                                       "August" = 8, "September" = 9, "October" = 10, 
+                                                                       "November" = 11, "December" = 12), 
+                                        selected = 1, multiple = T, options=list(`actions-box`=TRUE, `selected-text-format` = "count > 3"))),
            conditionalPanel(condition = "input.Filters.includes('Surface salinity')",
                             sliderInput("Sal_surf_range",
                                         "Surface salinity:",
@@ -111,7 +128,8 @@ ui <- fluidPage(
            #than when the user has checked the taxa box but not yet clicked run. It prevents the
            #user from accidentally filtering taxa in the "Community" mode.
            conditionalPanel(condition = "output.Datatype == 'Taxa'", 
-                            pickerInput('Taxlifestage', 'Select taxa to plot and download:', choices =character(), multiple =T, options=list(`live-search`=TRUE, `actions-box`=TRUE, size=10, title = "Select Taxa", `selected-text-format` = "count > 3"))), 
+                            pickerInput('Taxlifestage', 'Select taxa to plot and download:', choices =character(), multiple =T, 
+                                        options=list(`live-search`=TRUE, `actions-box`=TRUE, size=10, title = "Select Taxa", `selected-text-format` = "count > 3"))), 
            conditionalPanel(condition = "output.Datatype == 'Taxa'", 
                             actionBttn("Update_taxa", "Update taxa", style="bordered", icon = icon("sync"), color="primary"), size="sm"),
            br(), br(),
@@ -367,20 +385,35 @@ server <- function(input, output, session) {
   #Popup for app instructions
   observeEvent(input$Instructions, {
     sendSweetAlert(session, title = "Instructions", 
-                   text = tags$span(tags$p("This app combines any combination of the zoop datasets and calculates least common denominator taxa to facilitate comparisons across datasets with differing levels of taxonomic resolution."),
-                                    tags$p("Option 'Data type' allows you to choose a final output dataset for either Community or Taxa-specific  analyses. If you want all available data on given Taxa, use 'Taxa' If you want to conduct a community analysis, use 'Community.'"),
-                                    tags$p("Briefly, 'Community' optimizes for community-level analyses by taking all taxa by life stage combinations that are not measured in every input dataset, and summing them up taxonomic levels to the lowest taxonomic level they belong to that is covered by all datasets. Remaining Taxa x life stage combinations that are not covered in all datasets up to the phylum level (usually something like Annelida or Nematoda or Insect Pupae) are removed from the final dataset."), 
-                                    tags$p("'Taxa' optimizes for the Taxa-level user by maintaining all data at the original taxonomic level. To facilitate comparions across datasets, this option also sums data into general categories that are comparable across all datasets (e.g., Calanoida_all)"), 
-                                    tags$p("Under the 'Community' option, users can select an option to enforce consistent taxonomic resolution over time. If this option is selected, the app detects all taxa that were not counted every year across the date range the user inputs (but taking into account the years non-native species were introduced and each survey first started sampling), then sums those taxa to higher taxonomic levels, as is done for taxa that were not counted across all datasets. Often, non-native species are not added to zooplankton species lists the same year they are first detected in the system. To allow for some lag between the introduction year and the year a species was first counted, you can set the number of years after a species' introduction that you expect surveys to start counting it (defaults to 2 years"),
+                   text = tags$span(tags$p("This app combines any combination of the zoop datasets and calculates least common denominator taxa to facilitate 
+                                           comparisons across datasets with differing levels of taxonomic resolution."),
+                                    tags$p("Option 'Data type' allows you to choose a final output dataset for either Community or Taxa-specific  analyses. 
+                                           If you want all available data on given Taxa, use 'Taxa' If you want to conduct a community analysis, use 'Community.'"),
+                                    tags$p("Briefly, 'Community' optimizes for community-level analyses by taking all taxa by life stage combinations that 
+                                           are not measured in every input dataset, and summing them up taxonomic levels to the lowest taxonomic level they 
+                                           belong to that is covered by all datasets. Remaining Taxa x life stage combinations that are not covered in all 
+                                           datasets up to the phylum level (usually something like Annelida or Nematoda or Insect Pupae) are removed from the final dataset."), 
+                                    tags$p("'Taxa' optimizes for the Taxa-level user by maintaining all data at the original taxonomic level. 
+                                           To facilitate comparions across datasets, this option also sums data into general categories that 
+                                           are comparable across all datasets (e.g., Calanoida_all)"), 
+                                    tags$p("Under the 'Community' option, users can select an option to enforce consistent taxonomic resolution over time. 
+                                           If this option is selected, the app detects all taxa that were not counted every year across the date range the 
+                                           user inputs (but taking into account the years non-native species were introduced and each survey first started sampling), 
+                                           then sums those taxa to higher taxonomic levels, as is done for taxa that were not counted across all datasets. 
+                                           Often, non-native species are not added to zooplankton species lists the same year they are first detected in the system. 
+                                           To allow for some lag between the introduction year and the year a species was first counted, you can set the number 
+                                           of years after a species' introduction that you expect surveys to start counting it (defaults to 2 years"),
                                     "------------------------------------------",
-                                    tags$p(tags$b("App created and maintained by Sam Bashevkin with help from the IEP zooplankton synthesis team. Please email shiny@deltacouncil.ca.gov with any questions or comments"))),
+                                    tags$p(tags$b("App created and maintained by Sam Bashevkin with help from the IEP zooplankton synthesis team. 
+                                                  Please email shiny@deltacouncil.ca.gov with any questions or comments"))),
                    type = "info",
                    btn_labels = "Ok", html = F, closeOnClickOutside = TRUE)
   })
   
   #Sample plot info
   observeEvent(input$Sample_info, {
-    sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Total number of zooplankton samples collected each month by each survey."), p("Hover over the plot with your mouse to view data values.")),
+    sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Total number of zooplankton samples collected each month by each survey."), 
+                                                                  p("Hover over the plot with your mouse to view data values.")),
                    type = "info",
                    btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
   })
@@ -388,11 +421,20 @@ server <- function(input, output, session) {
   #CPUE plot info
   observeEvent(input$CPUE_info, {
     if("Taxatype"%in%colnames(plotdata2())){
-      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Average abundance by year of each selected taxa by life stage combination"), h3("It is highly recommended to only select a few taxa for this plot"), tags$p("If desired, data can be subdivided into 3 salinity zones with the 'Salinity zones' switch. The borders of the salinity zones can be adjusted by dragging the bar to encompass your favored definition of the low salinity zone. Hover over the plot with your mouse to view data values."), em("If plot does not appear, try opening and closing the red plot options dropdown menu with the gear symbol.")),
+      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Average abundance by year of each selected taxa by life stage combination"), 
+                                                                    h3("It is highly recommended to only select a few taxa for this plot"), 
+                                                                    tags$p("If desired, data can be subdivided into 3 salinity zones with the 'Salinity zones' switch. 
+                                                                           The borders of the salinity zones can be adjusted by dragging the bar to encompass your favored 
+                                                                           definition of the low salinity zone. Hover over the plot with your mouse to view data values."), 
+                                                                    em("If plot does not appear, try opening and closing the red plot options dropdown menu with the gear symbol.")),
                      type = "info",
                      btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
     } else{
-      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Community composition by year"), tags$p("If desired, data can be subdivided into 3 salinity zones with the 'Salinity zones' switch. The borders of the salinity zones can be adjusted by dragging the bar to encompass your favored definition of the low salinity zone. Hover over the plot with your mouse to view data values."), em("If plot does not appear, try opening and closing the red plot options dropdown menu with the gear symbol.")),
+      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Community composition by year"), 
+                                                                    tags$p("If desired, data can be subdivided into 3 salinity zones with the 'Salinity zones' switch. 
+                                                                           The borders of the salinity zones can be adjusted by dragging the bar to encompass your favored 
+                                                                           definition of the low salinity zone. Hover over the plot with your mouse to view data values."), 
+                                                                    em("If plot does not appear, try opening and closing the red plot options dropdown menu with the gear symbol.")),
                      type = "info",
                      btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
     }
@@ -401,11 +443,22 @@ server <- function(input, output, session) {
   #Map plot info
   observeEvent(input$Map_info, {
     if("Taxatype"%in%colnames(plotdata2())){
-      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Mapped average yearly abundance of each selected taxa by life stage combination"), h3("It is highly recommended to only select a few taxa for this plot"), tags$p("Bubble area is scaled to CPUE. The map can be animated to loop through years by clicking the 'play' button on the right side of the year selector. Hover over the plot with your mouse to view data values. Adjustments to the bounds and zoom of the plot will not be reflected in the downloaded plot, sorry!"), em("If data do not load on map, try opening and closing the gear icon dropdown menu.")),
+      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Mapped average yearly abundance of each selected taxa by life stage combination"), 
+                                                                    h3("It is highly recommended to only select a few taxa for this plot"), 
+                                                                    tags$p("Bubble area is scaled to CPUE. The map can be animated to loop through years by clicking the 
+                                                                           'play' button on the right side of the year selector. Hover over the plot with your mouse to view data values. 
+                                                                           Adjustments to the bounds and zoom of the plot will not be reflected in the downloaded plot, sorry!"), 
+                                                                    em("If data do not load on map, try opening and closing the gear icon dropdown menu.")),
                      type = "info",
                      btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
     } else{
-      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Mapped yearly community composition of major taxonomic groups"), tags$p("Click the red gear to adjust map options. Life stages of each taxa are summed within each sample, so it is not recommended to combine life stages. If the map is too crowded with similar colors, taxa can be deselected and they will be summed into the 'other' group."), p("The map can be animated to loop through years by clicking the 'play' button on the right side of the year selector. Click pie charts to view data values. Adjustments to the bounds and zoom of the plot will not be reflected in the downloaded plot, sorry!"), em("If data do not load on map, try opening and closing the gear icon dropdown menu.")),
+      sendSweetAlert(session, title = "Plot info", text = tags$span(h2("Mapped yearly community composition of major taxonomic groups"), 
+                                                                    tags$p("Click the red gear to adjust map options. Life stages of each taxa are summed within each sample, 
+                                                                           so it is not recommended to combine life stages. If the map is too crowded with similar colors, taxa 
+                                                                           can be deselected and they will be summed into the 'other' group."), 
+                                                                    p("The map can be animated to loop through years by clicking the 'play' button on the right side of the year selector. 
+                                                                      Click pie charts to view data values. Adjustments to the bounds and zoom of the plot will not be reflected in the downloaded plot, sorry!"), 
+                                                                    em("If data do not load on map, try opening and closing the gear icon dropdown menu.")),
                      type = "info",
                      btn_labels = "Ok", html = FALSE, closeOnClickOutside = TRUE)
     }
@@ -675,7 +728,8 @@ server <- function(input, output, session) {
     
     #Filter and process data
     data<-plotdata2()%>%
-      mutate(Month=recode_factor(month(Date), "1"="January","2"="February", "3"="March", "4"="April", "5"="May", "6"="June", "7"="July", "8"="August", "9"="September", "10"="October", "11"="November", "12"="December"))%>%
+      mutate(Month=recode_factor(month(Date), "1"="January","2"="February", "3"="March", "4"="April", "5"="May", "6"="June", 
+                                 "7"="July", "8"="August", "9"="September", "10"="October", "11"="November", "12"="December"))%>%
       filter(CPUE>0)%>%
       select(Source, Year, Month, SampleID)%>%
       distinct()
