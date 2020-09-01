@@ -99,7 +99,7 @@ ui <- fluidPage(
                                            choices=completeTaxaList, selected=NULL, multiple=TRUE, options=list(placeholder="All"))),
            conditionalPanel(condition = "input.Filters.includes('Dates')",
                             dateRangeInput("Date_range", label = "Date range", 
-                                           start = "1972-01-01", end = "2018-12-31", startview = "year")),
+                                           start = "1972-01-01", end = "2020-12-31", startview = "year")),
            conditionalPanel(condition = "input.Filters.includes('Months')",
                             pickerInput("Months", "Months:", choices=c("January" = 1, "February" = 2, "March" = 3, 
                                                                        "April" = 4, "May" = 5, "June" = 6, "July" = 7, 
