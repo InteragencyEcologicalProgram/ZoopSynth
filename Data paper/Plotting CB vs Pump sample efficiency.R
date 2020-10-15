@@ -65,6 +65,18 @@ p<-ggplot(EMP_sum)+
 p
 ggsave(p, file="Data paper/Pump CB CPUEs bar IEP report.png", device = "png", units="in", height=8, width=7.5)
 
+p<-ggplot(EMP_sum)+
+  geom_bar(aes(x=SizeClass, y=Proportion, fill=SizeClass), stat="identity")+
+  facet_wrap(~Taxname_label*Lifestage, labeller = label_parsed, ncol=6)+
+  scale_fill_manual(values=brewer.pal(3, "PRGn")[c(1,3)])+
+  scale_y_continuous(limits=c(0,1), expand=c(0,0), breaks=c(0,0.25, 0.5, 0.75, 1))+
+  ylab("Proportion of total CPUE")+
+  xlab("Collection method")+
+  theme_bw()+
+  theme(text=element_text(size=16), panel.grid=element_blank(), strip.background=element_blank(), legend.position = "none", strip.text.x = element_text(margin = margin(b = 0, t = 0)))
+p
+ggsave(p, file="Data paper/Pump CB CPUEs bar ZoopSymp.png", device = "png", units="in", height=7, width=12)
+
 # using zooper data -------------------------------------------------------
 
 EMP2<-zooper::zoopComb%>%
