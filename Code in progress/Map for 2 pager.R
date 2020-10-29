@@ -6,8 +6,12 @@ require(maps)
 Stations<-zooper::stations%>%
   mutate(Source=recode(Source, twentymm="20mm"))%>%
   drop_na()%>%
-  mutate(Source=factor(Source, levels=c("EMP", "20mm", "FMWT", "STN", "FRP", "YBFMP")))%>%
-  st_as_sf(coords=c("Longitude", "Latitude"), crs=4326, remove=F)
+  st_as_sf(coords=c("Longitude", "Latitude"), crs=4326, remove=F)%>%
+  bind_rows(tibble(Source="ICF"))%>%
+  mutate(Source=factor(Source, levels=c("EMP", "20mm", "FMWT", "STN", "FRP", "YBFMP", "ICF")))
+
+DOP<-st_read("~/DOP_kmzStrata/doc.kml")%>%
+  mutate(Source="ICF")
 
 base<-deltamapr::WW_Watershed%>%
   st_transform(crs=4326)
@@ -41,11 +45,13 @@ pout
 p<-ggplot() +
   geom_sf(data=base, fill="gray95", color="lightgray")+
   geom_point(data=Stations, aes(fill = Source, x=Longitude, y=Latitude, shape=Source), alpha=0.5, color="black", stroke=0.1, size=2.5)+
+  geom_sf(data=DOP, aes(fill=Source), alpha=0.1, color=NA, show.legend = FALSE)+
   geom_segment(data=labels, aes(x=label_lon, y=label_lat, xend=Longitude, yend=Latitude))+
   geom_label(data=labels, aes(label=label, x=label_lon, y=label_lat))+
-  coord_sf(xlim=range(Stations$Longitude), ylim=range(Stations$Latitude))+
+  coord_sf(xlim=range(Stations$Longitude, na.rm=T), ylim=range(Stations$Latitude, na.rm=T))+
   scale_fill_brewer(type="qual", palette="Set1", name="Survey")+
-  scale_shape_manual(values=c(21:25, 11), name="Survey")+
+  scale_shape_manual(values=c(21:25, 11, 22), name="Survey", 
+                     guide=guide_legend(override.aes = list(color=c(rep("Black", 6), NA), size=c(rep(3, 6), 6), alpha=c(rep(1, 6), 0.1))))+
   annotation_scale(location = "bl") +
   annotation_north_arrow(location = "bl", pad_y=unit(0.05, "npc"), which_north = "true")+
   theme_bw()+
