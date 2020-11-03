@@ -2,15 +2,53 @@ require(tidyverse)
 require(ggspatial)
 require(sf)
 require(maps)
+require(readxl)
+require(RColorBrewer)
+require(stringr)
 
 Stations<-zooper::stations%>%
   mutate(Source=recode(Source, twentymm="20mm"))%>%
+  bind_rows(read_excel("~/zoop sampling locations/UCDavis_CentforWatershedSci_ArcProject_ZoopSampleSites_102920.xlsx")%>%
+              select(Station = `Site Code`, Latitude, Longitude)%>%
+              mutate(Source="UCD"))%>%
   drop_na()%>%
   st_as_sf(coords=c("Longitude", "Latitude"), crs=4326, remove=F)%>%
-  bind_rows(tibble(Source="ICF"))%>%
-  mutate(Source=factor(Source, levels=c("EMP", "20mm", "FMWT", "STN", "FRP", "YBFMP", "ICF")))
+  bind_rows(tibble(Source=c("ICF", "SFSU")))%>%
+  mutate(Source=factor(Source, levels=c("EMP", "20mm", "FMWT", "STN", "FRP", "UCD", "YBFMP", "ICF", "SFSU")))
 
-DOP<-st_read("~/DOP_kmzStrata/doc.kml")%>%
+Kim<-st_intersection(base, read_csv("~/zoop sampling locations/Kimmerer0607.csv")%>%
+                        rename(Station=station)%>%
+                        mutate(Station=as.character(Station),
+                               Survey="0607")%>%
+                        drop_na(lat.dd, long.dd)%>%
+                        st_as_sf(coords=c("long.dd", "lat.dd"), crs=4326)%>%
+                        st_union()%>%
+                       st_transform(crs=26910)%>%
+                       st_buffer(dist = set_units(1000, m))%>%
+                       st_transform(crs=4326)%>%
+                        st_convex_hull())%>%
+  st_union()%>%
+  st_transform(crs=26910)%>%
+  st_buffer(dist = set_units(500, m))%>%
+  st_transform(crs=4326)%>%
+  st_sf()%>%
+  bind_rows(read_csv("~/zoop sampling locations/Kimmerer1012.csv")%>%
+              rename(Station=station)%>%
+              mutate(Survey="1012",
+                     Transect=str_extract(Station, "[A-Z]+"))%>%
+              st_as_sf(coords=c("long.dd", "lat.dd"), crs=4326)%>%
+              group_by(Transect)%>%
+              summarise(geometry=st_union(geometry))%>%
+              st_cast("MULTILINESTRING")%>%
+              st_transform(crs=26910)%>%
+              st_buffer(dist = set_units(500, m))%>%
+              st_transform(crs=4326))%>%
+  st_union()%>%
+  st_sf()%>%
+  mutate(Source="SFSU")
+
+
+DOP<-st_read("~/zoop sampling locations/doc.kml")%>%
   mutate(Source="ICF")
 
 base<-deltamapr::WW_Watershed%>%
@@ -28,7 +66,8 @@ states <- st_as_sf(map("state", plot = FALSE, fill = TRUE))%>%
 california<-filter(states, ID=="california")
 
 base2<-base%>%
-  st_crop(st_bbox(Stations))
+  st_make_valid()%>%
+  st_crop(Stations)
 
 station_lims<-st_bbox(Stations)
 
@@ -42,16 +81,23 @@ pout<-ggplot(states)+
   theme(panel.background = element_rect(fill = "dodgerblue3"), axis.text.x=element_text(angle=45, hjust=1))
 pout
 
+pal<-RColorBrewer::brewer.pal(9, "Set1")
+pal<-c(pal[1:5], pal[8], pal[9], pal[7], pal[6])
+
 p<-ggplot() +
   geom_sf(data=base, fill="gray95", color="lightgray")+
-  geom_point(data=Stations, aes(fill = Source, x=Longitude, y=Latitude, shape=Source), alpha=0.5, color="black", stroke=0.1, size=2.5)+
+  geom_point(data=Stations, aes(fill = Source, color=Source, x=Longitude, y=Latitude, 
+                                shape=Source, stroke=if_else(Source%in%c("UCD", "YBFMP"), "2", "0.1")), 
+             alpha=0.5, size=2.5)+
+  geom_sf(data=Kim, aes(fill=Source), alpha=0.4, color=NA, show.legend = FALSE)+
   geom_sf(data=DOP, aes(fill=Source), alpha=0.1, color=NA, show.legend = FALSE)+
   geom_segment(data=labels, aes(x=label_lon, y=label_lat, xend=Longitude, yend=Latitude))+
   geom_label(data=labels, aes(label=label, x=label_lon, y=label_lat))+
   coord_sf(xlim=range(Stations$Longitude, na.rm=T), ylim=range(Stations$Latitude, na.rm=T))+
-  scale_fill_brewer(type="qual", palette="Set1", name="Survey")+
-  scale_shape_manual(values=c(21:25, 11, 22), name="Survey", 
-                     guide=guide_legend(override.aes = list(color=c(rep("Black", 6), NA), size=c(rep(3, 6), 6), alpha=c(rep(1, 6), 0.1))))+
+  scale_fill_manual(values=pal, name="Survey", aesthetics = c("fill", "color"))+
+  scale_shape_manual(values=c(21:25, 13, 11, 22, 22), name="Survey", 
+                     guide=guide_legend(override.aes = list(color=c(pal[1:7], NA, NA), size=c(rep(3, 7), 6,6), alpha=c(rep(1, 7), 0.1, 0.4), stroke=c(rep(0.1, 5), c(2,2), 0,0))))+
+  discrete_scale("stroke", "Survey", palette=function (x) c(0.1, 2), guide=guide_none())+
   annotation_scale(location = "bl") +
   annotation_north_arrow(location = "bl", pad_y=unit(0.05, "npc"), which_north = "true")+
   theme_bw()+
@@ -64,4 +110,4 @@ p<-ggplot() +
     ymax = Inf
   )
 p
-#ggsave("Code in progress/2-pager map.png", plot=p, device="png", width=8, height=8, units = "in")
+ggsave("Code in progress/2-pager map.png", plot=p, device="png", width=8, height=10, units = "in")
