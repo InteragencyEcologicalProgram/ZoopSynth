@@ -43,6 +43,7 @@ addLegendCustom <- function(map, colors, labels, sizes, position, opacity = 0.5,
 
 ui <- fluidPage(
   
+  a(shiny::icon("reply"), "Delta Science shinyapps homepage", href="https://deltascience.shinyapps.io/Home/"),
   # Application title and IEP logo
   titlePanel(title=div(h1(paste0("Zooplankton data synthesizer: Version ", version), style="display: inline-block"), 
                        a(img(src="Logo.jpg", height = 132, width = 100, align="right", style="display: inline-block"), href="https://water.ca.gov/Programs/Environmental-Services/Interagency-Ecological-Program"), 
