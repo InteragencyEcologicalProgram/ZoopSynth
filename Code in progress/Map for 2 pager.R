@@ -119,3 +119,19 @@ p<-ggplot() +
   )
 p
 ggsave("Code in progress/2-pager map.png", plot=p, device="png", width=8, height=8, units = "in")
+
+labels2<-tibble(label=c("San Francisco Bay", "San Pablo Bay", "Suisun Bay", "Suisun Marsh", 
+                       "Confluence", "Cache Slough", "Sacramento River", "San Joaquin River", "Napa River"), 
+               Latitude=c(37.9, 38.07, 38.08, 38.2, 38.046, 38.23, 38.5, 37.9, 38.23), 
+               Longitude=c(-122.4, -122.4, -122.05, -122.05, -121.9, -121.675, -121.56, -121.325, -122.3),
+               label_lat=c(37.9, 37.97, 38.19, 38.3, 37.95, 38.2, 38.5, 37.85, 38.35), 
+               label_lon=c(-122.25, -122.2, -122.18, -122.1, -121.9, -121.8, -121.73, -121.42, -122.37))
+
+p<-ggplot() +
+  geom_sf(data=base, fill="slategray1", color="slategray2")+
+  geom_point(data=Stations, aes(x=Longitude, y=Latitude), alpha=0.5, size=2.5, color="#A05C7B")+
+  coord_sf(xlim=range(Stations$Longitude, na.rm=T), ylim=range(Stations$Latitude, na.rm=T))+
+  theme_bw()+
+  theme(axis.text = element_blank(), axis.ticks = element_blank(), axis.title=element_blank())
+p
+ggsave("Code in progress/2-pager map simple.png", plot=p, device="png", width=8, height=8, units = "in")
