@@ -120,6 +120,26 @@ p<-ggplot() +
 p
 ggsave("Code in progress/2-pager map.png", plot=p, device="png", width=8, height=8, units = "in")
 
+p<-ggplot() +
+  geom_sf(data=base, fill="gray95", color="lightgray")+
+  geom_point(data=Stations, aes(fill = Source, color=Source, x=Longitude, y=Latitude, 
+                                shape=Source, stroke=if_else(Source%in%c("UCD", "YBFMP"), "1.5", "0.1"), alpha=if_else(Source%in%c("UCD", "YBFMP"), "0.8", "0.5")), 
+             size=2.5)+
+  geom_sf(data=Kim, aes(fill=Source), alpha=0.4, color=NA, show.legend = FALSE)+
+  geom_sf(data=DOP, aes(fill=Source), alpha=0.1, color=NA, show.legend = FALSE)+
+  coord_sf(xlim=range(Stations$Longitude, na.rm=T), ylim=range(Stations$Latitude, na.rm=T))+
+  scale_fill_manual(values=pal, name="Survey", aesthetics = c("fill", "color"))+
+  scale_shape_manual(values=c(21:25, 13, 11, 22, 22), name="Survey", 
+                     guide=guide_legend(override.aes = list(color=c(pal[1:7], NA, NA), size=c(rep(3, 7), 6,6), alpha=c(rep(1, 7), 0.1, 0.4), stroke=c(rep(0.1, 5), c(1.5,1.5), 0,0))))+
+  discrete_scale("stroke", "Survey", palette=function (x) c(0.1, 1.5), guide=guide_none())+
+  scale_alpha_discrete(name="Survey", palette=function (x) c(0.5, 0.8), guide=guide_none())+
+  annotation_north_arrow(location = "tl", which_north = "true")+
+  annotation_scale(location = "tl", pad_y=unit(0.15, "npc")) +
+  theme_bw()+
+  theme(axis.text = element_blank(), axis.ticks = element_blank(), axis.title=element_blank(), legend.position="none")
+p
+ggsave("Code in progress/2-pager map medium.png", plot=p, device="png", width=8, height=8, units = "in")
+
 labels2<-tibble(label=c("San Francisco Bay", "San Pablo Bay", "Suisun Bay", "Suisun Marsh", 
                        "Confluence", "Cache Slough", "Sacramento River", "San Joaquin River", "Napa River"), 
                Latitude=c(37.9, 38.07, 38.08, 38.2, 38.046, 38.23, 38.5, 37.9, 38.23), 
