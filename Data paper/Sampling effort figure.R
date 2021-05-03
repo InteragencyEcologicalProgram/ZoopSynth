@@ -1,4 +1,5 @@
 require(zooper)
+require(tidyr)
 require(dplyr)
 require(lubridate)
 require(ggplot2)
