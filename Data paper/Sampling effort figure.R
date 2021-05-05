@@ -70,16 +70,22 @@ Effort2_year<-Effort%>%
   summarise(N=mean(N, na.rm=T), .groups="drop")%>%
   filter(!is.na(N))
 
-p_year<-ggplot(Effort2_year, aes(y=Source, x=Year, fill=Source, height=N/10))+
-  annotate(geom="rect", xmin=1970, xmax=1989, ymin=1, ymax=2.5, color="black", fill="white", size=1.5)+
-  annotate(geom="text", x=c(seq(1975, 1984, by=3), 1979.5), y=c(rep(1.2, 4), 2.1), label=c(1:4, "Mean monthly\nsampling frequency"), lineheight=1)+
-  annotate("tile", x=seq(1975, 1984, by=3), y=1.5, height=(1:4)/10, width=2)+
+div<-5
+
+p_year<-ggplot(Effort2_year, aes(y=as.integer(Source)-(N/div)/2, x=Year, fill=Source, height=N/div))+
   geom_tile(width=1, show.legend=T)+
   ylab("Survey")+
-  scale_y_discrete(limits=rev)+
+  scale_y_reverse(limits=c(5,0), breaks=c((1:5-0.5), 1:5), labels=c(levels(Effort2_month$Source), rep("", 5)), expand=expansion(0,0), minor_breaks=seq(0,5, by=1/div),
+                  sec.axis=dup_axis(breaks=rep(c(0.2, 0.6, 1), 5)+rep(0:4, each=3), labels=rep(seq(div-1,0, by=-2), 5), name="Mean monthly sampling frequency\n"))+
+  scale_x_continuous(breaks=c(seq(1974.5, 2014.5, by=10), seq(1969.5, 2019.5, by=1), seq(1969.5, 2019.5, by=10)), labels=c(paste0(seq(1970, 2010, by=10), "s"), rep("", 57)),
+                     limits=c(1969.5, 2019.5), expand=expansion(0,0))+
   scale_fill_brewer(type="qual", palette="Set1", guide="none", na.value="black")+
   theme_bw()+
-  theme(legend.position = c(0.3, 0.2), panel.grid.minor = element_blank())
+  theme(panel.grid.minor.x = element_blank(),
+        axis.ticks.x = element_line(color = c(rep(NA, 5), rep("black", 55))), 
+        panel.grid.major.x=element_line(color = c(rep(NA, 5), rep("grey92", 51), rep("grey50", 5))), 
+        axis.ticks.y = element_line(color = c(rep(NA, 5), rep("black", 5))), 
+        panel.grid.major.y=element_line(color = c(rep(NA, 5), rep("grey50", 5))))
 
 Effort2_month<-Effort%>%
   mutate(N=replace_na(N, 0))%>%
@@ -95,21 +101,24 @@ Effort2_month<-Effort%>%
   mutate(Month=as.integer(Month))%>%
   mutate(Source=factor(Source, levels=c("EMP", "20mm","FMWT", "STN", "FRP")))
 
-p_month<-ggplot(Effort2_month, aes(y=Source, x=Month, fill=Source, height=N/10))+
-  annotate(geom="rect", xmin=0.6, xmax=6, ymin=2.35, ymax=3.75, color="black", fill="white", size=1.5)+
-  annotate(geom="tile", x=1:5+0.3, y=2.8, height=seq(0.5, 2.5, by=0.5)/10, width=0.8)+
-  annotate(geom="text", x=c(1:5, 3)+0.3, y=c(rep(2.55, 5), 3.35), label=c(seq(0.5, 2.5, by=0.5), "Mean monthly\nsampling frequency"), lineheight=1)+
+p_month<-ggplot(Effort2_month, aes(y=as.integer(Source)-(N/div)/2, x=Month, fill=Source, height=N/div))+
   geom_tile(width=1, show.legend=T)+
   ylab("Survey")+
-  scale_y_discrete(limits=rev)+
+  scale_y_reverse(limits=c(5,0), breaks=c((1:5-0.5), 1:5), labels=c(levels(Effort2_month$Source), rep("", 5)), expand=expansion(0,0), minor_breaks=seq(0,5, by=1/div),
+                  sec.axis=dup_axis(breaks=rep(c(0.2, 0.6, 1), 5)+rep(0:4, each=3), labels=rep(seq(div-1,0, by=-2), 5), name="Mean monthly sampling frequency\n"))+
   scale_x_continuous(breaks=c(1:12+0.5, 1:12), labels=c(rep("", 12), as.character(month(1:12, label=T))),
                      expand=expansion(0,0), limits=c(0.5, 12.5))+
   scale_fill_brewer(type="qual", palette="Set1", guide="none", na.value="black")+
   theme_bw()+
-  theme(legend.position = c(0.3, 0.2), panel.grid.minor = element_blank(),
-        axis.ticks.x = element_line(color = c(rep("black", 12), rep(NA, 12))), panel.grid.major.x=element_line(color = c(rep("grey92", 12), rep(NA, 12))))
+  theme(panel.grid.minor.x = element_blank(), 
+        axis.ticks.x = element_line(color = c(rep("black", 12), rep(NA, 12))), 
+        panel.grid.major.x=element_line(color = c(rep("grey92", 12), rep(NA, 12))), 
+        axis.ticks.y = element_line(color = c(rep(NA, 5), rep("black", 5))), 
+        panel.grid.major.y=element_line(color = c(rep(NA, 5), rep("grey50", 5))))
 
-p_effort<-p_year/p_month
+p_effort<-p_year/p_month+plot_annotation(tag_levels = "A", tag_suffix = ")")
+
+p_effort
 
 ggsave(plot=p_effort, filename="Data paper/Sampling Effort_improved.png", device="png", units="in", height=7, width=6)
 
