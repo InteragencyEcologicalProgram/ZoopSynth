@@ -9,6 +9,11 @@ require(readxl)
 require(EML)
 require(lubridate)
 
+root<-"C:/Users/sbashevkin/OneDrive - deltacouncil/Zooplankton synthesis/Zooplankton EDI/V2"
+path_templates <- file.path(root, "metadata_templates")
+path_data <- file.path(root, "data_objects")
+path_eml <- file.path(root, "eml")
+
 # Create data -------------------------------------------------------------
 
 zoop_com<-Zoopsynther(Data_type="Community")%>%
@@ -70,26 +75,33 @@ biomass_mesomicro<-read_excel("Data paper/Biomass conversions.xlsx", sheet=1)%>%
 
 data_files <- c("zooplankton_community.csv", "zooplankton.csv", "environment.csv", "taxonomy.csv", "taxa_lists.csv", "undersampled.csv", "stations.csv", "stations_EMP_EZ.csv", "study_metadata.csv", "biomass_mesomicro.csv")
 
-walk2(list(zoop_com, zoop, env, taxonomy, taxa_lists, undersampled, stations, stations_EMP_EZ, meta2, biomass_mesomicro), data_files, ~write_csv(.x, file.path("~", "Zooplankton EDI", .y)))
+walk2(list(zoop_com, zoop, env, taxonomy, taxa_lists, undersampled, stations, stations_EMP_EZ, meta2, biomass_mesomicro), data_files, ~write_csv(.x, file.path(path_data, .y)))
 
 
 # Create EML --------------------------------------------------------------
 
 template_core_metadata(
-  path="~/Zooplankton EDI",
+  path=path_templates,
   license="CCBY",
-  file.type=".md"
+  file.type=".docx"
+)
+# Create provenance template
+
+EMLassemblyline::template_provenance(
+  path=path_templates,
 )
 
 template_table_attributes(
-  path="~/Zooplankton EDI",
+  path=path_templates,
+  data.path = path_data,
   data.table = data_files
 )
 
 # First fill in attributes table, then run next step
 
 template_categorical_variables(
-  path = "~/Zooplankton EDI"
+  path = path_templates, 
+  data.path = path_data
 )
 
 stations%>%
@@ -98,41 +110,40 @@ stations%>%
                      Station=paste(Station, Date))%>%
               select(-Date))%>%
   mutate(Unique_station=paste(Source, Station))%>%
-  write_csv(file.path("~", "Zooplankton EDI", "stations2.csv"))
+  write_csv(file.path(tempdir(), "stations2.csv"))
 
 # Template geographic coverage
 template_geographic_coverage(
-  path = "~/Zooplankton EDI",
+  path = path_templates, 
+  data.path = tempdir(), 
   data.table = 'stations2.csv',
   site.col = 'Unique_station',
   lat.col = 'Latitude',
   lon.col = 'Longitude'
 )
-file.remove(file.path("~", "Zooplankton EDI", "stations2.csv"))
+file.remove(file.path(tempdir(), "stations2.csv"))
 
 template_taxonomic_coverage(
-  path = "~/Zooplankton EDI",
+  path = path_templates,
+  data.path = path_data,
   taxa.table = 'taxonomy.csv',
   taxa.col = 'Taxname',
-  taxa.authority = c(9,3,11),
+  taxa.authority = 9,#c(9,3,11), https://github.com/EDIorg/EMLassemblyline/issues/82
   taxa.name.type = 'scientific'
 )
 
-file.copy(from=file.path("C:/Users/sbashevkin/OneDrive - deltacouncil/Zooplankton synthesis/Meeting stuff and documents", 
-                         c("EDI abstract.docx", "EDI additional info.docx", "EDI methods.docx")),
-          to=file.path("~/Zooplankton EDI", c("abstract.docx", "additional_info.docx", "methods.docx")),
+file.copy(from=file.path("Data paper", "EDI", "Data publication code.R"),
+          to=file.path(path_data, "Data_processing.R"),
           overwrite = TRUE)
 
-file.copy(from=file.path("Data paper", "EDI", "Data publication code.R"),
-          to=file.path("~/Zooplankton EDI", "Data_processing.R"),
-          overwrite = T)
-
-ID<-"edi.539.1"
+ID<-"edi.539.2"
 
 zoop_eml<-make_eml(
-  path = "~/Zooplankton EDI",
-  dataset.title = 'Interagency Ecological Program: Zooplankton abundance in the Upper San Francisco Estuary from 1972-2018, an integration of 5 long-term monitoring programs',
-  temporal.coverage = c('1972-01-01', '2018-12-19'),
+  path = path_templates,
+  data.path = path_data,
+  eml.path = path_eml, 
+  dataset.title = 'Interagency Ecological Program: Zooplankton abundance in the Upper San Francisco Estuary from 1972-2019, an integration of 5 long-term monitoring programs',
+  temporal.coverage = c('1972-01-01', '2019-12-18'),
   maintenance.description = 'ongoing',
   data.table = data_files,
   data.table.name = data_files,
@@ -150,35 +161,25 @@ zoop_eml<-make_eml(
   other.entity = "Data_processing.R",
   other.entity.name = "Data processing code",
   other.entity.description = "R code used to process data created with the R package zooper (v1.0.0) into the format published here. Data processing mostly involved removing duplicative variables",
-  provenance = c("edi.458.2", "edi.269.2", "edi.522.1"),
   user.domain = "EDI",
   user.id="sbashevkin",
   return.obj=TRUE,
-  write.file=FALSE,
+  #write.file=FALSE,
   package.id=ID
 )
 
-prov_STNFMWT<-list(description=list(para="This provenance metadata does not contain entity specific information."),
-                   dataSource=list(title="Summer Townet and Fall Midwater Trawl meso-zooplankton (CB net) data and Fall Midwater Trawl macro-zooplankton (mysid net) data.",
-                                   creator=list(individualName=list(surName="CDFW")),
-                                   distribution=list(online=list(onlineDescription="This online link references one of the source datasetes included in this integrated data package.",
-                                                                 url=list("function"="information",
-                                                                          url="ftp://ftp.wildlife.ca.gov/TownetFallMidwaterTrawl/Zoopl_TownetFMWT"))),
-                                   contact=list(individualName=list(surName="CDFW"))))
-class(prov_STNFMWT)<-c("emld", "list")
+changelog<-list(changeScope="Metadata and data",
+                oldValue="See previous revision 1",
+                changeDate=Sys.Date(),
+                comment="1) Added 2018-2019 20mm data and 2019 EMP, FMWT, and STN data. 
+                         2) Corrected timezone error that was shifting the date of some STN, FMWT, and 20mm samples by 1 day relative to the datetime.
+                         3) Updated FMWT station location coordinates to the newest version from the FMWT database.
+                         4) Corrected inconsistent capitalization of the STN Mont and Honk stations, resulting in correct coordinates for all those samples.
+                         5) Removed EMP Meso Sample corresponding to a mostly empty line at the end of the csv.
+                         6) Added station location for FMWT 520 (=STN 520)
+                         7) Fixed 20mm bottom depths (formally in feet, now correcting to meters like all other studies are converted).")
+class(changelog)<-c("emld", "list")
 
-prov_20mm<-list(description=list(para="This provenance metadata does not contain entity specific information."),
-                   dataSource=list(title="CDFW 20-mm Survey meso-zooplankton data.",
-                                   creator=list(individualName=list(surName="CDFW")),
-                                   distribution=list(online=list(onlineDescription="This online link references one of the source datasetes included in this integrated data package.",
-                                                                 url=list("function"="information",
-                                                                          url="ftp://ftp.dfg.ca.gov/Delta%20Smelt/"))),
-                                   contact=list(individualName=list(surName="CDFW"))))
-class(prov_20mm)<-c("emld", "list")
-
-zoop_eml$dataset$methods$methodStep[[5]]<-prov_STNFMWT
-
-zoop_eml$dataset$methods$methodStep[[6]]<-prov_20mm
-
-write_eml(zoop_eml, file.path("~", "Zooplankton EDI", paste0(ID, ".xml")))
-eml_validate(file.path("~", "Zooplankton EDI", paste0(ID, ".xml")))
+zoop_eml$dataset$maintenance$changeHistory<-changelog
+write_eml(zoop_eml, file.path(path_eml, paste0(ID, ".xml")))
+eml_validate(file.path(path_eml, paste0(ID, ".xml")))
