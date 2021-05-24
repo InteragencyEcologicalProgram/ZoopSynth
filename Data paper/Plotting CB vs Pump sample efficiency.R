@@ -51,7 +51,7 @@ p<-ggplot(EMP_sum)+
   theme_bw()+
   theme(text=element_text(size=14), panel.grid=element_blank(), strip.background=element_blank(), legend.position = "none", strip.text.x = element_text(margin = margin(b = 0, t = 0)))
 p
-ggsave(p, file="Data paper/Pump CB CPUEs bar.png", device = "png", units="in", height=8, width=7.5)
+ggsave(p, file="C:/Users/sbashevkin/OneDrive - deltacouncil/Zooplankton synthesis/Data paper/Figures/Figure 4.png", device = "png", units="in", height=8, width=7.5)
 
 p<-ggplot(EMP_sum)+
   geom_bar(aes(x=SizeClass, y=Proportion, fill=SizeClass), stat="identity")+

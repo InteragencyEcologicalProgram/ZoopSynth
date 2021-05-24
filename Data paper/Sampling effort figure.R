@@ -120,7 +120,7 @@ p_effort<-p_year/p_month+plot_annotation(tag_levels = "A", tag_suffix = ")")
 
 p_effort
 
-ggsave(plot=p_effort, filename="Data paper/Sampling Effort_improved.png", device="png", units="in", height=7, width=6)
+ggsave(plot=p_effort, filename="C:/Users/sbashevkin/OneDrive - deltacouncil/Zooplankton synthesis/Data paper/Figures/Figure 2.png", device="png", units="in", height=7, width=6)
 
 # Another improved version
 

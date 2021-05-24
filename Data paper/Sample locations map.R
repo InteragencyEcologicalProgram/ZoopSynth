@@ -59,4 +59,4 @@ p<-ggplot() +
     ymax = Inf
   )
 p
-ggsave("Data paper/Samples map improved.png", plot=p, device="png", width=8, height=8, units = "in")
+ggsave("C:/Users/sbashevkin/OneDrive - deltacouncil/Zooplankton synthesis/Data paper/Figures/Figure 1.png", plot=p, device="png", width=8, height=8, units = "in")

@@ -1,6 +1,7 @@
 require(dplyr)
 require(zooper)
 require(ggplot2)
+require(stringr)
 options(scipen=999)
 
 data_com<-Zoopsynther("Community", Shiny = T)
@@ -50,4 +51,4 @@ p<-ggplot(Data_unfiltered, aes(x=CPUE_base, y=CPUE_com))+
   ylab("Community-corrected data total CPUE per sample")+
   theme_bw()
 p
-ggsave("Data paper/Density validation.png", plot=p, device="png", width=4, height=4, units = "in")
+ggsave("C:/Users/sbashevkin/OneDrive - deltacouncil/Zooplankton synthesis/Data paper/Figures/Figure 6.png", plot=p, device="png", width=4, height=4, units = "in")
