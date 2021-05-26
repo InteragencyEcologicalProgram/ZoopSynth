@@ -78,12 +78,12 @@ p_year<-ggplot(Effort2_year, aes(y=as.integer(Source)-(N/div)/2, x=Year, fill=So
   scale_y_reverse(limits=c(5,0), breaks=c((1:5-0.5), 1:5), labels=c(levels(Effort2_month$Source), rep("", 5)), expand=expansion(0,0), minor_breaks=seq(0,5, by=1/div),
                   sec.axis=dup_axis(breaks=rep(c(0.2, 0.6, 1), 5)+rep(0:4, each=3), labels=rep(seq(div-1,0, by=-2), 5), name="Mean monthly sampling frequency\n"))+
   scale_x_continuous(breaks=c(seq(1974.5, 2014.5, by=10), seq(1969.5, 2019.5, by=1), seq(1969.5, 2019.5, by=10)), labels=c(paste0(seq(1970, 2010, by=10), "s"), rep("", 57)),
-                     limits=c(1969.5, 2019.5), expand=expansion(0,0))+
+                     limits=c(1969.5, 2020.5), expand=expansion(0,0))+
   scale_fill_brewer(type="qual", palette="Set1", guide="none", na.value="black")+
   theme_bw()+
   theme(panel.grid.minor.x = element_blank(),
         axis.ticks.x = element_line(color = c(rep(NA, 5), rep("black", 55))), 
-        panel.grid.major.x=element_line(color = c(rep(NA, 5), rep("grey92", 51), rep("grey50", 5))), 
+        panel.grid.major.x=element_line(color = c(rep(NA, 5), rep("grey92", 51), rep("grey50", 6))), 
         axis.ticks.y = element_line(color = c(rep(NA, 5), rep("black", 5))), 
         panel.grid.major.y=element_line(color = c(rep(NA, 5), rep("grey50", 5))))
 
