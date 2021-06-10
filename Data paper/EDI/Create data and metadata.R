@@ -14,6 +14,8 @@ path_templates <- file.path(root, "metadata_templates")
 path_data <- file.path(root, "data_objects")
 path_eml <- file.path(root, "eml")
 
+data_files <- c("zooplankton_community.csv", "zooplankton.csv", "environment.csv", "taxonomy.csv", "taxa_lists.csv", "undersampled.csv", "stations.csv", "stations_EMP_EZ.csv", "study_metadata.csv", "biomass_mesomicro.csv")
+
 # Create data -------------------------------------------------------------
 
 zoop_com<-Zoopsynther(Data_type="Community")%>%
@@ -72,8 +74,6 @@ biomass_mesomicro<-read_excel("Data paper/Biomass conversions.xlsx", sheet=1)%>%
   select(Taxname, Level, Lifestage, Carbon_mass_micrograms=starts_with("Carbon"), Reference)
 
 #biomass_macro<-read_excel("Data paper/Biomass conversions.xlsx", sheet=2)
-
-data_files <- c("zooplankton_community.csv", "zooplankton.csv", "environment.csv", "taxonomy.csv", "taxa_lists.csv", "undersampled.csv", "stations.csv", "stations_EMP_EZ.csv", "study_metadata.csv", "biomass_mesomicro.csv")
 
 walk2(list(zoop_com, zoop, env, taxonomy, taxa_lists, undersampled, stations, stations_EMP_EZ, meta2, biomass_mesomicro), data_files, ~write_csv(.x, file.path(path_data, .y)))
 
@@ -149,7 +149,7 @@ zoop_eml<-make_eml(
   maintenance.description = 'ongoing',
   data.table = data_files,
   data.table.name = data_files,
-  data.table.description = c("The full dataset optimized for a community ecology analysis. This includes data from the rest of the tables, except the biomass table. So users should either use this file or construct their own dataset with the other tables. This dataset was optimized for community analysis by forcing each survey to have the same set of measured taxa. Any taxa not counted by all datasets was either summed to a higher level that would be comparable with all datasets, or removed if it had no close relatives in all datasets. However, taxonomic resolution is not consistent over time. This dataset was created using the zooper R package v2.1.0 with zoopSynther(Data_type='Community'). To create a more customized dataset and read more information about how this dataset was created, visit https://github.com/InteragencyEcologicalProgram/zooper.",
+  data.table.description = c("The full dataset optimized for a community ecology analysis. This includes data from the rest of the tables, except the biomass table. So users should either use this file or construct their own dataset with the other tables. This dataset was optimized for community analysis by forcing each survey to have the same set of measured taxa. Any taxa not counted by all datasets was either summed to a higher level that would be comparable with all datasets, or removed if it had no close relatives in all datasets. However, taxonomic resolution is not consistent over time. This dataset was created using the zooper R package v2.2.0 with zoopSynther(Data_type='Community'). To create a more customized dataset and read more information about how this dataset was created, visit https://github.com/InteragencyEcologicalProgram/zooper.",
                              "Catch per unit effort of micro, meso, and macro zooplankton from the Upper San Francisco Estuary.", 
                              "Datetime, environmental, and water quality data from the zooplankton surveys. Not all surveys collect data on all variables. This table can be merged to the zooplankton table using the 'SampleID' column as a key.",
                              "Taxonomic heirarchy for each species in this dataset, validated primarily with the World Registry of Marine Species.",
@@ -162,7 +162,7 @@ zoop_eml<-make_eml(
   data.table.quote.character = rep("\"", length(data_files)),
   other.entity = "Data_processing.R",
   other.entity.name = "Data processing code",
-  other.entity.description = "R code used to process data created with the R package zooper (v2.1.0) into the format published here. Data processing mostly involved removing duplicative variables",
+  other.entity.description = "R code used to process data created with the R package zooper (v2.2.0) into the format published here. Data processing mostly involved removing duplicative variables",
   user.domain = "EDI",
   user.id="sbashevkin",
   return.obj=TRUE,

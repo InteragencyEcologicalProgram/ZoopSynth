@@ -1,5 +1,5 @@
 # Install the version of zooper used to create these data
-#remotes::install_github("InteragencyEcologicalProgram/zooper", "v2.1.0")
+#remotes::install_github("InteragencyEcologicalProgram/zooper", "v2.2.0")
 
 library(zooper)
 library(dplyr)
