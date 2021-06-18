@@ -60,3 +60,23 @@ p<-ggplot() +
   )
 p
 ggsave("C:/Users/sbashevkin/OneDrive - deltacouncil/Zooplankton synthesis/Data paper/Figures/Figure 1.png", plot=p, device="png", width=8, height=8, units = "in")
+
+p_FFT<-ggplot() +
+  geom_sf(data=base, fill="gray95", color="lightgray")+
+  geom_point(data=Stations, aes(x=Longitude, y=Latitude), shape=21, alpha=0.5, color="black", fill="#984EA3", stroke=0.1, size=2.5)+
+  geom_segment(data=labels, aes(x=label_lon, y=label_lat, xend=Longitude, yend=Latitude))+
+  geom_label(data=labels, aes(label=label, x=label_lon, y=label_lat))+
+  coord_sf(xlim=range(Stations$Longitude), ylim=range(Stations$Latitude))+
+  annotation_scale(location = "bl") +
+  annotation_north_arrow(location = "bl", pad_y=unit(0.05, "npc"), which_north = "true")+
+  theme_bw()+
+  theme(legend.background = element_rect(color="black"), legend.position=c(0.925,0.85))+
+  annotation_custom(
+    grob = ggplotGrob(pout),
+    xmin = -Inf,
+    xmax = -122.2,
+    ymin = 38.3,
+    ymax = Inf
+  )
+p_FFT
+ggsave("C:/Users/sbashevkin/OneDrive - deltacouncil/Zooplankton synthesis/Food for thought/Map.png", plot=p_FFT, device="png", width=8, height=8, units = "in")
