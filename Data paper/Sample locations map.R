@@ -10,7 +10,7 @@ Stations<-zooper::stations%>%
   mutate(Source=factor(Source, levels=c("EMP", "20mm", "FMWT", "STN", "FRP")))%>%
   st_as_sf(coords=c("Longitude", "Latitude"), crs=4326, remove=F)
 
-base<-spacetools::Delta%>%
+base<-deltamapr::WW_Delta%>%
   st_transform(crs=4326)
 
 labels<-tibble(label=c("San Francisco Bay", "San Pablo Bay", "Suisun Bay", "Suisun Marsh", 
@@ -79,4 +79,4 @@ p_FFT<-ggplot() +
     ymax = Inf
   )
 p_FFT
-ggsave("C:/Users/sbashevkin/OneDrive - deltacouncil/Zooplankton synthesis/Food for thought/Map.png", plot=p_FFT, device="png", width=8, height=8, units = "in")
+ggsave("C:/Users/sbashevkin/OneDrive - deltacouncil/Zooplankton synthesis/Food for thought/Map.tiff", plot=p_FFT, device="tiff", width=8, height=8, units = "in")
