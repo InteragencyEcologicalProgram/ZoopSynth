@@ -6,8 +6,6 @@ options(scipen=999)
 
 data_com<-Zoopsynther("Community", Shiny = T)
 
-Removed<-unlist(str_split(str_split(data_com$Caveats, ", ")[[1]], ": "))
-
 Data_unfiltered<-data_com$Data%>%
   group_by(SampleID)%>%
   summarise(CPUE_com=sum(CPUE), .groups="drop")%>%
@@ -20,8 +18,14 @@ Data_unfiltered<-data_com$Data%>%
 
 
 # Now try removing problematic taxa and ensuring that total CPUEs match exactly
+
+Removed<-unlist(str_split(str_split(data_com$Caveats, ", ")[[1]], ": "))[-1]
+Removed_data<-tibble(Taxlifestage=str_remove(Removed, " \\s*\\([^\\)]+\\)"),
+                     SizeClass=str_extract(Removed, " \\s*\\([^\\)]+\\)"))%>%
+  mutate(SizeClass=str_remove(str_remove(SizeClass, fixed(" (")), fixed(")")))
+
 Data_base_filtered<-zooper::zoopComb%>%
-  filter(!Taxlifestage%in%Removed)
+  anti_join(Removed_data, by=c("SizeClass", "Taxlifestage"))
 
 data_com_filtered<-Zoopsynther("Community", Zoop=Data_base_filtered)
 
@@ -32,6 +36,7 @@ Data_filtered<-data_com_filtered%>%
               group_by(SampleID)%>%
               summarise(CPUE_base=sum(CPUE), .groups="drop"),
             by="SampleID")
+
 all(near(Data_filtered$CPUE_com, Data_filtered$CPUE_base))
 
 

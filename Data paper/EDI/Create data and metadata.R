@@ -9,7 +9,7 @@ require(readxl)
 require(EML)
 require(lubridate)
 
-root<-"C:/Users/sbashevkin/OneDrive - deltacouncil/Zooplankton synthesis/Zooplankton EDI/V2"
+root<-"C:/Users/sbashevkin/OneDrive - deltacouncil/Zooplankton synthesis/Zooplankton EDI/V3"
 path_templates <- file.path(root, "metadata_templates")
 path_data <- file.path(root, "data_objects")
 path_eml <- file.path(root, "eml")
@@ -137,8 +137,8 @@ template_taxonomic_coverage(
 
 
 
-#ID<-"edi.230.2" # Sandbox EDI
-ID<-"edi.539.2" # Real EDI
+ID<-"edi.230.3" # Sandbox EDI
+#ID<-"edi.539.2" # Real EDI
 
 zoop_eml<-make_eml(
   path = path_templates,
@@ -170,17 +170,24 @@ zoop_eml<-make_eml(
   package.id=ID
 )
 
-changelog<-list(changeScope="Metadata and data",
-                oldValue="See previous revision 1",
-                changeDate=Sys.Date(),
-                comment="1) Added 2018-2020 20mm data and 2019 EMP, FMWT, and STN data. 
-                         2) Corrected timezone error that was shifting the date of some STN, FMWT, and 20mm samples by 1 day relative to the datetime.
-                         3) Updated FMWT station location coordinates to the newest version from the FMWT database.
-                         4) Corrected inconsistent capitalization of the STN Mont and Honk stations, resulting in correct coordinates for all those samples.
-                         5) Removed EMP Meso Sample corresponding to a mostly empty line at the end of the csv.
-                         6) Added station location for FMWT 520 (=STN 520)
-                         7) Fixed 20mm bottom depths (formally in feet, now correcting to meters like all other studies are converted).
-                         8) Changed the name of the 20mm dataset to '20mm' almost everywhere (except column names) for consistency. It was previously 'twentymm' in some tables.")
+changelog<-list(list(changeScope="Metadata and data",
+                     oldValue="See previous revision 1",
+                     changeDate="2020-12-04",
+                     comment="1) Added 2018-2020 20mm data and 2019 EMP, FMWT, and STN data. 
+                              2) Corrected timezone error that was shifting the date of some STN, FMWT, and 20mm samples by 1 day relative to the datetime.
+                              3) Updated FMWT station location coordinates to the newest version from the FMWT database.
+                              4) Corrected inconsistent capitalization of the STN Mont and Honk stations, resulting in correct coordinates for all those samples.
+                              5) Removed EMP Meso Sample corresponding to a mostly empty line at the end of the csv.
+                              6) Added station location for FMWT 520 (=STN 520)
+                              7) Fixed 20mm bottom depths (formally in feet, now correcting to meters like all other studies are converted).
+                              8) Changed the name of the 20mm dataset to '20mm' almost everywhere (except column names) for consistency. It was previously 'twentymm' in some tables."),
+                list(changeScope="Metadata and data",
+                     oldValue="See previous revision 2",
+                     changeDate=Sys.Date(),
+                     comment="1) Added 2020 EMP and SMSCG data. 
+                              2) Corrected EMP timezones (previously they were imported as PST/PDT but they were always recorded as PST).
+                              3) Fixed error where undersampled taxa were not being flagged correctly.
+                              4) Added EMP amphipod data and set amphipod CPUE to NA when any sampling issues were detected (e.g., vegetation in the net)."))
 class(changelog)<-c("emld", "list")
 
 zoop_eml$dataset$maintenance$changeHistory<-changelog
