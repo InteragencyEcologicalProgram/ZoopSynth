@@ -72,6 +72,20 @@ Effort2_year<-Effort%>%
 
 div<-5
 
+Effort2_month<-Effort%>%
+  mutate(N=replace_na(N, 0))%>%
+  left_join(startDates%>%
+              group_by(Source)%>%
+              summarise(StartYear=year(min(Startdate)), .groups="drop")%>%
+              mutate(Source=recode(Source, twentymm="20mm")),
+            by="Source")%>%
+  filter(Year>=StartYear)%>%
+  group_by(Source, Month)%>%
+  summarise(N=mean(N, na.rm=T), .groups="drop")%>%
+  filter(N>0)%>%
+  mutate(Month=as.integer(Month))%>%
+  mutate(Source=factor(Source, levels=c("EMP", "20mm","FMWT", "STN", "FRP")))
+
 p_year<-ggplot(Effort2_year, aes(y=as.integer(Source)-(N/div)/2, x=Year, fill=Source, height=N/div))+
   geom_tile(width=1, show.legend=T)+
   ylab("Survey")+
@@ -86,20 +100,6 @@ p_year<-ggplot(Effort2_year, aes(y=as.integer(Source)-(N/div)/2, x=Year, fill=So
         panel.grid.major.x=element_line(color = c(rep(NA, 5), rep("grey92", 51), rep("grey50", 6))), 
         axis.ticks.y = element_line(color = c(rep(NA, 5), rep("black", 5))), 
         panel.grid.major.y=element_line(color = c(rep(NA, 5), rep("grey50", 5))))
-
-Effort2_month<-Effort%>%
-  mutate(N=replace_na(N, 0))%>%
-  left_join(startDates%>%
-              group_by(Source)%>%
-              summarise(StartYear=year(min(Startdate)), .groups="drop")%>%
-              mutate(Source=recode(Source, twentymm="20mm")),
-            by="Source")%>%
-  filter(Year>=StartYear)%>%
-  group_by(Source, Month)%>%
-  summarise(N=mean(N, na.rm=T), .groups="drop")%>%
-  filter(N>0)%>%
-  mutate(Month=as.integer(Month))%>%
-  mutate(Source=factor(Source, levels=c("EMP", "20mm","FMWT", "STN", "FRP")))
 
 p_month<-ggplot(Effort2_month, aes(y=as.integer(Source)-(N/div)/2, x=Month, fill=Source, height=N/div))+
   geom_tile(width=1, show.legend=T)+

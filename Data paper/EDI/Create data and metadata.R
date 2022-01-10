@@ -138,18 +138,18 @@ template_taxonomic_coverage(
 
 
 ID<-"edi.230.3" # Sandbox EDI
-#ID<-"edi.539.2" # Real EDI
+#ID<-"edi.539.3" # Real EDI
 
 zoop_eml<-make_eml(
   path = path_templates,
   data.path = path_data,
   eml.path = path_eml, 
   dataset.title = 'Interagency Ecological Program: Zooplankton abundance in the Upper San Francisco Estuary from 1972-2020, an integration of 5 long-term monitoring programs',
-  temporal.coverage = c('1972-01-01', '2020-07-10'),
+  temporal.coverage = c('1972-01-01', '2020-12-04'),
   maintenance.description = 'ongoing',
   data.table = data_files,
   data.table.name = data_files,
-  data.table.description = c("The full dataset optimized for a community ecology analysis. This includes data from the rest of the tables, except the biomass table. So users should either use this file or construct their own dataset with the other tables. This dataset was optimized for community analysis by forcing each survey to have the same set of measured taxa. Any taxa not counted by all datasets was either summed to a higher level that would be comparable with all datasets, or removed if it had no close relatives in all datasets. However, taxonomic resolution is not consistent over time. This dataset was created using the zooper R package v2.2.0 with zoopSynther(Data_type='Community'). To create a more customized dataset and read more information about how this dataset was created, visit https://github.com/InteragencyEcologicalProgram/zooper.",
+  data.table.description = c("The full dataset optimized for a community ecology analysis. This includes data from the rest of the tables, except the biomass table. So users should either use this file or construct their own dataset with the other tables. This dataset was optimized for community analysis by forcing each survey to have the same set of measured taxa. Any taxa not counted by all datasets was either summed to a higher level that would be comparable with all datasets, or removed if it had no close relatives in all datasets. However, taxonomic resolution is not consistent over time. This dataset was created using the zooper R package v2.3.1 with zoopSynther(Data_type='Community'). To create a more customized dataset and read more information about how this dataset was created, visit https://github.com/InteragencyEcologicalProgram/zooper.",
                              "Catch per unit effort of micro, meso, and macro zooplankton from the Upper San Francisco Estuary.", 
                              "Datetime, environmental, and water quality data from the zooplankton surveys. Not all surveys collect data on all variables. This table can be merged to the zooplankton table using the 'SampleID' column as a key.",
                              "Taxonomic heirarchy for each species in this dataset, validated primarily with the World Registry of Marine Species.",
@@ -162,7 +162,7 @@ zoop_eml<-make_eml(
   data.table.quote.character = rep("\"", length(data_files)),
   other.entity = "Data_processing.R",
   other.entity.name = "Data processing code",
-  other.entity.description = "R code used to process data created with the R package zooper (v2.2.0) into the format published here. Data processing mostly involved removing duplicative variables",
+  other.entity.description = "R code used to process data created with the R package zooper (v2.3.1) into the format published here. Data processing mostly involved removing duplicative variables",
   user.domain = "EDI",
   user.id="sbashevkin",
   return.obj=TRUE,
@@ -171,7 +171,7 @@ zoop_eml<-make_eml(
 )
 
 changelog<-list(list(changeScope="Metadata and data",
-                     oldValue="See previous revision 1",
+                     oldValue="See previous version (1)",
                      changeDate="2020-12-04",
                      comment="1) Added 2018-2020 20mm data and 2019 EMP, FMWT, and STN data. 
                               2) Corrected timezone error that was shifting the date of some STN, FMWT, and 20mm samples by 1 day relative to the datetime.
@@ -182,7 +182,7 @@ changelog<-list(list(changeScope="Metadata and data",
                               7) Fixed 20mm bottom depths (formally in feet, now correcting to meters like all other studies are converted).
                               8) Changed the name of the 20mm dataset to '20mm' almost everywhere (except column names) for consistency. It was previously 'twentymm' in some tables."),
                 list(changeScope="Metadata and data",
-                     oldValue="See previous revision 2",
+                     oldValue="See previous version (2)",
                      changeDate=Sys.Date(),
                      comment="1) Added 2020 EMP and SMSCG data. 
                               2) Corrected EMP timezones (previously they were imported as PST/PDT but they were always recorded as PST).
