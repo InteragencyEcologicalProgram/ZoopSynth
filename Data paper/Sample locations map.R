@@ -41,7 +41,7 @@ pout
 
 p<-ggplot() +
   geom_sf(data=base, fill="gray95", color="lightgray")+
-  geom_point(data=Stations, aes(fill = Source, x=Longitude, y=Latitude, shape=Source), alpha=0.5, color="black", stroke=0.1, size=2.5)+
+  geom_point(data=Stations, aes(fill = Source, x=Longitude, y=Latitude, shape=Source), alpha=0.5, color="black", stroke=0.1, size=3)+
   geom_segment(data=labels, aes(x=label_lon, y=label_lat, xend=Longitude, yend=Latitude))+
   geom_label(data=labels, aes(label=label, x=label_lon, y=label_lat))+
   coord_sf(xlim=range(Stations$Longitude), ylim=range(Stations$Latitude))+
@@ -50,7 +50,8 @@ p<-ggplot() +
   annotation_scale(location = "bl") +
   annotation_north_arrow(location = "bl", pad_y=unit(0.05, "npc"), which_north = "true")+
   theme_bw()+
-  theme(legend.background = element_rect(color="black"), legend.position=c(0.925,0.85))+
+  theme(legend.background = element_rect(color="black"), legend.position=c(0.925,0.85), 
+        axis.text = element_text(size=14), axis.title = element_text(size=14))+
   annotation_custom(
     grob = ggplotGrob(pout),
     xmin = -Inf,
