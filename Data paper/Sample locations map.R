@@ -81,3 +81,38 @@ p_FFT<-ggplot() +
   )
 p_FFT
 ggsave("C:/Users/sbashevkin/OneDrive - deltacouncil/Zooplankton synthesis/Food for thought/Map.tiff", plot=p_FFT, device="tiff", width=8, height=8, units = "in")
+
+require(readxl)
+require(lubridate)
+Stations_DOP<-read_excel("Data paper/DOP_SampleSites_2019_2021.xlsx")%>%
+  mutate(Year=year(date),
+         Source="DOP")%>%
+  filter(Year==2021)%>%
+  select(Source, Station=site_id, Latitude=start_latitude, Longitude=start_longitude)%>%
+  distinct()%>%
+  bind_rows(Stations%>%
+              st_drop_geometry)%>%
+  mutate(Source=factor(Source, levels=c("EMP", "20mm", "FMWT", "STN", "FRP", "DOP")))
+
+p_ZR<-ggplot() +
+  geom_sf(data=base, fill="gray95", color="lightgray")+
+  geom_point(data=Stations_DOP, aes(fill = Source, x=Longitude, y=Latitude, shape=Source), alpha=0.5, color="black", stroke=0.1, size=3)+
+  geom_segment(data=labels, aes(x=label_lon, y=label_lat, xend=Longitude, yend=Latitude))+
+  geom_label(data=labels, aes(label=label, x=label_lon, y=label_lat))+
+  coord_sf(xlim=range(Stations_DOP$Longitude), ylim=range(Stations_DOP$Latitude))+
+  scale_fill_brewer(type="qual", palette="Set1", name="Survey")+
+  scale_shape_manual(values=c(21:25, 11), name="Survey", guide=guide_legend(override.aes = list(stroke=1)))+
+  annotation_scale(location = "bl") +
+  annotation_north_arrow(location = "bl", pad_y=unit(0.05, "npc"), which_north = "true")+
+  theme_bw()+
+  theme(legend.background = element_rect(color="black"), legend.position=c(0.925,0.85), 
+        axis.text = element_text(size=14), axis.title = element_text(size=14))+
+  annotation_custom(
+    grob = ggplotGrob(pout),
+    xmin = -Inf,
+    xmax = -122.2,
+    ymin = 38.3,
+    ymax = Inf
+  )
+p_ZR
+ggsave("C:/Users/sbashevkin/OneDrive - deltacouncil/Zooplankton synthesis/Zoop review/Map.png", plot=p_ZR, device="png", width=8, height=8, units = "in")
