@@ -49,7 +49,7 @@ ui <- fluidPage(
                        a(img(src="Logo.jpg", height = 132, width = 100, align="right", style="display: inline-block"), href="https://water.ca.gov/Programs/Environmental-Services/Interagency-Ecological-Program"), 
                        a(img(src="zooper.png", height = 132, width = 114, align="right", style="display: inline-block"), href="https://github.com/InteragencyEcologicalProgram/zooper"), 
                        h5("If you encounter any issues, please email us at ", 
-                          a("shiny@deltacouncil.ca.gov.", href="mailto:shiny@deltacouncil.ca.gov?subject=ZoopSynth%20Shiny%20app"), 
+                          a("sam.bashevkin@waterboards.ca.gov.", href="mailto:sam.bashevkin@waterboards.ca.gov?subject=ZoopSynth%20Shiny%20app"), 
                           "For more info and the code behind this app, visit the ", 
                           a("github repository.", href="https://github.com/InteragencyEcologicalProgram/ZoopSynth"), 
                           "If you are a heavy user, consider downloading and installing the windows desktop application. Instructions are in the ", 
@@ -406,7 +406,7 @@ server <- function(input, output, session) {
                                            of years after a species' introduction that you expect surveys to start counting it (defaults to 2 years"),
                                     "------------------------------------------",
                                     tags$p(tags$b("App created and maintained by Sam Bashevkin with help from the IEP zooplankton synthesis team. 
-                                                  Please email shiny@deltacouncil.ca.gov with any questions or comments"))),
+                                                  Please email sam.bashevkin@waterboards.ca.gov with any questions or comments"))),
                    type = "info",
                    btn_labels = "Ok", html = F, closeOnClickOutside = TRUE)
   })
