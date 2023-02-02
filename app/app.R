@@ -84,8 +84,11 @@ ui <- fluidPage(
            prettyCheckboxGroup("Sources",
                                 "Data sources to include:", outline=T, status="primary", shape="curve",
                                 choices = c("Environmental Monitoring Program (EMP)" = "EMP", 
-                                            "Fish Restoration Program (FRP)" = "FRP", "Fall Midwater Trawl (FMWT)" = "FMWT", 
-                                            "Summer Townet Survey (STN)" = "STN", "20mm Survey (20mm)" = "20mm"), selected="EMP"),
+                                            "Fish Restoration Program (FRP)" = "FRP", 
+                                            "Fall Midwater Trawl (FMWT)" = "FMWT", 
+                                            "Summer Townet Survey (STN)" = "STN", 
+                                            "20mm Survey (20mm)" = "20mm", 
+                                            "Directed Outflow Project (DOP)" = "DOP"), selected="EMP"),
            prettyCheckboxGroup("Size_class",
                                 "Size classes to include:", outline=T, status="primary", shape="curve",
                                 choices = c("Micro (43 \\(\\mu\\)m mesh)"="Micro", "Meso (150-160 \\(\\mu\\)m mesh)"="Meso", 
@@ -367,12 +370,13 @@ server <- function(input, output, session) {
     req(plotdata())
     text <- tags$span(tags$h2("Data are subject to the following caveats:"), 
                       tags$p("Data users are responsible for reading the metadata of all source datasets: ", 
-                             tags$a("EMP, ", href = "ftp://ftp.dfg.ca.gov/IEP_Zooplankton", target="_blank"), 
+                             tags$a("EMP, ", href = "https://doi.org/10.6073/pasta/51bfce9bc26011095d8b99b3a2aee1b8", target="_blank"), 
                              tags$a("FRP, ", href = "http://doi.org/10.6073/pasta/86810e72766ad19fccb1b9dd3955bdf8", target="_blank"), 
-                             tags$a("FMWT, ", href = "ftp://ftp.dfg.ca.gov/TownetFallMidwaterTrawl/FMWT%20Data/", target="_blank"), 
-                             tags$a("STN, ", href = "ftp://ftp.dfg.ca.gov/TownetFallMidwaterTrawl/TNS%20MS%20Access%20Data/TNS%20data/", target="_blank"), 
+                             tags$a("FMWT, ", href = "https://doi.org/10.6073/pasta/00db7da0265df448f167c823fb063a9a", target="_blank"), 
+                             tags$a("STN, ", href = "https://doi.org/10.6073/pasta/00db7da0265df448f167c823fb063a9a", target="_blank"), 
+                             tags$a("20mm", href = "https://filelib.wildlife.ca.gov/public/Delta%20Smelt/", target="_blank"), 
                              "and", 
-                             tags$a("20mm", href = "ftp://ftp.wildlife.ca.gov/Delta%20Smelt/", target="_blank")), 
+                             tags$a("DOP", href = "https://doi.org/10.6073/pasta/73b4acc0e1a72cb31d95ba96a4071fbc", target="_blank")), 
                       map(plotdata()$Caveats, tags$p))
   })
   
@@ -718,8 +722,8 @@ server <- function(input, output, session) {
   Sampleplot <- reactive({
     
     #Set color palette
-    myColors <- RColorBrewer::brewer.pal(5,"Set2")
-    names(myColors) <- c("EMP", "FMWT", "STN", "20mm", "FRP")
+    myColors <- RColorBrewer::brewer.pal(6,"Set2")
+    names(myColors) <- c("EMP", "FMWT", "STN", "20mm", "FRP", "DOP")
     fillScale <- scale_fill_manual(name = "Source", values = myColors)
     
     #Create tooltip text template for mouse hovers
@@ -830,12 +834,12 @@ server <- function(input, output, session) {
         {if(input$Salzones){
             {if(Facet){
               ggplot(., aes(x=Year, y=CPUE))+
-              geom_line(size=1, aes(color=Taxlifestage))+
+              geom_line(linewidth=1, aes(color=Taxlifestage))+
                 geom_point_interactive(size=2, aes(color=Taxlifestage, tooltip=tooltip, data_id = ID))+
                 facet_wrap(~Salinity_zone, nrow=1)
             } else{
               ggplot(., aes(x=Year, y=CPUE))+
-              geom_line(size=1, aes(color=Taxlifestage, linetype=Salinity_zone))+
+              geom_line(linewidth=1, aes(color=Taxlifestage, linetype=Salinity_zone))+
                 geom_point_interactive(size=2, aes(color=Taxlifestage, shape=Salinity_zone, tooltip=tooltip, data_id = ID))+
                 scale_shape_discrete(name="Salinity zone")+
                 scale_linetype_manual(name="Salinity zone", values=c(3,2,1))
@@ -848,7 +852,7 @@ server <- function(input, output, session) {
             theme(panel.grid=element_blank(), text=element_text(size=14), legend.text = element_text(size=10), strip.background=element_blank())
         } else{
           ggplot(., aes(x=Year, y=CPUE))+
-            geom_line(size=1, aes(color=Taxlifestage))+
+            geom_line(linewidth=1, aes(color=Taxlifestage))+
             geom_point_interactive(size=2, aes(color=Taxlifestage, tooltip=tooltip, data_id = ID))+
             coord_cartesian(expand=0)+
             scale_x_continuous(breaks = function(x) unique(floor(pretty(seq(min(x), max(x)), n=4))), expand=c(0,0))+

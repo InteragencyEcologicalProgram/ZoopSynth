@@ -32,7 +32,7 @@ effort_plot<-function(source){
                    source=="FRP" ~ "#ff7f00")
   
   p<-ggplot(filter(Effort, Source==source), aes(x=Year, y=N))+
-    geom_line(size=1, color=Color)+
+    geom_line(linewidth=1, color=Color)+
     geom_point(size=1, color=Color)+
     geom_blank(data=filter(axis_lims, Source==source))+
     facet_grid(Month~Source)+
